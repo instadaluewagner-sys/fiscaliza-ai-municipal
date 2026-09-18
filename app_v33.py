@@ -604,3 +604,193 @@ document.getElementById("q").addEventListener("keydown",function(e){if(e.key==="
 </script>
 </body>
 </html>"""
+
+
+# --- Interface premium v3.5 ---
+HTML = r"""<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fiscaliza.AI Municipal</title>
+<style>
+:root{
+  --navy:#102a43;--navy2:#173d5f;--teal:#0f766e;--teal-soft:#eaf6f4;
+  --blue:#2458d3;--ink:#172033;--muted:#6b7b8f;--line:#dbe3ec;--bg:#f4f7fa;
+  --white:#fff;--soft:#f8fafc;--warn:#b7791f;--warn-soft:#fff8e7;--ok:#15803d;
+  --shadow:0 10px 30px rgba(16,42,67,.07)
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.5}
+button,input{font:inherit}
+.topbar{height:70px;background:var(--navy);color:#fff;display:flex;align-items:center;position:sticky;top:0;z-index:30;border-bottom:1px solid rgba(255,255,255,.08)}
+.topbar-inner{width:min(1460px,calc(100% - 44px));margin:auto;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand{display:flex;align-items:center;gap:12px}.brandmark{width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.22);display:grid;place-items:center;font-weight:900;background:rgba(255,255,255,.06)}
+.brandtext strong{display:block;font-size:17px}.brandtext span{font-size:10px;color:#c5d4df;text-transform:uppercase;letter-spacing:.11em}
+.live{display:flex;align-items:center;gap:8px;color:#dce8ef;font-size:12px}.dot{width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 4px rgba(74,222,128,.12)}
+.shell{width:min(1460px,calc(100% - 44px));margin:30px auto 64px}
+.hero{display:grid;grid-template-columns:1.5fr .5fr;gap:18px}
+.hero-main,.hero-side,.panel,.section{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+.hero-main{padding:36px 38px}.eyebrow{font-size:11px;font-weight:900;color:var(--teal);letter-spacing:.12em;text-transform:uppercase}
+.hero h1{margin:10px 0 0;font-size:clamp(34px,4vw,56px);line-height:1.04;letter-spacing:-1.6px;color:var(--navy);max-width:980px}
+.hero p{margin:18px 0 0;color:var(--muted);font-size:16px;max-width:860px}
+.trust{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}.trust span{font-size:12px;color:#405166;background:#f7fafc;border:1px solid var(--line);border-radius:999px;padding:7px 10px}
+.hero-side{padding:26px;display:flex;flex-direction:column;justify-content:space-between}.hero-side h3{margin:0 0 14px;color:var(--navy);font-size:15px}
+.step{display:flex;gap:11px;padding:11px 0;border-top:1px solid var(--line)}.step:first-of-type{border-top:0}.num{width:28px;height:28px;border-radius:8px;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:900}
+.step b{display:block;font-size:13px}.step small{display:block;font-size:11px;color:var(--muted);margin-top:2px}.version{font-size:10px;color:var(--muted);padding-top:14px;border-top:1px solid var(--line);margin-top:16px}
+.panel{margin-top:18px;padding:24px 26px}.panel-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:16px}.kicker{font-size:10px;font-weight:900;color:var(--teal);letter-spacing:.12em;text-transform:uppercase}.title{font-size:20px;color:var(--navy);margin:4px 0 0;letter-spacing:-.25px}.desc{font-size:12px;color:var(--muted);margin:5px 0 0}
+.uploadbox{border:1.5px dashed #9fb2c4;border-radius:14px;background:var(--soft);padding:20px;display:flex;justify-content:space-between;align-items:center;gap:18px}.uploadcopy{display:flex;gap:13px;align-items:center}.uploadicon{width:46px;height:46px;border-radius:12px;background:var(--teal-soft);color:var(--teal);display:grid;place-items:center;font-size:21px}.uploadcopy strong{display:block;color:var(--navy);font-size:14px}.uploadcopy span{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.btn{border:0;border-radius:10px;padding:11px 17px;font-weight:800;cursor:pointer;transition:.15s}.btn:hover{transform:translateY(-1px)}.btn-primary{background:var(--navy);color:white}.btn-blue{background:var(--blue);color:white}.fileinput{max-width:410px}
+#status{font-size:12px;color:var(--muted);margin-top:11px}
+.section{padding:24px 26px;margin-top:18px}.section h2{margin:4px 0 16px;font-size:20px;color:var(--navy);letter-spacing:-.25px}.section p{color:#405166}
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.summary-card{border:1px solid var(--line);border-radius:13px;padding:15px;background:#fbfcfe}.summary-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#7a8899;font-weight:900}.summary-value{font-size:15px;font-weight:800;margin-top:7px;color:var(--ink);display:flex;gap:8px;align-items:center}.state{width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;font-size:11px;font-weight:900}.state.ok{background:#e7f6eb;color:var(--ok)}.state.neutral{background:#eef2f7;color:#617084}.state.warn{background:#fff3d6;color:var(--warn)}
+.piece-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.piece{border:1px solid var(--line);border-radius:13px;padding:15px;background:#fff}.piece-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.piece-icon{width:34px;height:34px;border-radius:9px;background:var(--teal-soft);color:var(--teal);display:grid;place-items:center;font-weight:900}.piece-name{font-weight:850;color:var(--navy);font-size:14px;flex:1}.source{font-size:11px;color:var(--muted);margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.page-chip{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;background:#edf3f8;color:#3e5268;font-size:10px;font-weight:800}
+details.mentions{border:1px solid var(--line);border-radius:14px;background:#fff;margin-top:18px;overflow:hidden}.mentions summary{list-style:none;cursor:pointer;padding:17px 18px;display:flex;justify-content:space-between;gap:14px;align-items:center}.mentions summary::-webkit-details-marker{display:none}.mentions-title{font-weight:850;color:var(--navy)}.mentions-sub{font-size:11px;color:var(--muted);display:block;margin-top:2px}.chev{font-size:13px;color:var(--muted)}.mention-body{border-top:1px solid var(--line);padding:12px 18px 16px;background:#fbfcfe}.mention-row{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px dashed #dce5ed}.mention-row:last-child{border-bottom:0}.mention-row b{font-size:12px;color:#31465b}.mention-row span{font-size:10px;color:var(--muted);text-align:right}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}.finding{border:1px solid #e1e8ef;border-radius:12px;padding:14px;background:#fcfdfe;margin:9px 0;display:grid;grid-template-columns:30px 1fr;gap:11px}.finding-num{width:28px;height:28px;border-radius:8px;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:900}.finding-text{font-size:12px;color:#2a3c50}.finding-foot{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}.file-name{font-size:10px;color:var(--muted);max-width:360px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.warning{border:1px solid #efdca6;border-left:3px solid #d99a16;background:var(--warn-soft);padding:13px 15px;border-radius:0 10px 10px 0;font-size:12px;margin:9px 0}
+.qa{display:flex;gap:10px}.qa input{flex:1;min-width:0;border:1px solid #b9c8d7;border-radius:11px;padding:13px 14px;outline:none}.qa input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(36,88,211,.08)}
+.answer-box{display:none;margin-top:16px;border:1px solid #d8e5f3;border-radius:14px;background:#f8fbff;overflow:hidden}.answer-head{padding:11px 14px;background:#eef5fb;border-bottom:1px solid #d8e5f3;font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:900;color:var(--navy)}.answer-text{padding:15px;font-size:13px;color:#26394f}.sources{padding:0 15px 15px}.source-card{display:inline-block;border:1px solid #dce5ed;background:white;border-radius:9px;padding:7px 9px;margin:4px 5px 0 0;font-size:10px;color:#536579}
+.footer-actions{display:flex;justify-content:space-between;gap:18px;align-items:center}.footnote{font-size:11px;color:var(--muted);max-width:720px}
+.loading{display:inline-flex;gap:8px;align-items:center}.spinner{width:14px;height:14px;border:2px solid #ccd6e1;border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.empty{font-size:12px;color:var(--muted);padding:6px 0}
+@media(max-width:1050px){.hero{grid-template-columns:1fr}.hero-side{display:none}.piece-grid{grid-template-columns:repeat(2,1fr)}.summary-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.topbar-inner,.shell{width:min(100% - 24px,1460px)}.shell{margin-top:18px}.hero-main,.panel,.section{padding:20px}.hero h1{font-size:34px}.cols,.piece-grid,.summary-grid{grid-template-columns:1fr}.uploadbox,.qa,.footer-actions{flex-direction:column;align-items:stretch}.btn{width:100%}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brandmark">F.AI</div>
+      <div class="brandtext"><strong>Fiscaliza.AI Municipal</strong><span>Copiloto auditável para gestão pública</span></div>
+    </div>
+    <div class="live"><span class="dot"></span><span>Sistema operacional</span></div>
+  </div>
+</header>
+
+<main class="shell">
+  <section class="hero">
+    <div class="hero-main">
+      <div class="eyebrow">Análise documental com rastreabilidade</div>
+      <h1>Do processo extenso à evidência que sustenta a decisão.</h1>
+      <p>Organize peças, identifique contradições, acompanhe o contraditório e consulte os autos com indicação de páginas — sem substituir a análise humana.</p>
+      <div class="trust">
+        <span>✓ OCR em português</span><span>✓ Peça ≠ menção</span><span>✓ Respostas com fonte</span><span>✓ Decisão humana preservada</span>
+      </div>
+    </div>
+    <aside class="hero-side">
+      <div>
+        <h3>Fluxo de auditoria</h3>
+        <div class="step"><div class="num">01</div><div><b>Leitura</b><small>PDF textual ou digitalizado.</small></div></div>
+        <div class="step"><div class="num">02</div><div><b>Classificação</b><small>Peças e menções separadas.</small></div></div>
+        <div class="step"><div class="num">03</div><div><b>Consulta</b><small>Resposta ligada à evidência.</small></div></div>
+      </div>
+      <div class="version">VERSÃO 3.5 · APRESENTAÇÃO PREMIUM</div>
+    </aside>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><div><div class="kicker">Iniciar análise</div><h2 class="title">Carregue os autos do processo</h2><p class="desc">Selecione um ou mais PDFs. O sistema organiza as evidências por página.</p></div></div>
+    <div class="uploadbox">
+      <div class="uploadcopy"><div class="uploadicon">↥</div><div><strong>Selecione os documentos</strong><span>PDFs com texto ou páginas escaneadas.</span></div></div>
+      <div class="actions"><input class="fileinput" id="files" type="file" multiple accept="application/pdf"><button class="btn btn-primary" onclick="analisar()">Analisar processo</button></div>
+    </div>
+    <div id="status"></div>
+  </section>
+
+  <div id="result"></div>
+
+  <section class="panel">
+    <div class="panel-head"><div><div class="kicker">Consulta aos autos</div><h2 class="title">Pergunte ao processo</h2><p class="desc">Faça perguntas objetivas. As respostas vêm acompanhadas das fontes disponíveis.</p></div></div>
+    <div class="qa"><input id="q" type="text" placeholder="Ex.: A empresa apresentou defesa? Em quais páginas e quais os principais argumentos?"><button class="btn btn-blue" onclick="perguntar()">Perguntar</button></div>
+    <div id="answer" class="answer-box"><div class="answer-head">Resposta fundamentada</div><div id="answerText" class="answer-text"></div><div id="sources" class="sources"></div></div>
+  </section>
+
+  <section class="panel">
+    <div class="footer-actions">
+      <div><div class="kicker">Documentação da análise</div><h2 class="title">Relatório para revisão humana</h2><p class="footnote">Consolida achados automáticos e referências. Não substitui a decisão administrativa nem dispensa a conferência dos autos originais.</p></div>
+      <button class="btn btn-primary" onclick="relatorio()">Baixar relatório PDF</button>
+    </div>
+  </section>
+</main>
+
+<script>
+var analysisId=null;
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
+function pagesText(p){return p.join(", ")}
+function sourceLabel(file){
+  var m=String(file||"").match(/Protocolo[-_ ]?([0-9.]+)/i);
+  if(m)return "Processo "+m[1];
+  var s=String(file||"").replace(/\.pdf$/i,"").replace(/[-_]+/g," ");
+  return s.length>46?s.slice(0,46)+"…":s
+}
+function stateIcon(ok,unknown){return '<span class="state '+(unknown?'neutral':ok?'ok':'warn')+'">'+(unknown?'?':ok?'✓':'!')+'</span>'}
+function pageChip(pg){return '<span class="page-chip">p. '+esc(pg)+'</span>'}
+async function analisar(){
+  var fs=document.getElementById("files").files;if(!fs.length){alert("Selecione pelo menos um PDF.");return}
+  var fd=new FormData();for(var i=0;i<fs.length;i++)fd.append("files",fs[i]);
+  var st=document.getElementById("status");st.innerHTML='<span class="loading"><span class="spinner"></span> Lendo e classificando os documentos…</span>';
+  var r=await fetch("/api/analyze",{method:"POST",body:fd});var d=await r.json();
+  if(!r.ok){st.textContent=d.detail||"Não foi possível analisar os documentos.";return}
+  analysisId=d.analysis_id;localStorage.setItem("fiscaliza_analysis_id",analysisId);
+  st.textContent=d.pages+" páginas analisadas · OCR em "+d.ocr_pages+" página(s)";
+  var a=d.analysis;var h="";
+  var qUnknown=String(a.quantity.value).toLowerCase().indexOf("não identificado")>=0;
+
+  h+='<section class="section"><div class="kicker">Resumo executivo</div><h2>Análise assistida</h2><p>'+esc(a.conclusion)+'</p><div class="summary-grid">';
+  h+='<div class="summary-card"><div class="summary-label">Defesa</div><div class="summary-value">'+stateIcon(a.has.defesa,false)+(a.has.defesa?"Localizada":"Não localizada")+'</div></div>';
+  h+='<div class="summary-card"><div class="summary-label">Notificação / intimação</div><div class="summary-value">'+stateIcon(a.has.notificacao||a.has.intimacao,false)+((a.has.notificacao||a.has.intimacao)?"Localizada":"Não localizada")+'</div></div>';
+  h+='<div class="summary-card"><div class="summary-label">Decisão</div><div class="summary-value">'+stateIcon(a.has.decisao,false)+(a.has.decisao?"Localizada":"Não localizada")+'</div></div>';
+  h+='<div class="summary-card"><div class="summary-label">Quantidade total</div><div class="summary-value">'+stateIcon(!qUnknown,qUnknown)+esc(qUnknown?"Inconclusivo":a.quantity.value)+'</div></div></div></section>';
+
+  h+='<section class="section"><div class="kicker">Peças essenciais</div><h2>Estrutura do processo</h2><div class="piece-grid">';
+  if(!a.pieces.length)h+='<div class="empty">Nenhuma peça classificada com segurança.</div>';
+  for(var j=0;j<a.pieces.length;j++){
+    var x=a.pieces[j], ptxt=pagesText(x.pages), sl=sourceLabel(x.file);
+    h+='<article class="piece" title="'+esc(x.file)+'"><div class="piece-top"><div class="piece-icon">✓</div><div class="piece-name">'+esc(x.label)+'</div>'+pageChip(ptxt)+'</div><div class="source">'+esc(sl)+'</div></article>'
+  }
+  h+='</div></section>';
+
+  h+='<details class="mentions"><summary><div><span class="mentions-title">Referências internas</span><span class="mentions-sub">Ver '+a.mentions.length+' tipos de menções que não foram tratadas como peças autônomas</span></div><span class="chev">▾</span></summary><div class="mention-body">';
+  if(!a.mentions.length)h+='<div class="empty">Nenhuma menção adicional relevante.</div>';
+  for(var j=0;j<a.mentions.length;j++){
+    var x=a.mentions[j];h+='<div class="mention-row"><b>'+esc(x.label)+'</b><span title="'+esc(x.file)+'">'+esc(sourceLabel(x.file))+' · p. '+esc(pagesText(x.pages))+'</span></div>'
+  }
+  h+='</div></details>';
+
+  h+='<div class="cols"><section class="section"><div class="kicker">Contraditório</div><h2>Elementos favoráveis à defesa</h2>';
+  if(!a.defense.length)h+='<div class="empty">Nenhum argumento específico extraído automaticamente.</div>';
+  for(var j=0;j<a.defense.length;j++){
+    var x=a.defense[j];h+='<div class="finding"><div class="finding-num">'+(j+1)+'</div><div><div class="finding-text">'+esc(x.text)+'</div><div class="finding-foot">'+pageChip(x.page)+'<span class="file-name" title="'+esc(x.file)+'">'+esc(sourceLabel(x.file))+'</span></div></div></div>'
+  }
+  h+='</section><section class="section"><div class="kicker">Confronto documental</div><h2>Pontos a confrontar</h2>';
+  if(!a.contra.length)h+='<div class="empty">Nenhum ponto contrário específico extraído automaticamente.</div>';
+  for(var j=0;j<a.contra.length;j++){
+    var x=a.contra[j];h+='<div class="finding"><div class="finding-num">'+(j+1)+'</div><div><div class="finding-text">'+esc(x.text)+'</div><div class="finding-foot">'+pageChip(x.page)+'<span class="file-name" title="'+esc(x.file)+'">'+esc(sourceLabel(x.file))+'</span></div></div></div>'
+  }
+  h+='</section></div>';
+
+  h+='<section class="section"><div class="kicker">Cautelas da análise</div><h2>Pendências e limites</h2>';
+  if(!a.pending.length)h+='<div class="empty">Nenhuma pendência automática relevante identificada.</div>';
+  for(var j=0;j<a.pending.length;j++)h+='<div class="warning">'+esc(a.pending[j])+'</div>';
+  h+='</section>';
+
+  document.getElementById("result").innerHTML=h;
+  document.getElementById("result").scrollIntoView({behavior:"smooth",block:"start"});
+}
+async function perguntar(){
+  var q=document.getElementById("q").value.trim();if(!q)return;
+  analysisId=analysisId||localStorage.getItem("fiscaliza_analysis_id");
+  var box=document.getElementById("answer"),txt=document.getElementById("answerText"),src=document.getElementById("sources");
+  box.style.display="block";
+  if(!analysisId){txt.textContent="Analise um processo primeiro.";src.innerHTML="";return}
+  txt.innerHTML='<span class="loading"><span class="spinner"></span> Consultando os autos…</span>';src.innerHTML="";
+  var r=await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({analysis_id:analysisId,question:q})});
+  var d=await r.json();if(!r.ok){txt.textContent=d.detail||"Não foi possível responder.";return}
+  txt.textContent=d.answer;
+  src.innerHTML=(d.sources||[]).map(function(x){return '<span class="source-card">'+esc(x)+'</span>'}).join("");
+}
+function relatorio(){analysisId=analysisId||localStorage.getItem("fiscaliza_analysis_id");if(!analysisId){alert("Analise um processo primeiro.");return}location.href="/api/report/"+analysisId}
+document.getElementById("q").addEventListener("keydown",function(e){if(e.key==="Enter")perguntar()});
+</script>
+</body>
+</html>"""
