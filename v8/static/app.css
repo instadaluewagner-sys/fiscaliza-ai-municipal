@@ -37,6 +37,9 @@ header p,.note,.panel p{color:var(--muted)}
 .session-end:hover{background:#f5f8fa;color:#17334b}
 .process-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
 .chip{border:1px solid var(--line);border-radius:999px;padding:4px 7px;background:#f8fafb;color:#53697d;font-size:8.5px;font-weight:750}
+.quality-alert{margin-top:10px;padding:9px 10px;border:1px solid #e7c887;border-radius:9px;background:#fffaf0;color:#765d2d}
+.quality-alert b{display:block;font-size:8.7px;text-transform:uppercase;letter-spacing:.04em;color:#8b650c}
+.quality-alert span{display:block;font-size:8.2px;line-height:1.45;margin-top:3px}
 .stage-card{margin-top:13px;border:1px solid #dce5eb;border-radius:10px;background:#fbfcfd;padding:11px 12px}
 .stage-card small{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.06em;font-weight:850}
 .stage-card strong{display:block;color:var(--navy);font-size:12px;margin-top:3px}
