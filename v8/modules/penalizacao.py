@@ -61,7 +61,9 @@ def _candidate_key(value: str) -> str:
 
 
 def _clean_company(value: str) -> str | None:
-    value = re.sub(r"\s+", " ", value or "").strip(" \t\n:;,.–—-")
+    value = re.sub(r"[\x00-\x1f\x7f]+", " ", value or "")
+    value = re.sub(r"\s+", " ", value).strip(" \t\n:;,.–—-")
+    value = re.sub(r"(?i)^\s*(?:a\s+|à\s+)?empresa\s+", "", value).strip()
     value = re.split(
         r"(?i)\b(?:CNPJ|CPF|Objeto|Contrato|Preg[aã]o|Ata\s+de\s+Registro|Assinado\s+por|Representante|Endere[cç]o|Telefone|E-?mail)\b",
         value,
@@ -758,6 +760,7 @@ def _has_sanction_command(text: str) -> bool:
         r"(?:decido.{0,80})?aplic(?:o|ar|a-se).{0,80}(?:sancao|penalidade|multa|advertencia|impedimento|inidoneidade)",
         r"fica\s+aplicada.{0,80}(?:sancao|penalidade|multa|advertencia)",
         r"imponho.{0,80}(?:sancao|penalidade|multa|advertencia|impedimento)",
+        r"declar(?:o|ar).{0,80}(?:suspensao|impedimento|inidoneidade)",
         r"declaro.{0,40}inidone",
     ]
     return any(re.search(p, text) for p in positive)
@@ -1016,6 +1019,7 @@ def build_evidence(documents: list[Document], stage: StageResult | None = None):
             [
                 r"aplic(?:o|ar|a-se).{0,80}(?:san[cç][aã]o|penalidade|multa|advert[eê]ncia|impedimento|inidoneidade)",
                 r"fica\s+aplicada.{0,80}(?:san[cç][aã]o|penalidade|multa|advert[eê]ncia)",
+                r"declar(?:o|ar).{0,80}(?:suspens[aã]o|impedimento|inidoneidade)",
                 r"deixo\s+de\s+aplicar.{0,80}(?:san[cç][aã]o|penalidade|multa)",
                 r"julgo.{0,80}(?:improcedente|insubsistente)",
                 r"(?:decido|determino).{0,100}(?:o\s+)?arquivamento",
