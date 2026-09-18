@@ -1,6 +1,6 @@
 import re
 import unicodedata
-from v8.core.models import AnalysisResult, ChecklistItem, Document, PendingItem, ProcessProfile, StageResult
+from v8.core.models import AnalysisResult, ChecklistItem, Document, PageRef, PendingItem, ProcessProfile, StageResult
 from v8.services.evidence import evidence_from_document
 from v8.services.timeline import build_timeline
 from v8.services.quality import validate_analysis_integrity
@@ -23,67 +23,181 @@ def find_first(text: str, patterns: list[str]):
             return re.sub(r"\s+", " ", m.group(1)).strip()
     return None
 
-def _preferred_text(documents: list[Document], types: tuple[str, ...]) -> str:
-    return "\n".join(d.text for d in documents if d.type in types)
+def _iter_doc_pages(doc: Document):
+    if doc.page_texts:
+        for page in sorted(doc.page_texts):
+            yield page, doc.page_texts[page]
+    else:
+        yield doc.page_start, doc.text
 
-def _safe_quantity(documents: list[Document]):
-    # Quantidade só é inferida de peças de contratação/execução e com expressão
-    # suficientemente explícita. Isso evita transformar uma simulação logística
-    # ("60 unidades por viagem") em quantidade contratada.
-    source = _preferred_text(
-        documents,
-        ("contrato", "ata_registro_precos", "empenho", "ordem_fornecimento", "termo_referencia"),
-    )
-    if not source:
-        return None
+
+def _find_sourced(
+    documents: list[Document],
+    patterns: list[str],
+    preferred_types: tuple[str, ...] | None = None,
+    fallback_all: bool = True,
+):
+    preferred = [
+        d for d in documents
+        if not preferred_types or d.type in preferred_types
+    ]
+    ordered = preferred[:]
+    if fallback_all:
+        ordered += [d for d in documents if d not in preferred]
+
+    for doc in ordered:
+        for page, text in _iter_doc_pages(doc):
+            for pattern in patterns:
+                m = re.search(pattern, text, flags=re.I)
+                if m:
+                    value = re.sub(r"\s+", " ", m.group(1)).strip(" \t\n:;,.–—-")
+                    if value:
+                        return value, PageRef(
+                            file=doc.file,
+                            page=page,
+                            document_id=doc.id,
+                        )
+    return None, None
+
+
+def _find_all_identifiers(
+    documents: list[Document],
+    pattern: str,
+    preferred_types: tuple[str, ...],
+) -> tuple[list[str], PageRef | None]:
+    values = []
+    first_source = None
+    for doc in documents:
+        if doc.type not in preferred_types:
+            continue
+        for page, text in _iter_doc_pages(doc):
+            for m in re.finditer(pattern, text, flags=re.I):
+                value = re.sub(r"\s+", " ", m.group(1)).strip(" \t\n:;,.–—-")
+                if value and value not in values:
+                    values.append(value)
+                    if first_source is None:
+                        first_source = PageRef(file=doc.file, page=page, document_id=doc.id)
+    return values, first_source
+
+
+def _safe_quantity_sourced(documents: list[Document]):
     patterns = [
         r"(?:quantidade\s+total|quantidade\s+contratada|total\s+contratado)\s*[:.-]?\s*(\d{1,7}\s+(?:kits?|unidades?|itens?|caixas?|frascos?|equipamentos?)(?:\s+de\s+[^.,;\n]{2,80})?)",
         r"(?:objeto|fornecimento|aquisi[cç][aã]o)\s+(?:de\s+)?(\d{1,7}\s+(?:kits?|unidades?|itens?|caixas?|frascos?|equipamentos?)(?:\s+de\s+[^.,;\n]{2,80})?)",
     ]
-    return find_first(source, patterns)
+    return _find_sourced(
+        documents,
+        patterns,
+        preferred_types=("contrato","ata_registro_precos","empenho","ordem_fornecimento","termo_referencia"),
+        fallback_all=False,
+    )
+
 
 def build_profile(documents: list[Document]) -> ProcessProfile:
-    all_text = "\n".join(d.text for d in documents)
-    contracting_text = _preferred_text(
-        documents,
-        ("contrato", "ata_registro_precos", "empenho", "ordem_fornecimento", "termo_referencia", "notificacao"),
-    ) or all_text
+    sources: dict[str, PageRef] = {}
 
-    process_number = find_first(
-        all_text,
+    process_number, src = _find_sourced(
+        documents,
         [r"Processo Administrativo de Penaliza[cç][aã]o\s*(?:n[ºo.]?)?\s*[:.-]?\s*([0-9./-]+)"],
     )
-    origin_process = find_first(
-        all_text,
+    if src:
+        sources["process_number"] = src
+
+    origin_process, src = _find_sourced(
+        documents,
         [
-            r"(?:Processo|Protocolo)\s+(?:de\s+origem\s+)?(?:n[ºo.]?)?\s*[:.-]?\s*([0-9./-]+)",
-            r"\bPROCESSO\s+N[ºO.]?\s*[:.-]\s*([0-9./-]+)",
+            r"(?:Processo|Protocolo)\s+(?:de\s+origem\s+)?(?:n[ºo.]?)?\s*[:.-]?\s*([0-9][0-9./-]{2,})",
+            r"\bPROCESSO\s+N[ºO.]?\s*[:.-]\s*([0-9][0-9./-]{2,})",
         ],
     )
+    if src:
+        sources["origin_process"] = src
 
-    company = find_first(
-        contracting_text,
+    preferred_contractual = (
+        "contrato","ata_registro_precos","empenho","ordem_fornecimento",
+        "termo_referencia","notificacao","decisao","defesa"
+    )
+
+    company, src = _find_sourced(
+        documents,
         [
             r"(?:Empresa|Contratada|Interessada)\s*[:.-]\s*([^\n]{3,120})",
             r"\bempresa\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9][A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9 .&-]{4,100}(?:LTDA|S/A|EIRELI))\b",
         ],
+        preferred_types=preferred_contractual,
     )
-    cnpj = find_first(contracting_text, [r"\bCNPJ(?:/MF)?\s*[:.-]?\s*([0-9./-]{14,20})"])
-    object_description = find_first(
-        contracting_text,
+    if src:
+        sources["company"] = src
+
+    cnpj, src = _find_sourced(
+        documents,
+        [r"\bCNPJ(?:/MF)?\s*[:.-]?\s*([0-9./-]{14,20})"],
+        preferred_types=preferred_contractual,
+    )
+    if src:
+        sources["cnpj"] = src
+
+    pregao, src = _find_sourced(
+        documents,
+        [r"\bPreg[aã]o(?:\s+Eletr[oô]nico)?\s*(?:n[ºo.]?|n[uú]mero)?\s*[:.-]?\s*([0-9./-]+)"],
+        preferred_types=("pregao","edital","contrato","ata_registro_precos","notificacao","decisao"),
+    )
+    if src:
+        sources["pregao"] = src
+
+    ata, src = _find_sourced(
+        documents,
+        [r"\bAta\s+de\s+Registro\s+de\s+Pre[cç]os\s*(?:n[ºo.]?|n[uú]mero)?\s*[:.-]?\s*([0-9./-]+)"],
+        preferred_types=("ata_registro_precos","contrato","ordem_fornecimento","notificacao"),
+    )
+    if src:
+        sources["ata"] = src
+
+    contrato, src = _find_sourced(
+        documents,
+        [
+            r"\bContrato(?:\s+Administrativo|\s+de\s+Fornecimento(?:\s+de\s+Mercadorias)?)?\s*(?:n[ºo.]?|n[uú]mero)?\s*[:.-]?\s*([0-9./-]+)"
+        ],
+        preferred_types=("contrato","notificacao","decisao","parecer_juridico","defesa"),
+    )
+    if src:
+        sources["contrato"] = src
+
+    empenhos, src = _find_all_identifiers(
+        documents,
+        r"\b(?:Nota\s+de\s+Empenho|Empenho)\s*(?:n[ºo.]?|n[uú]mero)?\s*[:.-]?\s*([0-9./-]+)",
+        preferred_types=("empenho","contrato","ordem_fornecimento","relatorio_tecnico","notificacao"),
+    )
+    if src:
+        sources["empenhos"] = src
+
+    object_description, src = _find_sourced(
+        documents,
         [
             r"Objeto(?:\s+do\s+Contrato)?\s*[:.-]\s*([^\n]{5,180})",
             r"\btem\s+por\s+objeto\s+(?:o\s+)?([^\n.]{5,180})",
         ],
+        preferred_types=("contrato","ata_registro_precos","termo_referencia","notificacao","decisao"),
     )
+    if src:
+        sources["object_description"] = src
+
+    quantity, src = _safe_quantity_sourced(documents)
+    if src:
+        sources["quantity"] = src
 
     return ProcessProfile(
         process_number=process_number,
         origin_process=origin_process,
         company=company,
         cnpj=cnpj,
+        pregao=pregao,
+        ata=ata,
+        contrato=contrato,
+        empenhos=empenhos,
         object_description=object_description,
-        quantity=_safe_quantity(documents),
+        quantity=quantity,
+        sources=sources,
     )
 
 def item(key: str, label: str, status: str, reason: str, docs=None) -> ChecklistItem:
