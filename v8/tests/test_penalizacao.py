@@ -37,3 +37,23 @@ def test_decisao_de_origem_que_autoriza_novo_pas_nao_e_julgamento_sancionador():
     result=analyze_penalizacao(docs)
     assert result.stage.key=="instauracao_sancionadora_autorizada"
     assert result.stage.suggested_draft=="despacho_instauracao"
+
+
+def test_atos_do_processo_de_origem_nao_preenchem_fases_do_futuro_pas():
+    docs=[
+        doc(1,"notificacao","NOTIFICAÇÃO EXTRAJUDICIAL para início imediato das entregas do contrato.",1),
+        doc(2,"defesa","DEFESA ADMINISTRATIVA sobre a extinção contratual.",2),
+        doc(3,"parecer_juridico","PARECER JURÍDICO sobre extinção unilateral do contrato.",3),
+        doc(4,"decisao","DESPACHO Nº 693/2025. DEFIRO a extinção unilateral e AUTORIZO A ABERTURA DE PROCESSO ADMINISTRATIVO SANCIONADOR para apuração das penalidades cabíveis.",4),
+    ]
+    result=analyze_penalizacao(docs)
+    assert result.stage.key=="instauracao_sancionadora_autorizada"
+
+    rows={x.key:x for x in result.checklist}
+    assert rows["autorizacao_pas"].status=="located"
+    assert rows["notificacao"].status=="not_found"
+    assert rows["defesa"].status=="not_applicable"
+    assert rows["decisao"].status=="not_applicable"
+
+    facts=[x.fact for x in result.evidence]
+    assert any("processo de origem" in x.lower() for x in facts)
