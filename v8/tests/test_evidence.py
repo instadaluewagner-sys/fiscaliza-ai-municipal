@@ -1,5 +1,7 @@
 from v8.core.models import Document
 from v8.services.evidence import evidence_from_document
+from v8.services.document_segmenter import segment_documents
+from v8.modules.penalizacao import analyze_penalizacao
 
 def test_evidencia_aponta_pagina_exata_da_peca_multiplas_paginas():
     doc=Document(
@@ -22,3 +24,24 @@ def test_evidencia_aponta_pagina_exata_da_peca_multiplas_paginas():
     assert ev.document_id=="DOC-010"
     assert ev.page==11
     assert "não houve entrega" in ev.excerpt.lower()
+
+
+def test_evidencia_de_fato_prefere_parecer_tecnico_a_notificacao_posterior():
+    pages=[
+        {"file":"processo.pdf","page":35,"ocr":False,"text":"""
+PARECER TÉCNICO – ANÁLISE DA EXECUÇÃO
+Além disso, é relevante observar que, até o presente momento, a empresa não realizou nenhuma entrega referente aos itens contratados.
+"""},
+        {"file":"processo.pdf","page":38,"ocr":False,"text":"""
+NOTIFICAÇÃO EXTRAJUDICIAL
+NOTIFICANTE: MUNICÍPIO EXEMPLO
+NOTIFICADO: EMPRESA MODELO LTDA
+Objeto da Notificação: sobre a não entrega dos materiais.
+Assunto: início imediato das entregas.
+"""},
+    ]
+    result=analyze_penalizacao(segment_documents(pages))
+    ev=next(e for e in result.evidence if e.key=="non_delivery")
+    assert ev.page==35
+    assert ev.document_id=="DOC-001"
+    assert "nenhuma entrega" in ev.excerpt.lower()
