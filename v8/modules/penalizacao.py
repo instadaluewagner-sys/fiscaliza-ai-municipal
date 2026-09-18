@@ -95,12 +95,12 @@ def item(key: str, label: str, status: str, reason: str, docs=None) -> Checklist
         pages=sorted({p for d in docs for p in d.pages}),
     )
 
-def build_checklist(documents: list[Document]) -> list[ChecklistItem]:
+def build_checklist(documents: list[Document], stage: StageResult | None = None) -> list[ChecklistItem]:
     by = docs_by_type(documents)
     all_text = norm("\n".join(d.text for d in documents))
     uses_arp = bool(by.get("ata_registro_precos")) or "ata de registro de precos" in all_text or bool(re.search(r"\barp\b", all_text))
 
-    return [
+    result = [
         item("pregao","Pregão / processo licitatório","located" if by.get("pregao") else "not_found","Peça localizada." if by.get("pregao") else "Não localizado com segurança.",by.get("pregao")),
         item("ata","Ata de Registro de Preços","located" if by.get("ata_registro_precos") else ("not_found" if uses_arp else "not_applicable"),"A contratação indica uso de ARP." if uses_arp else "Não há evidência suficiente de contratação via ARP.",by.get("ata_registro_precos")),
         item("contrato","Contrato / instrumento equivalente","located" if by.get("contrato") else "inconclusive","Contrato formal não foi localizado; conferir se o instrumento é substituído por empenho/ordem.",by.get("contrato")),
@@ -115,6 +115,59 @@ def build_checklist(documents: list[Document]) -> list[ChecklistItem]:
         item("decisao","Decisão administrativa","located" if by.get("decisao") else "not_found","A decisão encerra a fase de julgamento e orienta os atos posteriores.",by.get("decisao")),
         item("recurso","Recurso / ciência da decisão","located" if by.get("recurso") else "inconclusive","Somente aplicável após decisão e conforme prazo/fase recursal.",by.get("recurso")),
     ]
+
+    if stage and stage.key == "instauracao_sancionadora_autorizada":
+        # O PDF analisado é o processo de origem. Notificação, defesa e decisão nele
+        # existentes podem pertencer à execução/extinção contratual e NÃO devem
+        # preencher artificialmente as etapas do futuro processo sancionador.
+        result.insert(
+            6,
+            item(
+                "autorizacao_pas",
+                "Decisão de origem que autoriza instaurar o PAS",
+                "located",
+                "Foi localizada decisão que autoriza a abertura de processo administrativo sancionador separado.",
+                by.get("decisao"),
+            ),
+        )
+        overrides = {
+            "notificacao": (
+                "not_found",
+                "Ainda não foi localizada notificação de instauração do processo sancionador; notificações do processo de origem não substituem esse ato.",
+            ),
+            "defesa": (
+                "not_applicable",
+                "A defesa sancionadora ainda não é exigível antes da instauração/notificação do PAS. Manifestações do processo de origem permanecem apenas como contexto.",
+            ),
+            "parecer_tecnico": (
+                "inconclusive",
+                "Pareceres do processo de origem podem instruir o PAS, mas a suficiência da instrução sancionadora deve ser conferida após a autuação.",
+            ),
+            "parecer_juridico": (
+                "inconclusive",
+                "Parecer jurídico do processo de origem pode subsidiar a instauração, mas não equivale automaticamente à análise final do PAS.",
+            ),
+            "relatorio_conclusivo": (
+                "not_applicable",
+                "Relatório conclusivo da comissão sancionadora pertence a fase futura do PAS.",
+            ),
+            "decisao": (
+                "not_applicable",
+                "A decisão localizada é do processo de origem e não é decisão sancionadora final.",
+            ),
+            "recurso": (
+                "not_applicable",
+                "Fase recursal sancionadora ainda não iniciada.",
+            ),
+        }
+        for row in result:
+            if row.key in overrides:
+                row.status, row.reason = overrides[row.key]
+                if row.key in {"notificacao","defesa","relatorio_conclusivo","decisao","recurso"}:
+                    row.document_ids = []
+                    row.pages = []
+
+    return result
 
 def determine_stage(documents: list[Document]) -> StageResult:
     by = docs_by_type(documents)
@@ -158,27 +211,37 @@ def determine_stage(documents: list[Document]) -> StageResult:
         return StageResult(key="apuracao_inicial",label="Apuração inicial",confidence=.82,rationale="Fato/execução documentados, sem instauração clara.",next_action="Conferir pressupostos e decidir sobre a instauração do processo de penalização.",suggested_draft="despacho_instauracao")
     return StageResult(key="triagem",label="Triagem",confidence=.65,rationale="Elementos insuficientes para determinar fase posterior.",next_action="Completar a instrução inicial e confirmar a origem do fato.",suggested_draft="despacho_diligencia")
 
-def build_evidence(documents: list[Document]):
+def build_evidence(documents: list[Document], stage: StageResult | None = None):
     evidence = []
     for doc in documents:
         z = norm(doc.text)
         if any(k in z for k in ["nao houve entrega","inexecucao"]):
             evidence.append(evidence_from_document(doc,"Execução/inexecução registrada",[r"n[aã]o houve entrega",r"inexecu[cç][aã]o"],.94))
         if doc.type == "defesa":
-            evidence.append(evidence_from_document(doc,"Defesa administrativa apresentada",[r"defesa",r"alega",r"requer"],.97))
+            fact = (
+                "Defesa/manifestação localizada no processo de origem; não equivale à defesa do futuro PAS"
+                if stage and stage.key == "instauracao_sancionadora_autorizada"
+                else "Defesa administrativa apresentada"
+            )
+            evidence.append(evidence_from_document(doc,fact,[r"defesa",r"alega",r"requer"],.97))
         if doc.type == "decisao":
-            evidence.append(evidence_from_document(doc,"Decisão administrativa localizada",[r"decid",r"julgo",r"determino"],.95))
+            fact = (
+                "Decisão de origem que autoriza a abertura de processo sancionador separado"
+                if stage and stage.key == "instauracao_sancionadora_autorizada"
+                else "Decisão administrativa localizada"
+            )
+            evidence.append(evidence_from_document(doc,fact,[r"autoriz",r"decid",r"julgo",r"determino"],.95))
     return evidence[:12]
 
 def analyze_penalizacao(documents: list[Document]) -> AnalysisResult:
-    checklist = build_checklist(documents)
     stage = determine_stage(documents)
+    checklist = build_checklist(documents, stage)
     return AnalysisResult(
         module="penalizacao",
         profile=build_profile(documents),
         documents=documents,
         checklist=checklist,
-        evidence=build_evidence(documents),
+        evidence=build_evidence(documents, stage),
         stage=stage,
         warnings=[],
     )
