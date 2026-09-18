@@ -606,7 +606,67 @@ document.getElementById("q").addEventListener("keydown",function(e){if(e.key==="
 </html>"""
 
 
-# --- Interface premium v3.5 ---
+# --- Interface premium v3.6 ---
+
+# --- Processo fictício para demonstração da banca v3.6 ---
+def _demo_wrap(cnv, text, x=52, y=735, width=92, leading=15):
+    words = text.split()
+    line = ""
+    for word in words:
+        test = (line + " " + word).strip()
+        if len(test) > width:
+            cnv.drawString(x, y, line)
+            y -= leading
+            line = word
+        else:
+            line = test
+    if line:
+        cnv.drawString(x, y, line)
+
+@app.get("/api/demo-pdf")
+def demo_pdf():
+    pages = [
+        ("PROCESSO ADMINISTRATIVO DEMONSTRATIVO Nº 001/2026",
+         "Caso inteiramente fictício criado para demonstração. Objeto: aquisição municipal de 500 kits de higiene."),
+        ("CONTRATO ADMINISTRATIVO Nº 001/2026",
+         "CONTRATANTE: Município Demonstração. CONTRATADA: Empresa Exemplo Ltda. Objeto: fornecimento de 500 kits. Prazo de entrega: 30 dias. CLÁUSULA QUARTA: a contratada deverá entregar integralmente o objeto no prazo pactuado."),
+        ("NOTIFICAÇÃO EXTRAJUDICIAL Nº 004/2026",
+         "Fica a CONTRATADA NOTIFICADA para, no prazo de 5 dias úteis, apresentar manifestação sobre a entrega parcial de 300 kits e a ausência dos 200 kits restantes."),
+        ("COMPROVANTE DE CIÊNCIA DA NOTIFICAÇÃO",
+         "A empresa foi notificada e recebeu prazo para manifestação administrativa sobre a entrega parcial."),
+        ("RELATÓRIO TÉCNICO Nº 009/2026",
+         "A fiscalização registra execução parcial: foram entregues 300 dos 500 kits contratados. Os 200 kits remanescentes não foram entregues. Recomenda-se análise das justificativas apresentadas."),
+        ("INTIMAÇÃO Nº 006/2026",
+         "Fica a empresa INTIMADA para apresentar defesa administrativa quanto à possível inexecução parcial, assegurados o contraditório e a ampla defesa."),
+        ("DEFESA ADMINISTRATIVA",
+         "A Empresa Exemplo Ltda apresenta sua DEFESA ADMINISTRATIVA. Alega atraso excepcional do fornecedor de matéria-prima, pede reconhecimento de atraso justificado e informa que 300 kits foram entregues. Propõe entregar os 200 restantes em 10 dias."),
+        ("DA DEFESA E DOS PEDIDOS",
+         "A CONTRATADA requer que não seja aplicada penalidade ou, subsidiariamente, que eventual medida observe a proporcionalidade. Requer ainda a consideração das comunicações com o fornecedor e do cronograma de regularização."),
+        ("PARECER JURÍDICO Nº 012/2026",
+         "O PARECER JURÍDICO registra a existência de notificação e defesa e recomenda que a autoridade confronte a justificativa com as provas de atraso e com as cláusulas contratuais antes de decidir."),
+        ("DECISÃO ADMINISTRATIVA",
+         "DECIDO reconhecer a necessidade de apuração própria e DETERMINO a instauração de processo administrativo sancionador posterior, preservando o contraditório. Nenhuma sanção é aplicada nesta decisão."),
+        ("DESPACHO DE ENCAMINHAMENTO",
+         "Encaminhem-se os autos ao setor competente para abertura do procedimento sancionador posterior.")
+    ]
+    buf = io.BytesIO()
+    cnv = canvas.Canvas(buf, pagesize=A4)
+    for idx, (title, body) in enumerate(pages, start=1):
+        cnv.setFont("Helvetica-Bold", 14)
+        cnv.drawString(52, 790, title)
+        cnv.setFont("Helvetica", 10)
+        _demo_wrap(cnv, body)
+        cnv.setFont("Helvetica", 8)
+        cnv.drawRightString(545, 35, "Página %d · documento fictício" % idx)
+        cnv.showPage()
+    cnv.save()
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition":"inline; filename=Processo-Demonstrativo-FiscalizaAI.pdf"}
+    )
+
 HTML = r"""<!doctype html>
 <html lang="pt-br">
 <head>
@@ -652,7 +712,20 @@ details.mentions{border:1px solid var(--line);border-radius:14px;background:#fff
 .footer-actions{display:flex;justify-content:space-between;gap:18px;align-items:center}.footnote{font-size:11px;color:var(--muted);max-width:720px}
 .loading{display:inline-flex;gap:8px;align-items:center}.spinner{width:14px;height:14px;border:2px solid #ccd6e1;border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 .empty{font-size:12px;color:var(--muted);padding:6px 0}
+
+.demo-panel{background:linear-gradient(180deg,#fff,#fbfdff)}
+.demo-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:28px;align-items:center}
+.demo-actions{display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+.demo-badges{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.demo-badges span{font-size:10px;font-weight:800;color:#52677b;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 8px}
+.demo-features{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px;padding-top:17px;border-top:1px solid var(--line)}
+.demo-features div{padding:10px 12px;border-radius:10px;background:#f7fafc;border:1px solid #e4ebf1}
+.demo-features b{display:block;color:var(--navy);font-size:12px}
+.demo-features span{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.demo-note{font-size:10px;color:var(--muted);margin-top:10px}
 @media(max-width:1050px){.hero{grid-template-columns:1fr}.hero-side{display:none}.piece-grid{grid-template-columns:repeat(2,1fr)}.summary-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:1050px){.demo-grid{grid-template-columns:1fr}.demo-actions{align-items:flex-start}.demo-badges{justify-content:flex-start}.demo-features{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.demo-features{grid-template-columns:1fr}}
 @media(max-width:760px){.topbar-inner,.shell{width:min(100% - 24px,1460px)}.shell{margin-top:18px}.hero-main,.panel,.section{padding:20px}.hero h1{font-size:34px}.cols,.piece-grid,.summary-grid{grid-template-columns:1fr}.uploadbox,.qa,.footer-actions{flex-direction:column;align-items:stretch}.btn{width:100%}}
 </style>
 </head>
@@ -684,12 +757,33 @@ details.mentions{border:1px solid var(--line);border-radius:14px;background:#fff
         <div class="step"><div class="num">02</div><div><b>Classificação</b><small>Peças e menções separadas.</small></div></div>
         <div class="step"><div class="num">03</div><div><b>Consulta</b><small>Resposta ligada à evidência.</small></div></div>
       </div>
-      <div class="version">VERSÃO 3.5 · APRESENTAÇÃO PREMIUM</div>
+      <div class="version">VERSÃO 3.6 · DEMONSTRAÇÃO GUIADA</div>
     </aside>
   </section>
 
+  <section class="panel demo-panel">
+    <div class="demo-grid">
+      <div>
+        <div class="kicker">Teste da banca</div>
+        <h2 class="title">Veja o diferencial em 30 segundos</h2>
+        <p class="desc">Carregue um processo inteiramente fictício de entrega parcial. O sistema executa a mesma análise usada para qualquer PDF enviado.</p>
+      </div>
+      <div class="demo-actions">
+        <div class="demo-badges"><span>11 páginas</span><span>dados fictícios</span><span>sem cadastro</span></div>
+        <button class="btn btn-blue" onclick="testarDemo()">Testar demonstração →</button>
+      </div>
+    </div>
+    <div class="demo-features">
+      <div><b>Rastreabilidade</b><span>Cada achado aponta a página de origem.</span></div>
+      <div><b>Peça ≠ menção</b><span>Citação interna não vira documento autônomo.</span></div>
+      <div><b>Sabe dizer “não sei”</b><span>Não presume sanção ou fato sem evidência suficiente.</span></div>
+      <div><b>Decisão continua humana</b><span>A ferramenta organiza e confronta; a autoridade decide.</span></div>
+    </div>
+    <div class="demo-note">Cenário fictício criado exclusivamente para demonstração e avaliação do produto.</div>
+  </section>
+
   <section class="panel">
-    <div class="panel-head"><div><div class="kicker">Iniciar análise</div><h2 class="title">Carregue os autos do processo</h2><p class="desc">Selecione um ou mais PDFs. O sistema organiza as evidências por página.</p></div></div>
+    <div class="panel-head"><div><div class="kicker">Analisar seus documentos</div><h2 class="title">Carregue os autos do processo</h2><p class="desc">Selecione um ou mais PDFs. O sistema organiza as evidências por página.</p></div></div>
     <div class="uploadbox">
       <div class="uploadcopy"><div class="uploadicon">↥</div><div><strong>Selecione os documentos</strong><span>PDFs com texto ou páginas escaneadas.</span></div></div>
       <div class="actions"><input class="fileinput" id="files" type="file" multiple accept="application/pdf"><button class="btn btn-primary" onclick="analisar()">Analisar processo</button></div>
@@ -714,7 +808,7 @@ details.mentions{border:1px solid var(--line);border-radius:14px;background:#fff
 </main>
 
 <script>
-var analysisId=null;
+var analysisId=null; var demoMode=false;
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
 function pagesText(p){return p.join(", ")}
 function sourceLabel(file){
@@ -725,6 +819,24 @@ function sourceLabel(file){
 }
 function stateIcon(ok,unknown){return '<span class="state '+(unknown?'neutral':ok?'ok':'warn')+'">'+(unknown?'?':ok?'✓':'!')+'</span>'}
 function pageChip(pg){return '<span class="page-chip">p. '+esc(pg)+'</span>'}
+async function testarDemo(){
+  var st=document.getElementById("status");
+  st.innerHTML='<span class="loading"><span class="spinner"></span> Preparando processo fictício…</span>';
+  try{
+    var r=await fetch("/api/demo-pdf");
+    if(!r.ok)throw new Error("Falha ao carregar a demonstração");
+    var blob=await r.blob();
+    var file=new File([blob],"Processo-Demonstrativo-FiscalizaAI.pdf",{type:"application/pdf"});
+    var dt=new DataTransfer();dt.items.add(file);
+    document.getElementById("files").files=dt.files;
+    demoMode=true;
+    await analisar();
+  }catch(e){
+    st.textContent="Não foi possível abrir a demonstração.";
+  }finally{
+    demoMode=false;
+  }
+}
 async function analisar(){
   var fs=document.getElementById("files").files;if(!fs.length){alert("Selecione pelo menos um PDF.");return}
   var fd=new FormData();for(var i=0;i<fs.length;i++)fd.append("files",fs[i]);
@@ -732,7 +844,7 @@ async function analisar(){
   var r=await fetch("/api/analyze",{method:"POST",body:fd});var d=await r.json();
   if(!r.ok){st.textContent=d.detail||"Não foi possível analisar os documentos.";return}
   analysisId=d.analysis_id;localStorage.setItem("fiscaliza_analysis_id",analysisId);
-  st.textContent=d.pages+" páginas analisadas · OCR em "+d.ocr_pages+" página(s)";
+  st.textContent=demoMode?("Demonstração fictícia carregada · "+d.pages+" páginas · análise real executada"): (d.pages+" páginas analisadas · OCR em "+d.ocr_pages+" página(s)");
   var a=d.analysis;var h="";
   var qUnknown=String(a.quantity.value).toLowerCase().indexOf("não identificado")>=0;
 
