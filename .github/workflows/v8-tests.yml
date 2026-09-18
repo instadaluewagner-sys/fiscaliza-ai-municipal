@@ -21,4 +21,4 @@ jobs:
       - name: Install dependencies
         run: pip install -r v8/requirements.txt
       - name: Run V8 tests
-        run: pytest -q v8/tests
+        run: PYTHONPATH=. pytest -q v8/tests
