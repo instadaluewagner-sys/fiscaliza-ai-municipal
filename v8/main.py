@@ -22,7 +22,7 @@ SESSION_TTL_SECONDS = int(os.getenv("V8_SESSION_TTL_SECONDS", "1800"))
 MAX_PDF_BYTES = int(os.getenv("V8_MAX_PDF_BYTES", str(30 * 1024 * 1024)))
 V8_ANALYSES: dict[str, dict] = {}
 
-app = FastAPI(title="Fiscaliza.AI V8", version="8.0.0-alpha.2")
+app = FastAPI(title="Fiscaliza.AI V8", version="8.0.0-rc.1")
 
 if (BASE_DIR / "static").exists():
     app.mount("/v8-static", StaticFiles(directory=BASE_DIR / "static"), name="v8-static")
@@ -64,7 +64,7 @@ def health():
     return {
         "ok": True,
         "version": app.version,
-        "status": "parallel-rebuild",
+        "status": "release-candidate",
         "temporary_sessions": len(V8_ANALYSES),
         "session_ttl_seconds": SESSION_TTL_SECONDS,
         "max_pdf_bytes": MAX_PDF_BYTES,
@@ -75,7 +75,7 @@ def health():
 async def analyze(module: str = "penalizacao", files: List[UploadFile] = File(...)):
     cleanup_sessions()
     if module != "penalizacao":
-        raise HTTPException(400, "Na V8 alpha, apenas Penalização está habilitada para validação.")
+        raise HTTPException(400, "Na V8 RC, apenas Penalização contratual está habilitada.")
 
     pages = []
     ocr_pages = 0
