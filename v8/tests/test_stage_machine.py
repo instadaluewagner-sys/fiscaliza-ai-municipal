@@ -155,3 +155,22 @@ def test_decisao_final_sem_sancao_tambem_e_julgamento_do_pas():
     assert result.stage.sources[0].page==20
     ev=next(e for e in result.evidence if e.key=="final_decision")
     assert ev.page==20
+
+
+def test_decisao_que_declara_suspensao_e_julgamento_final():
+    result=analyze_penalizacao([
+        doc(
+            1,
+            "decisao",
+            "Processo Administrativo Sancionador nº 001/2025. DECIDO: "
+            "Declarar SUSPENSÃO da empresa ORION-SAÚDE E PARTICIPAÇÕES LTDA "
+            "para licitar e contratar com a Administração Pública Municipal.",
+            2,
+        ),
+    ])
+    assert result.stage.key=="julgamento"
+    assert result.stage.suggested_draft=="notificacao_decisao"
+    assert result.stage.sources
+    assert result.stage.sources[0].page==2
+    ev=next(e for e in result.evidence if e.key=="final_decision")
+    assert ev.page==2
