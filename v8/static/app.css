@@ -130,3 +130,10 @@ header p,.note,.panel p{color:var(--muted)}
 .profile-source:hover{background:#e1f2ee}
 .profile-source.missing{background:#f4f6f8;color:#8795a2;cursor:default}
 @media(max-width:760px){.profile-grid{grid-template-columns:1fr}}
+
+
+.profile-card.has-conflict{border-color:#e7c887;background:#fffdf8}
+.profile-conflict{margin-top:7px;padding-top:7px;border-top:1px solid #f0dfb6}
+.profile-conflict>strong{display:block;color:#9a6900;font-size:7.8px;text-transform:uppercase;letter-spacing:.05em}
+.profile-conflict>span{display:flex;align-items:center;gap:5px;flex-wrap:wrap;color:#765d2d;font-size:8px;margin-top:4px}
+.profile-conflict button{border:0;background:#fff4dc;color:#8a5e00;border-radius:999px;padding:3px 5px;font-size:7.5px;font-weight:800}
