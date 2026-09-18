@@ -1018,9 +1018,10 @@ def build_evidence(documents: list[Document], stage: StageResult | None = None):
             "Decisão final do processo sancionador localizada",
             ("decisao",),
             [
-                r"aplic(?:o|ar|a-se).{0,80}(?:san[cç][aã]o|penalidade|multa|advert[eê]ncia|impedimento|inidoneidade)",
-                r"fica\s+aplicada.{0,80}(?:san[cç][aã]o|penalidade|multa|advert[eê]ncia)",
-                r"declar(?:o|ar).{0,80}(?:suspens[aã]o|impedimento|inidoneidade)",
+                r"aplic(?:o|ar|a-se)[\s\S]{0,160}(?:san[cç][aã]o|penalidade|multa|advert[eê]ncia|impedimento|inidoneidade)",
+                r"fica\s+aplicada[\s\S]{0,160}(?:san[cç][aã]o|penalidade|multa|advert[eê]ncia)",
+                r"declar(?:o|ar)[\s\S]{0,160}(?:suspens[aã]o|impedimento|inidoneidade)",
+                r"ratific(?:o|ar|a-se)[\s\S]{0,160}(?:penalidades?|san[cç][oõ]es?)",
                 r"deixo\s+de\s+aplicar.{0,80}(?:san[cç][aã]o|penalidade|multa)",
                 r"julgo.{0,80}(?:improcedente|insubsistente)",
                 r"(?:decido|determino).{0,100}(?:o\s+)?arquivamento",
