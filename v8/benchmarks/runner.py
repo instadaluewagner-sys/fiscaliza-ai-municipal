@@ -140,11 +140,20 @@ def evaluate(pdf_path: Path, benchmark_path: Path) -> dict:
             for doc in documents:
                 if page in doc.pages:
                     page_text = doc.page_texts.get(page, "")
+                    compact_page = re.sub(r"\s+", " ", page_text).strip()
+                    probe = norm_text(compact_page)
+                    anchor = probe.find("entreg")
+                    if anchor >= 0:
+                        start = max(0, anchor - 260)
+                        end = min(len(compact_page), anchor + 620)
+                        diagnostic_excerpt = compact_page[start:end]
+                    else:
+                        diagnostic_excerpt = compact_page[:1000]
                     page_candidates.append({
                         "document_id": doc.id,
                         "type": doc.type,
                         "page": page,
-                        "text_excerpt": re.sub(r"\\s+", " ", page_text)[:700],
+                        "text_excerpt": diagnostic_excerpt,
                     })
         evidence_checks.append({
             "key": key,
