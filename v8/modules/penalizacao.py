@@ -353,7 +353,9 @@ def build_profile(documents: list[Document]) -> ProcessProfile:
 
     process_number, src = _find_sourced(
         documents,
-        [r"Processo Administrativo de Penaliza[cç][aã]o\s*(?:n\s*[º°o.]*)?\s*[:.-]?\s*(\d{1,8}(?:[-.]\d+)?/\d{4})"],
+        [
+            r"Processo\s+Administrativo\s+(?:de\s+Penaliza[cç][aã]o|Sancionador)\s*(?:n\s*[º°o.]*)?\s*[:.-]?\s*(\d{1,8}(?:[-.]\d+)?/\d{4})"
+        ],
     )
     if src:
         sources["process_number"] = src
@@ -365,6 +367,9 @@ def build_profile(documents: list[Document]) -> ProcessProfile:
             r"\bPROCESSO\s+N\s*[º°O.]*\s*[:.-]\s*(\d[\d.-]*/\d{4})",
         ],
     )
+    if origin_process and process_number and _candidate_key(origin_process) == _candidate_key(process_number):
+        origin_process = None
+        src = None
     if src:
         sources["origin_process"] = src
 
