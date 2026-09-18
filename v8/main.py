@@ -1,7 +1,12 @@
+import io
+import os
+import time
+import uuid
 from pathlib import Path
 from typing import List
+
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from v8.modules.penalizacao import analyze_penalizacao
@@ -9,44 +14,151 @@ from v8.services.document_segmenter import segment_documents
 from v8.services.pdf_reader import extract_pages
 
 BASE_DIR = Path(__file__).resolve().parent
-app = FastAPI(title="Fiscaliza.AI V8", version="8.0.0-alpha.1")
+SESSION_TTL_SECONDS = int(os.getenv("V8_SESSION_TTL_SECONDS", "1800"))
+V8_ANALYSES: dict[str, dict] = {}
+
+app = FastAPI(title="Fiscaliza.AI V8", version="8.0.0-alpha.2")
 
 if (BASE_DIR / "static").exists():
     app.mount("/v8-static", StaticFiles(directory=BASE_DIR / "static"), name="v8-static")
 
+
+def cleanup_sessions() -> None:
+    now = time.time()
+    expired = [
+        analysis_id
+        for analysis_id, item in V8_ANALYSES.items()
+        if now - item["created_at"] > SESSION_TTL_SECONDS
+    ]
+    for analysis_id in expired:
+        V8_ANALYSES.pop(analysis_id, None)
+
+
+def get_session(analysis_id: str) -> dict:
+    cleanup_sessions()
+    item = V8_ANALYSES.get(analysis_id)
+    if not item:
+        raise HTTPException(404, "Análise expirada, excluída ou inexistente.")
+    return item
+
+
 @app.get("/api/v8/health")
 def health():
-    return {"ok": True, "version": app.version, "status": "parallel-rebuild"}
+    cleanup_sessions()
+    return {
+        "ok": True,
+        "version": app.version,
+        "status": "parallel-rebuild",
+        "temporary_sessions": len(V8_ANALYSES),
+        "session_ttl_seconds": SESSION_TTL_SECONDS,
+    }
+
 
 @app.post("/api/v8/analyze")
 async def analyze(module: str = "penalizacao", files: List[UploadFile] = File(...)):
+    cleanup_sessions()
     if module != "penalizacao":
         raise HTTPException(400, "Na V8 alpha, apenas Penalização está habilitada para validação.")
+
     pages = []
     ocr_pages = 0
     names = []
+    stored_files = []
+
     for upload in files:
-        if not (upload.filename or "").lower().endswith(".pdf"):
+        filename = upload.filename or "processo.pdf"
+        if not filename.lower().endswith(".pdf"):
             continue
+        data = await upload.read()
         try:
-            extracted, ocr_count = extract_pages(await upload.read(), upload.filename)
+            extracted, ocr_count = extract_pages(data, filename)
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
         pages.extend(extracted)
         ocr_pages += ocr_count
-        names.append(upload.filename)
+        names.append(filename)
+        stored_files.append({"filename": filename, "bytes": data})
+
     if not pages:
         raise HTTPException(400, "Envie pelo menos um PDF válido.")
 
     documents = segment_documents(pages)
     result = analyze_penalizacao(documents)
+    analysis_id = uuid.uuid4().hex
+
+    V8_ANALYSES[analysis_id] = {
+        "created_at": time.time(),
+        "module": module,
+        "files": stored_files,
+        "pages": pages,
+        "documents": documents,
+        "analysis": result,
+    }
+
     return {
+        "analysis_id": analysis_id,
         "version": app.version,
         "files": names,
         "pages": len(pages),
         "ocr_pages": ocr_pages,
         "analysis": result.model_dump(),
     }
+
+
+@app.get("/api/v8/analysis/{analysis_id}")
+def read_analysis(analysis_id: str):
+    item = get_session(analysis_id)
+    result = item["analysis"]
+    return {
+        "analysis_id": analysis_id,
+        "module": item["module"],
+        "created_at": item["created_at"],
+        "analysis": result.model_dump(),
+    }
+
+
+@app.get("/api/v8/file/{analysis_id}/{file_index}")
+def read_original_pdf(analysis_id: str, file_index: int):
+    item = get_session(analysis_id)
+    files = item["files"]
+    if file_index < 0 or file_index >= len(files):
+        raise HTTPException(404, "Arquivo não encontrado nesta análise.")
+    source = files[file_index]
+    headers = {
+        "Content-Disposition": f'inline; filename="{source["filename"].replace(chr(34), "")}"',
+        "Cache-Control": "no-store",
+    }
+    return StreamingResponse(io.BytesIO(source["bytes"]), media_type="application/pdf", headers=headers)
+
+
+@app.get("/api/v8/document/{analysis_id}/{document_id}")
+def read_document(analysis_id: str, document_id: str):
+    item = get_session(analysis_id)
+    doc = next((d for d in item["documents"] if d.id == document_id), None)
+    if not doc:
+        raise HTTPException(404, "Documento não encontrado nesta análise.")
+
+    file_index = next(
+        (i for i, source in enumerate(item["files"]) if source["filename"] == doc.file),
+        None,
+    )
+    return {
+        "analysis_id": analysis_id,
+        "document": doc.model_dump(exclude={"text", "page_texts"}),
+        "file_index": file_index,
+        "viewer_url": (
+            f"/api/v8/file/{analysis_id}/{file_index}#page={doc.page_start}"
+            if file_index is not None
+            else None
+        ),
+    }
+
+
+@app.delete("/api/v8/analysis/{analysis_id}")
+def delete_analysis(analysis_id: str):
+    existed = V8_ANALYSES.pop(analysis_id, None) is not None
+    return {"deleted": existed, "analysis_id": analysis_id}
+
 
 @app.get("/", response_class=HTMLResponse)
 def index():
