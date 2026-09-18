@@ -28,6 +28,13 @@ class ChecklistItem(BaseModel):
     document_ids: list[str] = Field(default_factory=list)
     pages: list[int] = Field(default_factory=list)
 
+class PendingItem(BaseModel):
+    key: str
+    label: str
+    kind: Literal["missing", "review", "next_step"]
+    severity: Literal["high", "medium", "low"]
+    reason: str
+
 class Evidence(BaseModel):
     fact: str
     document_id: str
@@ -58,6 +65,7 @@ class AnalysisResult(BaseModel):
     checklist: list[ChecklistItem]
     evidence: list[Evidence]
     stage: StageResult
+    pending_items: list[PendingItem] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
 
 
