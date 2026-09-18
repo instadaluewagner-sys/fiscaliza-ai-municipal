@@ -120,3 +120,38 @@ def test_estagio_autorizacao_pas_aponta_decisao_fonte():
     assert result.stage.sources
     assert result.stage.sources[0].document_id=="DOC-002"
     assert result.stage.sources[0].page==60
+
+
+def test_mencao_a_multa_na_decisao_de_origem_nao_vira_julgamento():
+    result=analyze_penalizacao([
+        doc(
+            1,
+            "decisao",
+            "DESPACHO Nº 700/2026. A eventual penalidade de multa poderá ser examinada em procedimento próprio. "
+            "AUTORIZO A ABERTURA DE PROCESSO ADMINISTRATIVO SANCIONADOR para apuração das responsabilidades.",
+            10,
+        ),
+    ])
+    assert result.stage.key=="instauracao_sancionadora_autorizada"
+    assert result.stage.suggested_draft=="despacho_instauracao"
+
+
+def test_decisao_final_sem_sancao_tambem_e_julgamento_do_pas():
+    result=analyze_penalizacao([
+        doc(
+            1,
+            "decisao",
+            "PROCESSO ADMINISTRATIVO DE PENALIZAÇÃO Nº 2-1234/2026. "
+            "DECISÃO ADMINISTRATIVA FINAL. JULGO IMPROCEDENTE a imputação, "
+            "DEIXO DE APLICAR PENALIDADE e DETERMINO O ARQUIVAMENTO.",
+            20,
+        ),
+    ])
+    assert result.stage.key=="julgamento"
+    assert result.stage.suggested_draft=="notificacao_decisao"
+    assert "sem aplicação de sanção" in result.stage.rationale.lower()
+    assert result.stage.sources
+    assert result.stage.sources[0].document_id=="DOC-001"
+    assert result.stage.sources[0].page==20
+    ev=next(e for e in result.evidence if e.key=="final_decision")
+    assert ev.page==20
