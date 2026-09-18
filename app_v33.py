@@ -3671,3 +3671,49 @@ HTML=HTML.replace(
     1
 )
 HTML=HTML.replace("VERSÃO 6.1 · PLATAFORMA MODULAR","VERSÃO 6.2 · MODELOS POR MÓDULO")
+
+
+# --- Navegação em abas do navegador v6.3 ---
+# Cada módulo passa a abrir em uma nova aba, mantendo a tela inicial disponível.
+for _mk in MODULES.keys():
+    HTML = HTML.replace(
+        "onclick=\"selecionarModulo('"+_mk+"',this)\"",
+        "onclick=\"abrirModulo('"+_mk+"')\""
+    )
+
+_tab_js = r"""
+function abrirModulo(key){
+  if(!moduleLabels[key])return;
+  var u=new URL(window.location.href);
+  u.searchParams.set("module",key);
+  u.searchParams.delete("utm_source");
+  var w=window.open(u.toString(),"_blank","noopener");
+  if(!w){ window.location.href=u.toString(); }
+}
+function aplicarModuloDaURL(){
+  var key=new URLSearchParams(window.location.search).get("module");
+  if(!key || !moduleLabels[key])return;
+  selectedModule=key;
+  document.querySelectorAll(".module-card").forEach(function(x){
+    x.classList.toggle("active",x.getAttribute("data-module")===key);
+  });
+  var lab=document.getElementById("moduleActiveLabel");
+  if(lab)lab.textContent=moduleLabels[key];
+  document.title="Fiscaliza.AI · "+moduleLabels[key];
+  var box=document.querySelector(".module-selected");
+  if(box){
+    var btn=box.querySelector("button");
+    box.innerHTML='<span>Aba atual: <strong id="moduleActiveLabel">'+esc(moduleLabels[key])+'</strong></span><span style="margin-left:auto">Os demais módulos abrem em novas abas.</span>';
+    if(btn)box.appendChild(btn);
+  }
+}
+document.addEventListener("DOMContentLoaded",aplicarModuloDaURL);
+"""
+HTML = HTML.replace("</script>", _tab_js + "\n</script>", 1)
+
+HTML = HTML.replace(
+    "A leitura documental é comum a todos os módulos; checklist, pendências e próximo passo se adaptam ao procedimento selecionado.",
+    "Escolha um módulo. Ele será aberto em uma nova aba do navegador, mantendo esta tela inicial disponível. Checklist, pendências e próximo passo se adaptam ao procedimento."
+)
+
+HTML = HTML.replace("VERSÃO 6.2 · MODELOS POR MÓDULO","VERSÃO 6.3 · MÓDULOS EM ABAS")
