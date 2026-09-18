@@ -73,6 +73,8 @@ class ProcessProfile(BaseModel):
     object_description: Optional[str] = None
     quantity: Optional[str] = None
     sources: dict[str, PageRef] = Field(default_factory=dict)
+    conflicts: dict[str, list[str]] = Field(default_factory=dict)
+    conflict_sources: dict[str, list[PageRef]] = Field(default_factory=dict)
 
 class AnalysisResult(BaseModel):
     module: str
