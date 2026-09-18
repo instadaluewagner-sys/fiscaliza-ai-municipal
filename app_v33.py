@@ -4682,3 +4682,344 @@ function ajustarResultadoModulo(a){
 HTML=HTML.replace("</script>",_docid_js+"\n</script>",1)
 
 HTML=HTML.replace("VERSÃO 6.6 · MÓDULOS ESPECIALIZADOS","VERSÃO 6.7 · ID DO DOCUMENTO + PÁGINA")
+
+
+# --- Interface de sistema administrativo v6.8 ---
+_system_css = """
+/* Workspace com aparência de sistema, não landing page */
+.screen-workspace{padding-bottom:28px}
+.workspace-head{
+  padding:14px 18px!important;margin-bottom:14px!important;border-radius:14px!important;
+  box-shadow:0 3px 12px rgba(16,42,67,.05)!important
+}
+.workspace-title strong{font-size:17px!important}.workspace-title span{font-size:9px!important}
+.workspace-chip{display:none!important}
+.workspace-actions{display:flex;gap:8px;align-items:center;margin-left:auto}
+.workspace-actions .btn{padding:9px 12px;font-size:10px}
+.process-status{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#f8fafc;color:var(--muted);border-radius:999px;padding:7px 10px;font-size:9px;font-weight:850}
+.process-status:before{content:"";width:7px;height:7px;border-radius:50%;background:#98a7b5}
+.process-status.ready{background:#edf9f6;color:var(--teal);border-color:#b8d8d2}.process-status.ready:before{background:var(--teal)}
+
+.system-layout{display:grid;grid-template-columns:210px minmax(0,1fr);gap:14px;align-items:start}
+.system-sidebar{position:sticky;top:18px;background:#0f2f49;color:#fff;border-radius:14px;padding:12px;min-height:520px;box-shadow:0 8px 24px rgba(15,47,73,.12)}
+.side-brand{padding:8px 9px 14px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:8px}
+.side-brand small{display:block;color:#88d8cc;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.12em}
+.side-brand strong{display:block;font-size:13px;margin-top:4px}
+.side-nav{display:grid;gap:4px}
+.side-item{width:100%;border:0;background:transparent;color:#d8e3eb;text-align:left;border-radius:9px;padding:10px 10px;cursor:pointer;font-size:10px;font-weight:750;display:flex;gap:9px;align-items:center}
+.side-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.side-item.active{background:#fff;color:#0f2f49}
+.side-ico{width:22px;height:22px;border-radius:7px;background:rgba(255,255,255,.10);display:grid;place-items:center;font-size:9px;font-weight:900}
+.side-item.active .side-ico{background:#e9f7f4;color:var(--teal)}
+.side-item.disabled{opacity:.42;cursor:default}
+.side-footer{margin-top:18px;padding:10px 9px;border-top:1px solid rgba(255,255,255,.12);font-size:8px;color:#9fb0bf;line-height:1.5}
+
+.system-main{min-width:0}
+.system-main>.panel{margin-top:0;margin-bottom:14px}
+.system-main .demo-panel{display:none!important}
+.system-main #uploadPanel{margin-bottom:14px}
+.system-main #uploadPanel .panel-head{margin-bottom:10px}
+.system-main #uploadPanel .title{font-size:17px}
+.system-main #uploadPanel .uploadbox{background:#f8fbfd;border:1px dashed #aebfce;border-radius:12px;padding:18px}
+.system-main #uploadPanel .uploadicon{width:34px;height:34px}
+.system-main #uploadPanel .status{font-size:9px}
+
+.module-dashboard{display:block;margin-bottom:14px}
+.dashboard-top{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:11px}
+.dashboard-top .kicker{margin-bottom:3px}.dashboard-top h2{margin:0;color:var(--navy);font-size:18px}.dashboard-top p{margin:4px 0 0;color:var(--muted);font-size:10px}
+.dashboard-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.dash-metric{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 13px}
+.dash-metric small{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.08em;font-weight:850}
+.dash-metric strong{display:block;color:var(--navy);font-size:20px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-metric strong.text{font-size:12px;margin-top:7px}
+.dash-metric .mini{display:block;color:var(--muted);font-size:8px;margin-top:3px}
+
+.process-tabs{display:none;background:#fff;border:1px solid var(--line);border-radius:12px;padding:5px;margin:0 0 12px;gap:4px;overflow-x:auto}
+.process-tabs.visible{display:flex}
+.process-tab{border:0;background:transparent;border-radius:8px;padding:9px 11px;font-size:9px;font-weight:850;color:var(--muted);cursor:pointer;white-space:nowrap}
+.process-tab:hover{background:#f4f7f9;color:var(--navy)}
+.process-tab.active{background:#0f2f49;color:#fff}
+
+#result.system-result>.section,#result.system-result>.cols,#result.system-result>.control-grid,#result.system-result>details{margin-top:0;margin-bottom:12px}
+#result.system-result .section{border-radius:12px!important;box-shadow:none!important}
+#result.system-result .title,#result.system-result h2{font-size:15px}
+#result.system-result .summary-card,#result.system-result .piece,#result.system-result .metric{border-radius:9px}
+#result.system-result .summary-grid{gap:8px}
+#result.system-result .summary-card{padding:10px 11px}
+#result.system-result .summary-value{font-size:11px}
+#result.system-result .timeline-step{padding:9px}
+#result.system-result .matrix th,#result.system-result .matrix td{padding:8px 9px}
+
+.system-empty{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.system-empty h3{margin:0;color:var(--navy);font-size:16px}.system-empty p{margin:5px 0 0;color:var(--muted);font-size:10px;max-width:650px}
+.empty-icon{width:42px;height:42px;border-radius:11px;background:#eaf4f7;color:var(--teal);display:grid;place-items:center;font-weight:900;font-size:16px;flex:0 0 auto}
+
+#qaPanel,#notificationPanel,#docsPanel,#privacyPanel,#reportPanel{display:none}
+#qaPanel.tab-visible,#notificationPanel.tab-visible,#docsPanel.tab-visible,#privacyPanel.tab-visible,#reportPanel.tab-visible{display:block}
+#result .tab-hidden{display:none!important}
+#result .cols.tab-hidden,#result .control-grid.tab-hidden{display:none!important}
+#result details.tab-hidden{display:none!important}
+
+@media(max-width:980px){
+  .system-layout{grid-template-columns:1fr}
+  .system-sidebar{position:static;min-height:auto}
+  .side-nav{grid-template-columns:repeat(4,1fr)}
+  .side-item{justify-content:center;text-align:center;flex-direction:column;padding:8px 4px}
+  .side-brand,.side-footer{display:none}
+}
+@media(max-width:700px){
+  .workspace-head{align-items:stretch!important}
+  .workspace-actions{width:100%;margin-left:0;flex-wrap:wrap}
+  .dashboard-metrics{grid-template-columns:1fr 1fr}
+  .side-nav{grid-template-columns:repeat(2,1fr)}
+  .system-empty{align-items:flex-start}
+}
+"""
+HTML=HTML.replace("</style>",_system_css+"</style>",1)
+
+_system_js = r"""
+var lastAnalysisData=null;
+var currentProcessTab="resumo";
+
+function painelPorTexto(fragmento){
+  var ps=document.querySelectorAll("#screenWorkspace section.panel");
+  fragmento=fragmento.toLowerCase();
+  for(var i=0;i<ps.length;i++){
+    if((ps[i].textContent||"").toLowerCase().indexOf(fragmento)>=0)return ps[i];
+  }
+  return null;
+}
+
+function garantirSistemaWorkspace(){
+  var work=document.getElementById("screenWorkspace");
+  if(!work||work.dataset.systemized==="1")return;
+  work.dataset.systemized="1";
+
+  var head=work.querySelector(".workspace-head");
+  if(!head)return;
+
+  var actions=document.createElement("div");
+  actions.className="workspace-actions";
+  actions.innerHTML='<span id="processStatus" class="process-status">Sem processo</span><button class="btn btn-blue" onclick="novoProcessoModulo()">+ Novo processo</button><button class="btn btn-primary" onclick="testarDemo()">Usar processo modelo</button>';
+  head.appendChild(actions);
+
+  var layout=document.createElement("div");
+  layout.className="system-layout";
+  var side=document.createElement("aside");
+  side.className="system-sidebar";
+  side.innerHTML='<div class="side-brand"><small>Fiscaliza.AI</small><strong id="sideModuleName">Módulo</strong></div>'+
+    '<nav class="side-nav">'+
+    '<button class="side-item active" data-tab="resumo" onclick="mostrarAbaProcesso(\'resumo\',this)"><span class="side-ico">01</span><span>Visão geral</span></button>'+
+    '<button class="side-item" data-tab="documentos" onclick="mostrarAbaProcesso(\'documentos\',this)"><span class="side-ico">02</span><span>Documentos</span></button>'+
+    '<button class="side-item" data-tab="evidencias" onclick="mostrarAbaProcesso(\'evidencias\',this)"><span class="side-ico">03</span><span>Evidências</span></button>'+
+    '<button class="side-item" data-tab="cronologia" onclick="mostrarAbaProcesso(\'cronologia\',this)"><span class="side-ico">04</span><span>Cronologia</span></button>'+
+    '<button class="side-item" data-tab="pendencias" onclick="mostrarAbaProcesso(\'pendencias\',this)"><span class="side-ico">05</span><span>Pendências</span></button>'+
+    '<button class="side-item" data-tab="perguntar" onclick="mostrarAbaProcesso(\'perguntar\',this)"><span class="side-ico">06</span><span>Perguntar</span></button>'+
+    '<button class="side-item" data-tab="minutas" onclick="mostrarAbaProcesso(\'minutas\',this)"><span class="side-ico">07</span><span>Minutas</span></button>'+
+    '<button class="side-item" data-tab="relatorio" onclick="mostrarAbaProcesso(\'relatorio\',this)"><span class="side-ico">08</span><span>Relatório</span></button>'+
+    '</nav><div class="side-footer">Rastreabilidade por documento e página<br>VERSÃO 6.8 · INTERFACE DE SISTEMA</div>';
+
+  var main=document.createElement("div");
+  main.className="system-main";
+
+  var dash=document.createElement("div");
+  dash.id="moduleDashboard";
+  dash.className="module-dashboard";
+  dash.innerHTML='<div class="dashboard-top"><div><div class="kicker">Painel do módulo</div><h2 id="dashboardTitle">Processo ainda não carregado</h2><p id="dashboardSub">Carregue os autos ou use o processo modelo para iniciar.</p></div></div>'+
+    '<div class="dashboard-metrics">'+
+    '<div class="dash-metric"><small>Documentos</small><strong id="dashDocs">0</strong><span class="mini">identificados</span></div>'+
+    '<div class="dash-metric"><small>Evidências</small><strong id="dashEvidence">0</strong><span class="mini">rastreadas</span></div>'+
+    '<div class="dash-metric"><small>Pendências</small><strong id="dashPending">0</strong><span class="mini">para conferência</span></div>'+
+    '<div class="dash-metric"><small>Etapa atual</small><strong id="dashStage" class="text">Não iniciada</strong><span class="mini">situação do fluxo</span></div>'+
+    '</div>';
+
+  var empty=document.createElement("div");
+  empty.id="systemEmpty";
+  empty.className="system-empty";
+  empty.innerHTML='<div style="display:flex;gap:14px;align-items:flex-start"><div class="empty-icon">↥</div><div><h3>Comece uma análise</h3><p>Selecione os documentos do processo ou use o modelo fictício deste módulo. Após a leitura, o sistema libera documentos, evidências, cronologia, pendências, perguntas e minutas.</p></div></div>';
+
+  var tabs=document.createElement("div");
+  tabs.id="processTabs";
+  tabs.className="process-tabs";
+  tabs.innerHTML='<button class="process-tab active" data-tab="resumo" onclick="mostrarAbaProcesso(\'resumo\',this)">Resumo</button>'+
+    '<button class="process-tab" data-tab="documentos" onclick="mostrarAbaProcesso(\'documentos\',this)">Documentos</button>'+
+    '<button class="process-tab" data-tab="evidencias" onclick="mostrarAbaProcesso(\'evidencias\',this)">Evidências</button>'+
+    '<button class="process-tab" data-tab="cronologia" onclick="mostrarAbaProcesso(\'cronologia\',this)">Cronologia</button>'+
+    '<button class="process-tab" data-tab="pendencias" onclick="mostrarAbaProcesso(\'pendencias\',this)">Pendências</button>'+
+    '<button class="process-tab" data-tab="perguntar" onclick="mostrarAbaProcesso(\'perguntar\',this)">Perguntar</button>'+
+    '<button class="process-tab" data-tab="minutas" onclick="mostrarAbaProcesso(\'minutas\',this)">Minutas</button>'+
+    '<button class="process-tab" data-tab="relatorio" onclick="mostrarAbaProcesso(\'relatorio\',this)">Relatório</button>';
+
+  layout.appendChild(side);layout.appendChild(main);
+  work.insertBefore(layout,head.nextSibling);
+  main.appendChild(dash);
+  main.appendChild(empty);
+  main.appendChild(tabs);
+
+  // Move o fluxo operacional para a área principal.
+  Array.from(work.children).forEach(function(el){
+    if(el!==head&&el!==layout)main.appendChild(el);
+  });
+
+  var demo=main.querySelector(".demo-panel");
+  if(demo)demo.style.display="none";
+
+  var upload=painelPorTexto("analisar seus documentos");
+  if(upload)upload.id="uploadPanel";
+  var qa=painelPorTexto("consulta aos autos");
+  if(qa)qa.id="qaPanel";
+  var notif=painelPorTexto("notificação institucional com preenchimento validado");
+  if(notif)notif.id="notificationPanel";
+  var docs=painelPorTexto("fluxo documental assistido");
+  if(docs)docs.id="docsPanel";
+  var priv=painelPorTexto("privacidade e sessão");
+  if(priv)priv.id="privacyPanel";
+  var report=painelPorTexto("documentação da análise");
+  if(report)report.id="reportPanel";
+
+  var result=document.getElementById("result");
+  if(result)result.classList.add("system-result");
+
+  atualizarNomeSistemaModulo();
+  prepararInicioModulo();
+}
+
+function atualizarNomeSistemaModulo(){
+  var lab=moduleLabels[selectedModule]||selectedModule;
+  var s=document.getElementById("sideModuleName");if(s)s.textContent=lab;
+  var d=document.getElementById("dashboardTitle");
+  if(d&&!lastAnalysisData)d.textContent="Processo ainda não carregado";
+}
+
+function prepararInicioModulo(){
+  lastAnalysisData=null;
+  currentProcessTab="resumo";
+  var result=document.getElementById("result");if(result){result.innerHTML="";result.style.display="none"}
+  var tabs=document.getElementById("processTabs");if(tabs)tabs.classList.remove("visible");
+  var empty=document.getElementById("systemEmpty");if(empty)empty.style.display="flex";
+  var upload=document.getElementById("uploadPanel");if(upload)upload.style.display="block";
+  ["qaPanel","notificationPanel","docsPanel","privacyPanel","reportPanel"].forEach(function(id){var x=document.getElementById(id);if(x){x.classList.remove("tab-visible");x.style.display="none"}});
+  var st=document.getElementById("processStatus");if(st){st.textContent="Sem processo";st.classList.remove("ready")}
+  var ds=document.getElementById("dashboardSub");if(ds)ds.textContent="Carregue os autos ou use o processo modelo para iniciar.";
+  var vals={dashDocs:"0",dashEvidence:"0",dashPending:"0",dashStage:"Não iniciada"};
+  Object.keys(vals).forEach(function(id){var x=document.getElementById(id);if(x)x.textContent=vals[id]});
+  document.querySelectorAll(".side-item").forEach(function(x){x.classList.toggle("active",x.dataset.tab==="resumo")});
+  document.querySelectorAll(".process-tab").forEach(function(x){x.classList.toggle("active",x.dataset.tab==="resumo")});
+}
+
+async function novoProcessoModulo(){
+  analysisId=analysisId||localStorage.getItem("fiscaliza_analysis_id");
+  if(analysisId){try{await fetch("/api/analysis/"+analysisId,{method:"DELETE"})}catch(e){}}
+  analysisId=null;localStorage.removeItem("fiscaliza_analysis_id");
+  var fi=document.getElementById("files");if(fi)fi.value="";
+  var ans=document.getElementById("answer");if(ans)ans.style.display="none";
+  prepararInicioModulo();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function tituloSecao(sec){
+  var h=sec.querySelector&&sec.querySelector("h2");
+  return h?h.textContent.trim().toLowerCase():"";
+}
+
+function grupoSecao(titulo){
+  if(titulo.indexOf("linha do tempo")>=0)return "cronologia";
+  if(titulo.indexOf("matriz de evid")>=0||titulo.indexOf("elementos localizados")>=0||titulo.indexOf("pontos para confer")>=0||titulo.indexOf("pontos a confront")>=0||titulo.indexOf("contradi")>=0||titulo.indexOf("rastreabilidade")>=0)return "evidencias";
+  if(titulo.indexOf("estrutura do processo")>=0||titulo.indexOf("estrutura esperada")>=0)return "documentos";
+  if(titulo.indexOf("mapa de pend")>=0||titulo.indexOf("pontos antes")>=0||titulo.indexOf("pendências e limites")>=0||titulo.indexOf("pendencias e limites")>=0)return "pendencias";
+  return "resumo";
+}
+
+function marcarGruposResultado(){
+  var result=document.getElementById("result");if(!result)return;
+  var nodes=Array.from(result.children);
+  nodes.forEach(function(node){
+    var secs=[];
+    if(node.classList&&node.classList.contains("section"))secs=[node];
+    else if(node.querySelectorAll)secs=Array.from(node.querySelectorAll(":scope > .section"));
+    if(node.tagName==="DETAILS"){
+      node.dataset.group="documentos";return;
+    }
+    if(!secs.length)return;
+    var groups=secs.map(function(s){return grupoSecao(tituloSecao(s))});
+    var unique=Array.from(new Set(groups));
+    node.dataset.group=unique.length===1?unique[0]:"mixed";
+    secs.forEach(function(s){s.dataset.group=grupoSecao(tituloSecao(s))});
+  });
+}
+
+function setPanelVisibility(tab){
+  var result=document.getElementById("result");
+  if(result){
+    result.style.display=(["resumo","documentos","evidencias","cronologia","pendencias"].indexOf(tab)>=0)?"block":"none";
+    Array.from(result.children).forEach(function(node){
+      if(!node.dataset.group)return;
+      if(node.dataset.group==="mixed"){
+        var secs=Array.from(node.querySelectorAll(":scope > .section"));
+        secs.forEach(function(s){s.style.display=(s.dataset.group===tab)?"block":"none"});
+        node.style.display=secs.some(function(s){return s.style.display!=="none"})?"grid":"none";
+      }else node.style.display=(node.dataset.group===tab)?"block":"none";
+    });
+  }
+  var map={perguntar:["qaPanel"],minutas:["notificationPanel","docsPanel"],relatorio:["reportPanel","privacyPanel"]};
+  ["qaPanel","notificationPanel","docsPanel","privacyPanel","reportPanel"].forEach(function(id){
+    var p=document.getElementById(id);if(!p)return;
+    var show=(map[tab]||[]).indexOf(id)>=0;
+    p.style.display=show?"block":"none";
+    p.classList.toggle("tab-visible",show);
+  });
+}
+
+function mostrarAbaProcesso(tab,btn){
+  if(!lastAnalysisData && tab!=="resumo")return;
+  currentProcessTab=tab;
+  document.querySelectorAll(".side-item,.process-tab").forEach(function(x){x.classList.toggle("active",x.dataset.tab===tab)});
+  setPanelVisibility(tab);
+  var main=document.querySelector(".system-main");if(main)main.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function ativarProcessoNoSistema(a){
+  if(!a)return;
+  lastAnalysisData=a;
+  var result=document.getElementById("result");if(result){result.classList.add("system-result");result.style.display="block"}
+  var empty=document.getElementById("systemEmpty");if(empty)empty.style.display="none";
+  var upload=document.getElementById("uploadPanel");if(upload)upload.style.display="none";
+  var tabs=document.getElementById("processTabs");if(tabs)tabs.classList.add("visible");
+  var st=document.getElementById("processStatus");if(st){st.textContent="Processo analisado";st.classList.add("ready")}
+  var title=document.getElementById("dashboardTitle");if(title)title.textContent=(a.module_label||moduleLabels[selectedModule]||"Processo")+" · análise concluída";
+  var sub=document.getElementById("dashboardSub");if(sub)sub.textContent="Use as áreas abaixo para navegar pelo processo sem percorrer uma página longa.";
+
+  var docs=(a.metrics&&a.metrics.pieces!=null)?a.metrics.pieces:(a.pieces||[]).length;
+  var evid=(a.metrics&&a.metrics.evidence_points!=null)?a.metrics.evidence_points:(a.module_evidence||[]).length;
+  var pend=(a.review_flags||[]).length;
+  var stage=(a.next_action&&a.next_action.stage)?a.next_action.stage:"Revisão";
+  var vals={dashDocs:String(docs),dashEvidence:String(evid),dashPending:String(pend),dashStage:stage};
+  Object.keys(vals).forEach(function(id){var x=document.getElementById(id);if(x)x.textContent=vals[id]});
+
+  marcarGruposResultado();
+  mostrarAbaProcesso("resumo");
+}
+
+var _oldAjustarResultadoModuloV68=ajustarResultadoModulo;
+ajustarResultadoModulo=function(a){
+  _oldAjustarResultadoModuloV68(a);
+  setTimeout(function(){ativarProcessoNoSistema(a)},0);
+};
+
+var _oldAbrirTelaModuloV68=abrirTelaModulo;
+abrirTelaModulo=function(key,el,push){
+  _oldAbrirTelaModuloV68(key,el,push);
+  setTimeout(function(){garantirSistemaWorkspace();atualizarNomeSistemaModulo();prepararInicioModulo()},0);
+};
+
+document.addEventListener("DOMContentLoaded",function(){
+  setTimeout(function(){
+    if(document.getElementById("screenWorkspace"))garantirSistemaWorkspace();
+  },60);
+});
+"""
+HTML=HTML.replace("</script>",_system_js+"\n</script>",1)
+
+# Atualiza textos remanescentes de demonstração/rastreabilidade.
+HTML=HTML.replace("Cada achado aponta a página de origem.","Cada achado aponta o documento e a página de origem.")
+HTML=HTML.replace("VERSÃO 6.7 · ID DO DOCUMENTO + PÁGINA","VERSÃO 6.8 · INTERFACE DE SISTEMA")
