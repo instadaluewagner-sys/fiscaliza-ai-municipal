@@ -10,23 +10,23 @@
   <main class="shell">
     <header class="app-header">
       <div>
-        <span class="tag">V8 · ambiente paralelo</span>
+        <span class="tag">V8 RC · Penalização</span>
         <h1>Penalização contratual</h1>
         <p>Documentos → evidências → estágio processual → próximo ato.</p>
       </div>
-      <div class="alpha-note">A versão pública atual permanece intacta.</div>
+      <div class="alpha-note">Versão candidata para validação antes da publicação.</div>
     </header>
 
     <section class="panel upload-panel">
       <div>
-        <h2>Validar um processo</h2>
-        <p>Envie um PDF. A V8 tenta separar peças autônomas antes de interpretar o processo.</p>
+        <h2>Novo processo</h2>
+        <p>Envie os autos em PDF. A análise separa as peças, identifica evidências, determina a fase e orienta o próximo ato.</p>
       </div>
       <form id="form">
         <input id="files" type="file" accept="application/pdf" multiple required>
         <button>Analisar processo</button>
       </form>
-      <p class="note">Ambiente técnico de validação. Sessões e PDFs são mantidos temporariamente em memória e expiram automaticamente.</p>
+      <p class="note">Sessão temporária. Os arquivos permanecem apenas na memória desta instância durante a análise e expiram automaticamente.</p>
     </section>
 
     <section id="workspace" class="workspace hidden">
