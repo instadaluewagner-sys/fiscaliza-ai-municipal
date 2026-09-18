@@ -81,16 +81,23 @@ def _find_all_identifiers(
 
 
 def _safe_quantity_sourced(documents: list[Document]):
+    # Prioridade semântica: primeiro procuramos declaração explícita de quantidade
+    # total/contratada em TODAS as peças seguras; só depois usamos inferência pelo objeto.
+    safe_types = ("contrato","ata_registro_precos","empenho","ordem_fornecimento","termo_referencia")
+    safe_docs = [d for d in documents if d.type in safe_types]
     patterns = [
         r"(?:quantidade\s+total|quantidade\s+contratada|total\s+contratado)\s*[:.-]?\s*(\d{1,7}\s+(?:kits?|unidades?|itens?|caixas?|frascos?|equipamentos?)(?:\s+de\s+[^.,;\n]{2,80})?)",
         r"(?:objeto|fornecimento|aquisi[cç][aã]o)\s+(?:de\s+)?(\d{1,7}\s+(?:kits?|unidades?|itens?|caixas?|frascos?|equipamentos?)(?:\s+de\s+[^.,;\n]{2,80})?)",
     ]
-    return _find_sourced(
-        documents,
-        patterns,
-        preferred_types=("contrato","ata_registro_precos","empenho","ordem_fornecimento","termo_referencia"),
-        fallback_all=False,
-    )
+    for pattern in patterns:
+        for doc in safe_docs:
+            for page, text in _iter_doc_pages(doc):
+                m = re.search(pattern, text, flags=re.I)
+                if m:
+                    value = re.sub(r"\s+", " ", m.group(1)).strip(" \t\n:;,.–—-")
+                    if value:
+                        return value, PageRef(file=doc.file, page=page, document_id=doc.id)
+    return None, None
 
 
 def build_profile(documents: list[Document]) -> ProcessProfile:
