@@ -2,14 +2,6 @@ name: V8 real benchmark
 
 on:
   workflow_dispatch:
-  push:
-    branches: [v8-rebuild]
-    paths:
-      - "v8/services/**"
-      - "v8/modules/**"
-      - "v8/core/**"
-      - "v8/benchmarks/**"
-      - ".github/workflows/v8-real-benchmark.yml"
 
 jobs:
   benchmark:
