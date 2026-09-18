@@ -16,7 +16,7 @@ class Document(BaseModel):
     page_start: int
     page_end: int
     pages: list[int]
-    page_texts: dict[int, str] = {}
+    page_texts: dict[int, str] = Field(default_factory=dict)
     confidence: float = Field(ge=0, le=1)
     text: str
 
@@ -25,8 +25,8 @@ class ChecklistItem(BaseModel):
     label: str
     status: Status
     reason: str
-    document_ids: list[str] = []
-    pages: list[int] = []
+    document_ids: list[str] = Field(default_factory=list)
+    pages: list[int] = Field(default_factory=list)
 
 class Evidence(BaseModel):
     fact: str
@@ -58,4 +58,4 @@ class AnalysisResult(BaseModel):
     checklist: list[ChecklistItem]
     evidence: list[Evidence]
     stage: StageResult
-    warnings: list[str] = []
+    warnings: list[str] = Field(default_factory=list)
