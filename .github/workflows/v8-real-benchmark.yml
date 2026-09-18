@@ -23,10 +23,12 @@ jobs:
             slug: asseste
             url: "https://franciscobeltrao.pr.gov.br/wp-content/uploads/2025/03/TERMO-DE-RESCISAO-CONT.-308-ASSESTE-COMERCIO-DE-EXTINTORES-LTDA-UNILATERAL-Protocolo-15.566.2025.pdf"
             benchmark: v8/benchmarks/francisco-beltrao-asseste-15566-2025.json
+            referer: "https://franciscobeltrao.pr.gov.br/"
           - case: Felício dos Santos · decisão final PAS
             slug: felicio-pas
             url: "https://feliciodossantos.mg.gov.br/arquivo/69610df0940e0.pdf"
             benchmark: v8/benchmarks/felicio-dos-santos-pas-07-2025.json
+            referer: "https://feliciodossantos.mg.gov.br/noticia/decisao-administrativa-2"
 
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +49,9 @@ jobs:
         run: |
           mkdir -p .benchmark-data
           curl --fail --location --retry 3 \
+            --user-agent "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/152 Safari/537.36" \
+            --referer "${{ matrix.referer }}" \
+            --header "Accept: application/pdf,text/html;q=0.9,*/*;q=0.8" \
             "${{ matrix.url }}" \
             --output ".benchmark-data/${{ matrix.slug }}.pdf"
 
