@@ -3445,3 +3445,229 @@ HTML=HTML.replace(
 )
 
 HTML=HTML.replace("VERSÃO 6.0 · CONTROLE PROCESSUAL COMPLETO","VERSÃO 6.1 · PLATAFORMA MODULAR")
+
+
+# --- Processos modelo por módulo v6.2 ---
+_penalizacao_demo_pdf_v51 = demo_pdf
+
+MODEL_CASES = {
+    "fiscalizacao": {
+        "title":"Fiscalização de contratos",
+        "pages":[
+            ("PROCESSO DE FISCALIZAÇÃO CONTRATUAL Nº 1001/2026","CASO FICTÍCIO. Contrato nº 210/2026. Objeto: manutenção preventiva de aparelhos de ar-condicionado em unidades municipais."),
+            ("CONTRATO ADMINISTRATIVO Nº 210/2026","CONTRATANTE: Município Demonstração. CONTRATADA: Clima Modelo Ltda. Objeto: manutenção preventiva mensal. Prazo: 12 meses. A fiscalização deverá acompanhar a execução e registrar ocorrências."),
+            ("PORTARIA DE DESIGNAÇÃO DE FISCAL Nº 55/2026","Fica designada a servidora Fiscal Exemplo para atuar como fiscal do Contrato nº 210/2026, acompanhando a execução e registrando as providências necessárias."),
+            ("ORDEM DE SERVIÇO Nº 03/2026","Autoriza-se a execução dos serviços referentes ao mês de junho de 2026, conforme cronograma contratual."),
+            ("RELATÓRIO DE EXECUÇÃO Nº 06/2026","O fiscal registra execução parcial dos serviços. Duas unidades não receberam a manutenção prevista e três equipamentos apresentaram pendências."),
+            ("TERMO DE RECEBIMENTO / MEDIÇÃO Nº 06/2026","Foram recebidos e medidos os serviços efetivamente executados, com glosa dos itens não realizados."),
+            ("NOTIFICAÇÃO DE OCORRÊNCIA Nº 02/2026","A contratada fica notificada para regularizar as pendências apontadas no relatório de fiscalização e apresentar manifestação."),
+            ("MANIFESTAÇÃO DA CONTRATADA","A empresa reconhece atraso em duas unidades, apresenta cronograma de correção e informa providência administrativa para reforço da equipe."),
+            ("RELATÓRIO FINAL DE FISCALIZAÇÃO","A fiscalização registra o cumprimento das correções e recomenda o prosseguimento regular do contrato, com manutenção do acompanhamento.")
+        ]
+    },
+    "reequilibrio": {
+        "title":"Reequilíbrio econômico-financeiro",
+        "pages":[
+            ("PROCESSO DE REEQUILÍBRIO Nº 1102/2026","CASO FICTÍCIO. Pedido de reequilíbrio econômico-financeiro relacionado ao Contrato nº 305/2026."),
+            ("CONTRATO ADMINISTRATIVO Nº 305/2026","Objeto: fornecimento continuado de gêneros alimentícios. Valor unitário registrado conforme proposta vencedora."),
+            ("PEDIDO DE REEQUILÍBRIO ECONÔMICO-FINANCEIRO","A contratada requer reequilíbrio econômico-financeiro alegando aumento extraordinário do custo da matéria-prima ocorrido após a contratação."),
+            ("ORÇAMENTO E COTAÇÕES DE MERCADO","A empresa apresenta orçamento de três fornecedores e planilha comparativa de preços atuais e preços da época da proposta."),
+            ("NOTA TÉCNICA Nº 18/2026","A unidade técnica analisa a alegação de desequilíbrio, os índices de mercado, a variação dos custos e a relação entre o fato superveniente e o contrato."),
+            ("PARECER JURÍDICO Nº 44/2026","O parecer examina os requisitos jurídicos do reequilíbrio econômico-financeiro e recomenda decisão motivada com base na prova efetivamente apresentada."),
+            ("DECISÃO ADMINISTRATIVA","A autoridade DECIDE deferir parcialmente o pedido de reequilíbrio, fixando novo valor unitário a partir da data definida no processo.")
+        ]
+    },
+    "rescisao": {
+        "title":"Rescisão / extinção contratual",
+        "pages":[
+            ("PROCESSO DE EXTINÇÃO CONTRATUAL Nº 1203/2026","CASO FICTÍCIO. Apuração de fatos relacionados ao Contrato nº 411/2026."),
+            ("CONTRATO ADMINISTRATIVO Nº 411/2026","Objeto: serviços de transporte. O contrato prevê hipóteses de rescisão/extinção e assegura contraditório nas situações cabíveis."),
+            ("RELATÓRIO DE OCORRÊNCIA","A fiscalização registra descumprimentos reiterados do cronograma e descreve a motivação técnica para avaliar a rescisão contratual."),
+            ("NOTIFICAÇÃO À CONTRATADA","A empresa fica notificada sobre a intenção de extinção/rescisão e recebe oportunidade para apresentar manifestação e documentos."),
+            ("DEFESA / MANIFESTAÇÃO DA CONTRATADA","A contratada apresenta defesa, contesta parte das ocorrências e requer continuidade do contrato mediante plano de regularização."),
+            ("PARECER JURÍDICO Nº 52/2026","O parecer jurídico analisa os fundamentos da rescisão, o contraditório e os efeitos da eventual extinção contratual."),
+            ("DECISÃO DE EXTINÇÃO CONTRATUAL","Após análise dos autos, a autoridade DECIDE pela extinção do Contrato nº 411/2026, com motivação individualizada e providências de encerramento.")
+        ]
+    },
+    "disciplinar": {
+        "title":"Processo disciplinar",
+        "pages":[
+            ("PROCESSO ADMINISTRATIVO DISCIPLINAR Nº 1304/2026","CASO FICTÍCIO. Servidor Exemplo. Objeto: apuração disciplinar de conduta funcional."),
+            ("PORTARIA DE INSTAURAÇÃO Nº 77/2026","Fica instaurado Processo Administrativo Disciplinar para apuração dos fatos descritos no termo inicial e designada comissão processante."),
+            ("CITAÇÃO DO SERVIDOR","O servidor é citado para acompanhar o processo, constituir defesa e exercer contraditório e ampla defesa."),
+            ("ATA DE INSTRUÇÃO E PRODUÇÃO DE PROVAS","A comissão registra depoimentos, documentos e demais provas produzidas durante a instrução."),
+            ("DEFESA ADMINISTRATIVA","O servidor apresenta defesa escrita, contesta os fatos e requer consideração das provas e circunstâncias funcionais."),
+            ("RELATÓRIO DA COMISSÃO","Encerrada a instrução, a comissão elabora relatório conclusivo, resume as provas e encaminha os autos à autoridade competente."),
+            ("DECISÃO DE JULGAMENTO","A autoridade DECIDE de forma motivada após examinar relatório, defesa e provas, registrando o resultado do julgamento disciplinar.")
+        ]
+    },
+    "sindicancia": {
+        "title":"Sindicância",
+        "pages":[
+            ("SINDICÂNCIA ADMINISTRATIVA Nº 1405/2026","CASO FICTÍCIO. Ato de instauração de sindicância para apurar fato ocorrido em unidade municipal."),
+            ("ATO DE INSTAURAÇÃO","A autoridade determina a instauração da sindicância e descreve o fato que deverá ser investigado."),
+            ("TERMO DE DILIGÊNCIA Nº 01","A comissão realiza diligência para reunir documentos, identificar envolvidos e esclarecer a sequência dos acontecimentos."),
+            ("TERMO DE DEPOIMENTO E PROVAS","São juntados depoimento, documentos e outras provas relacionadas ao fato investigado."),
+            ("RELATÓRIO CONCLUSIVO DA SINDICÂNCIA","A comissão apresenta relatório conclusivo com síntese dos fatos, diligências realizadas e elementos encontrados."),
+            ("DECISÃO / ENCAMINHAMENTO","A autoridade DECIDE pelo arquivamento parcial e encaminha um ponto específico para apuração em procedimento próprio.")
+        ]
+    },
+    "lai": {
+        "title":"Ouvidoria e LAI",
+        "pages":[
+            ("PEDIDO DE ACESSO À INFORMAÇÃO Nº 1506/2026","CASO FICTÍCIO. Pedido protocolado por cidadão perante o órgão municipal para acesso a dados de contratos de manutenção."),
+            ("PROTOCOLO E IDENTIFICAÇÃO DO ÓRGÃO","O pedido foi recebido pela Ouvidoria do Município Demonstração e encaminhado ao órgão responsável pelas informações."),
+            ("CONTROLE DE PRAZO","O sistema registra o prazo legal para resposta e a data limite para manifestação do órgão responsável."),
+            ("RESPOSTA AO PEDIDO","O órgão apresenta resposta, fornece parte dos documentos e justifica a restrição de um documento específico."),
+            ("RECURSO DO REQUERENTE","O cidadão interpõe recurso contra a resposta parcial e solicita reavaliação da restrição."),
+            ("DECISÃO DO RECURSO","A autoridade competente DECIDE o recurso, amplia parcialmente o acesso e mantém a restrição apenas sobre dado protegido.")
+        ]
+    },
+    "prestacao": {
+        "title":"Convênios e prestação de contas",
+        "pages":[
+            ("PROCESSO DE PRESTAÇÃO DE CONTAS Nº 1607/2026","CASO FICTÍCIO. Convênio nº 22/2026 para execução de projeto esportivo municipal."),
+            ("CONVÊNIO Nº 22/2026","O convênio define objeto, metas, recursos, cronograma e responsabilidades das partes."),
+            ("PLANO DE TRABALHO","O plano de trabalho detalha metas, etapas, cronograma de execução e previsão de despesas."),
+            ("RELATÓRIO DE EXECUÇÃO DO OBJETO","A entidade apresenta relatório de execução, registros das atividades realizadas e resultados alcançados."),
+            ("PRESTAÇÃO DE CONTAS","São juntados demonstrativos financeiros, notas fiscais, comprovantes de pagamento e conciliação dos recursos recebidos."),
+            ("ANÁLISE TÉCNICA E FINANCEIRA","A unidade competente realiza análise da execução física e financeira e aponta pequena pendência documental."),
+            ("DECISÃO DE APROVAÇÃO","Após saneamento da pendência, a autoridade DECIDE pela aprovação da prestação de contas com ressalva formal.")
+        ]
+    },
+    "licitacoes": {
+        "title":"Licitações e contratação",
+        "pages":[
+            ("PROCESSO LICITATÓRIO Nº 1708/2026","CASO FICTÍCIO. Pregão Eletrônico destinado à aquisição de equipamentos de informática."),
+            ("EDITAL DO PREGÃO ELETRÔNICO Nº 88/2026","O edital estabelece objeto, critérios de julgamento, condições de participação e regras de habilitação."),
+            ("TERMO DE REFERÊNCIA","O termo de referência descreve requisitos técnicos, quantidades, critérios de aceitação e obrigações da futura contratada."),
+            ("PROPOSTAS E HABILITAÇÃO","São registradas as propostas recebidas, documentos de habilitação e resultado da análise dos licitantes."),
+            ("ATA DA SESSÃO PÚBLICA","A ata registra lances, classificação, habilitação e ocorrências da sessão eletrônica."),
+            ("PARECER JURÍDICO","O parecer jurídico examina a regularidade formal do procedimento antes do encerramento da fase externa."),
+            ("ADJUDICAÇÃO E HOMOLOGAÇÃO","A autoridade competente adjudica o objeto e homologa o resultado do certame.")
+        ]
+    },
+    "cobranca": {
+        "title":"Cobrança administrativa",
+        "pages":[
+            ("PROCESSO DE COBRANÇA ADMINISTRATIVA Nº 1809/2026","CASO FICTÍCIO. Cobrança de débito decorrente de ressarcimento administrativo."),
+            ("ORIGEM DO DÉBITO","A unidade responsável descreve o fato gerador do débito e identifica o valor principal sujeito à cobrança."),
+            ("MEMÓRIA DE CÁLCULO","A memória de cálculo demonstra valor principal, atualização e total apurado na data de referência."),
+            ("NOTIFICAÇÃO DE COBRANÇA","O interessado fica notificado para pagamento ou apresentação de manifestação no prazo indicado."),
+            ("COMPROVANTE DE CIÊNCIA","Consta confirmação de ciência da notificação de cobrança pelo interessado."),
+            ("MANIFESTAÇÃO DO INTERESSADO","O interessado apresenta manifestação, contesta parte do cálculo e junta comprovantes."),
+            ("DECISÃO ADMINISTRATIVA","Após análise, a autoridade DECIDE retificar parcialmente o cálculo e manter a cobrança do saldo remanescente.")
+        ]
+    },
+    "servidores": {
+        "title":"Processos de servidores",
+        "pages":[
+            ("PROCESSO FUNCIONAL Nº 1910/2026","CASO FICTÍCIO. Servidora Modelo. Requerimento funcional de concessão de vantagem prevista em norma municipal."),
+            ("REQUERIMENTO DA SERVIDORA","A servidora requer análise do direito e junta documentos funcionais e comprovantes pertinentes."),
+            ("DOCUMENTOS FUNCIONAIS","São juntados ficha funcional, portarias, registros de exercício e demais documentos do servidor."),
+            ("MANIFESTAÇÃO DE RECURSOS HUMANOS","O setor de Recursos Humanos confere tempo de serviço, registros e requisitos administrativos."),
+            ("PARECER JURÍDICO","O parecer analisa a norma aplicável ao requerimento e orienta a autoridade quanto aos requisitos."),
+            ("CIÊNCIA DA INTERESSADA","A servidora toma ciência da manifestação técnica e apresenta esclarecimento complementar."),
+            ("DECISÃO ADMINISTRATIVA","A autoridade DECIDE o requerimento funcional de forma motivada e determina as providências de registro.")
+        ]
+    },
+    "tributario": {
+        "title":"Processo tributário municipal",
+        "pages":[
+            ("PROCESSO TRIBUTÁRIO Nº 2011/2026","CASO FICTÍCIO. Contribuinte Modelo Ltda. Impugnação de lançamento tributário municipal."),
+            ("AUTO / LANÇAMENTO TRIBUTÁRIO Nº 33/2026","O lançamento identifica tributo, período, base de cálculo e valor exigido do contribuinte."),
+            ("COMPROVANTE DE CIÊNCIA DO CONTRIBUINTE","O contribuinte recebe ciência formal do lançamento e do prazo para impugnação."),
+            ("IMPUGNAÇÃO ADMINISTRATIVA","O contribuinte apresenta impugnação, questiona a base de cálculo e junta documentos."),
+            ("INSTRUÇÃO E PROVAS","A autoridade fiscal reúne prova documental, informação cadastral e memória de cálculo revisada."),
+            ("DECISÃO DE PRIMEIRA INSTÂNCIA","A autoridade DECIDE a impugnação, acolhendo parcialmente um ponto e mantendo o restante do lançamento."),
+            ("RECURSO ADMINISTRATIVO","O contribuinte interpõe recurso contra a parcela mantida e requer novo julgamento administrativo.")
+        ]
+    },
+    "geral": {
+        "title":"Análise geral",
+        "pages":[
+            ("PROCESSO ADMINISTRATIVO Nº 2112/2026","CASO FICTÍCIO. Processo administrativo geral para análise de pedido formulado por interessado."),
+            ("PROTOCOLO DE ORIGEM Nº 2112/2026","O protocolo registra o pedido inicial e identifica a unidade responsável pelo processamento."),
+            ("MANIFESTAÇÃO DO INTERESSADO","O interessado apresenta sua manifestação, documentos e pedido específico à Administração."),
+            ("INFORMAÇÃO TÉCNICA","A unidade técnica organiza os fatos e apresenta análise preliminar dos documentos."),
+            ("PARECER JURÍDICO","O parecer examina a questão jurídica necessária para orientar a decisão administrativa."),
+            ("CONTROLE DE PRAZO E CIÊNCIA","O processo registra prazo para manifestação complementar e ciência do interessado."),
+            ("DECISÃO ADMINISTRATIVA","A autoridade DECIDE o pedido com motivação e determina as providências administrativas subsequentes.")
+        ]
+    }
+}
+
+def _render_model_pdf(module,case):
+    pages=case["pages"]
+    buf=io.BytesIO()
+    cnv=canvas.Canvas(buf,pagesize=A4)
+    for idx,(title,body) in enumerate(pages,start=1):
+        cnv.setFont("Helvetica-Bold",14)
+        cnv.drawString(52,790,title)
+        cnv.setFont("Helvetica",10)
+        _demo_wrap(cnv,body)
+        cnv.setFont("Helvetica-Bold",8)
+        cnv.drawString(52,35,"FISCALIZA.AI · PROCESSO MODELO FICTÍCIO · "+case["title"])
+        cnv.setFont("Helvetica",8)
+        cnv.drawRightString(545,35,"Página %d de %d" % (idx,len(pages)))
+        cnv.showPage()
+    cnv.save();buf.seek(0)
+    filename="Processo-Modelo-"+module+"-FiscalizaAI.pdf"
+    return StreamingResponse(buf,media_type="application/pdf",headers={"Content-Disposition":"inline; filename="+filename})
+
+def demo_pdf_v62(module:str="penalizacao"):
+    module=module if module in MODULES else "penalizacao"
+    if module=="penalizacao":
+        return _penalizacao_demo_pdf_v51()
+    return _render_model_pdf(module,MODEL_CASES[module])
+
+app.router.routes=[
+    r for r in app.router.routes
+    if not (getattr(r,"path",None)=="/api/demo-pdf" and "GET" in getattr(r,"methods",set()))
+]
+app.add_api_route("/api/demo-pdf",demo_pdf_v62,methods=["GET"])
+app.version="6.2"
+
+# UI: cada módulo passa a ter um processo modelo testável.
+HTML=HTML.replace(
+    '<div class="module-selected">Módulo ativo: <strong id="moduleActiveLabel">Penalização contratual</strong><span>Você pode trocar antes de analisar.</span></div>',
+    '<div class="module-selected"><span>Módulo ativo: <strong id="moduleActiveLabel">Penalização contratual</strong></span><button class="btn btn-blue" onclick="testarDemo()">Testar processo modelo deste módulo →</button></div>',
+    1
+)
+
+HTML=HTML.replace(
+    'var r=await fetch("/api/demo-pdf");',
+    'var r=await fetch("/api/demo-pdf?module="+encodeURIComponent(selectedModule));',
+    1
+)
+HTML=HTML.replace(
+    'var file=new File([blob],"Processo-Demonstrativo-FiscalizaAI.pdf",{type:"application/pdf"});',
+    'var file=new File([blob],"Processo-Modelo-"+selectedModule+"-FiscalizaAI.pdf",{type:"application/pdf"});',
+    1
+)
+HTML=HTML.replace(
+    '''demoMode=true;
+    selectedModule="penalizacao";
+    var mc=document.querySelector('.module-card[data-module="penalizacao"]');if(mc)selecionarModulo("penalizacao",mc);
+    await analisar();''',
+    '''demoMode=true;
+    await analisar();''',
+    1
+)
+
+HTML=HTML.replace(
+    "Carregue um processo modelo inteiramente fictício, com contratação, cobrança, justificativa, instauração, notificação, defesa, pareceres e decisão final. O sistema executa a mesma análise usada para qualquer PDF enviado.",
+    "Escolha um módulo e carregue um processo modelo inteiramente fictício preparado para aquele fluxo. O sistema executa a mesma análise usada para qualquer PDF enviado.",
+    1
+)
+HTML=HTML.replace(
+    "<span>18 páginas</span><span>ciclo completo</span><span>dados fictícios</span>",
+    "<span>13 módulos</span><span>modelos completos</span><span>dados fictícios</span>",
+    1
+)
+HTML=HTML.replace(
+    "Testar processo modelo →",
+    "Testar modelo do módulo ativo →",
+    1
+)
+HTML=HTML.replace("VERSÃO 6.1 · PLATAFORMA MODULAR","VERSÃO 6.2 · MODELOS POR MÓDULO")
