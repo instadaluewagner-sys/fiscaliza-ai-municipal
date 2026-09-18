@@ -34,11 +34,28 @@ A V8 não deve sugerir documento incompatível com a fase atual. Ex.: processo c
 
 Nenhuma regra será criada para acertar um PDF específico. Correções devem melhorar classes de documentos/processos e ser cobertas por teste.
 
+## Estado atual do marco de Penalização
+
+Concluído nesta etapa:
+
+- segmentação multi-página com separação de envelopes/protocolos e peças anexas;
+- gabarito automatizado do processo público ASSESTE, com gate de qualidade no GitHub Actions;
+- visualizador do PDF ligado ao DOC-ID + página;
+- perfil da contratação com processo, pregão, ata, contrato, empenhos, empresa, CNPJ, objeto e quantidade quando identificáveis com segurança;
+- detecção explícita de divergências cadastrais, preservando as fontes conflitantes;
+- central de evidências categorizadas e priorização da fonte técnica primária;
+- estágio processual com fonte documental rastreável;
+- checklist com quatro estados: localizado, não localizado, não aplicável e inconclusivo;
+- minutas compatíveis com a fase, com fontes por DOC-ID + página;
+- notificação de instauração detalhada, sem inventar prazo, competência ou dado ausente;
+- sessão temporária com expiração, encerramento explícito, cabeçalhos no-store e limite configurável por PDF.
+
+O benchmark real deve permanecer verde antes de qualquer migração para a versão publicada.
+
 ## Próximos marcos
 
-- segmentação multi-página melhorada;
-- gabarito de processos reais;
-- visualizador de PDF ligado ao DOC-ID + página;
-- central de evidências;
-- geração de minutas condicionada ao estágio;
-- só então migração dos outros cinco módulos.
+- ampliar o conjunto de processos reais de regressão, incluindo um PAS completo já instaurado;
+- testar PDFs digitalizados com OCR e peças com baixa qualidade;
+- consolidar relatório/exportação auditável da análise;
+- fazer revisão visual final da V8;
+- somente depois migrar, um a um, os outros cinco módulos.
