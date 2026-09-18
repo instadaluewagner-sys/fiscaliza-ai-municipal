@@ -125,6 +125,18 @@ def evaluate(pdf_path: Path, benchmark_path: Path) -> dict:
 
     expected_stage = benchmark.get("expected_stage")
     stage_ok = analysis.stage.key == expected_stage if expected_stage else None
+    expected_draft = benchmark.get("expected_suggested_draft")
+    draft_match = (
+        analysis.stage.suggested_draft == expected_draft
+        if expected_draft
+        else None
+    )
+    expected_ocr_min = benchmark.get("expected_ocr_min")
+    ocr_expectation_match = (
+        ocr_count >= int(expected_ocr_min)
+        if expected_ocr_min is not None
+        else None
+    )
     expected_stage_source_page = benchmark.get("expected_stage_source_page")
     stage_source_match = None
     if expected_stage_source_page is not None:
@@ -231,6 +243,10 @@ def evaluate(pdf_path: Path, benchmark_path: Path) -> dict:
         "expected_stage": expected_stage,
         "actual_stage": analysis.stage.key,
         "stage_match": stage_ok,
+        "expected_suggested_draft": expected_draft,
+        "draft_match": draft_match,
+        "expected_ocr_min": expected_ocr_min,
+        "ocr_expectation_match": ocr_expectation_match,
         "expected_stage_source_page": expected_stage_source_page,
         "stage_source_match": stage_source_match,
         "stage_sources": [ref.model_dump() for ref in analysis.stage.sources],
