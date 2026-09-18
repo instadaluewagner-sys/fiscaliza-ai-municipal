@@ -356,7 +356,7 @@ def build_profile(documents: list[Document]) -> ProcessProfile:
     process_number, src = _find_sourced(
         documents,
         [
-            r"Processo\s+Administrativo\s+(?:de\s+Penaliza[cç][aã]o|Sancionador)\s*(?:n\s*[º°o.]*)?\s*[:.-]?\s*(\d{1,8}(?:[-.]\d+)?/\d{4})"
+            r"Processo\s+Administrativo\s+(?:de\s+Penaliza[cç][aã]o|Sancionador|de\s+Apura[cç][aã]o\s+de\s+Responsabilidade)\s*(?:n\s*[º°o.]*)?\s*[:.-]?\s*(\d{1,8}(?:[-.]\d+)?/\d{4})"
         ],
     )
     if src:
@@ -738,8 +738,9 @@ def _has_current_pas_context(documents: list[Document]) -> bool:
     heading_patterns = [
         r"processo administrativo de penalizacao\s*(?:n|no|nº|n\.)",
         r"processo administrativo sancionador\s*(?:n|no|nº|n\.)",
+        r"processo administrativo de apuracao de responsabilidade\s*(?:n|no|nº|n\.)",
         r"notificacao.{0,100}instauracao.{0,120}processo administrativo",
-        r"instaurad[oa].{0,120}processo administrativo (?:sancionador|de penalizacao)",
+        r"instaurad[oa].{0,120}processo administrativo (?:sancionador|de penalizacao|de apuracao de responsabilidade)",
     ]
     for doc in documents:
         head = norm(doc.text[:1800])
