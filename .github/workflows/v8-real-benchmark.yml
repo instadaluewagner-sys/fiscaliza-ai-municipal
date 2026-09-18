@@ -24,11 +24,11 @@ jobs:
             url: "https://franciscobeltrao.pr.gov.br/wp-content/uploads/2025/03/TERMO-DE-RESCISAO-CONT.-308-ASSESTE-COMERCIO-DE-EXTINTORES-LTDA-UNILATERAL-Protocolo-15.566.2025.pdf"
             benchmark: v8/benchmarks/francisco-beltrao-asseste-15566-2025.json
             referer: "https://franciscobeltrao.pr.gov.br/"
-          - case: Felício dos Santos · decisão final PAS
-            slug: felicio-pas
-            url: "https://feliciodossantos.mg.gov.br/arquivo/69610df0940e0.pdf"
-            benchmark: v8/benchmarks/felicio-dos-santos-pas-07-2025.json
-            referer: "https://feliciodossantos.mg.gov.br/noticia/decisao-administrativa-2"
+          - case: Riachão do Jacuípe · decisão final PAS
+            slug: riachao-pas
+            url: "https://diario.indap.org.br/publicacoes/680b9aca94a24/anexo/52373"
+            benchmark: v8/benchmarks/riachao-do-jacuipe-pas-001-2025.json
+            referer: "https://diario.indap.org.br/"
 
     steps:
       - uses: actions/checkout@v4
