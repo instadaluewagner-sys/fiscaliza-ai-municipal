@@ -169,41 +169,103 @@ def _collect_cnpj_candidates(documents: list[Document], company: str | None):
     company_tokens = [
         token for token in re.findall(r"[A-Za-zÀ-ÿ0-9]+", company or "")
         if len(token) >= 5 and norm(token) not in {"comercio","empresa","ltda","eireli"}
-    ][:3]
+    ][:4]
 
     for doc in documents:
         for page, text in _iter_doc_pages(doc):
             for m in rx.finditer(text):
                 value = _format_cnpj(m.group(1))
                 key = re.sub(r"\D", "", value)
-                context = text[max(0,m.start()-260):min(len(text),m.end()+180)]
+                context = text[max(0,m.start()-320):min(len(text),m.end()+220)]
                 z = norm(context)
+                paired = bool(company_tokens) and any(norm(token) in z for token in company_tokens)
+                explicit_supplier = paired and any(
+                    marker in z
+                    for marker in [
+                        "inscrita no cnpj",
+                        "inscrito no cnpj",
+                        "contratada",
+                        "interessada",
+                        "notificado",
+                        "notificada",
+                        "empresa",
+                    ]
+                )
+
                 score = _source_weight(doc.type)
                 if _valid_cnpj(value):
-                    score += 20
+                    score += 25
                 else:
-                    score -= 12
+                    score -= 25
                 if "inscrita no cnpj" in z or "inscrito no cnpj" in z:
-                    score += 8
-                if any(marker in z for marker in ["contratada", "interessada", "notificado", "notificada"]):
-                    score += 5
-                if company_tokens and any(norm(token) in z for token in company_tokens):
-                    score += 7
+                    score += 10
+                if explicit_supplier:
+                    score += 20
+                elif paired:
+                    score += 10
 
                 item = candidates.setdefault(key, {
                     "value": value,
                     "score": 0,
                     "sources": [],
                     "doc_ids": set(),
+                    "paired_sources": [],
+                    "paired_doc_ids": set(),
+                    "valid": _valid_cnpj(value),
                 })
                 item["score"] += score
-                item["sources"].append(_page_ref(doc, page))
+                source = _page_ref(doc, page)
+                item["sources"].append(source)
                 item["doc_ids"].add(doc.id)
+                if paired:
+                    item["paired_sources"].append(source)
+                    item["paired_doc_ids"].add(doc.id)
 
     for item in candidates.values():
         item["score"] += 3 * len(item["doc_ids"])
+        item["score"] += 8 * len(item["paired_doc_ids"])
     return candidates
 
+
+def _select_cnpj_candidate(candidates: dict[str, dict]):
+    if not candidates:
+        return None, None, [], []
+
+    values = list(candidates.values())
+    paired_valid = [x for x in values if x["paired_sources"] and x["valid"]]
+    paired_any = [x for x in values if x["paired_sources"]]
+    valid_any = [x for x in values if x["valid"]]
+
+    # Para identificar o CNPJ da empresa, vínculo textual com a empresa tem
+    # precedência sobre CNPJs de prefeitura, procuradoria ou outros participantes.
+    pool = paired_valid or paired_any or valid_any or values
+    ranked = sorted(
+        pool,
+        key=lambda x: (
+            bool(x["valid"]),
+            len(x["paired_doc_ids"]),
+            x["score"],
+            len(x["doc_ids"]),
+        ),
+        reverse=True,
+    )
+    best = ranked[0]
+    source_pool = best["paired_sources"] or best["sources"]
+    source = source_pool[0] if source_pool else None
+
+    # Divergência só inclui outro CNPJ plausivelmente associado à MESMA empresa.
+    # CNPJ do Município ou de terceiros não vira "conflito cadastral" do fornecedor.
+    conflict_pool = paired_any if paired_any else pool
+    conflicts = []
+    conflict_sources = []
+    for item in sorted(conflict_pool, key=lambda x: x["score"], reverse=True):
+        if item["value"] == best["value"]:
+            continue
+        conflicts.append(item["value"])
+        refs = item["paired_sources"] or item["sources"]
+        if refs:
+            conflict_sources.append(refs[0])
+    return best["value"], source, conflicts, conflict_sources
 
 def _find_sourced(
     documents: list[Document],
@@ -296,7 +358,7 @@ def build_profile(documents: list[Document]) -> ProcessProfile:
         conflict_sources["company"] = company_conflict_sources
 
     cnpj_candidates = _collect_cnpj_candidates(documents, company)
-    cnpj, src, cnpj_conflicts, cnpj_conflict_sources = _select_candidate(cnpj_candidates)
+    cnpj, src, cnpj_conflicts, cnpj_conflict_sources = _select_cnpj_candidate(cnpj_candidates)
     if src:
         sources["cnpj"] = src
     if cnpj_conflicts:
