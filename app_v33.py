@@ -3239,3 +3239,209 @@ if _js_anchor in HTML:
     HTML=HTML.replace(_js_anchor,_js_new+_js_anchor,1)
 
 HTML=HTML.replace("VERSÃO 5.1 · PROCESSO MODELO COMPLETO","VERSÃO 6.0 · CONTROLE PROCESSUAL COMPLETO")
+
+
+# --- Plataforma modular v6.1 ---
+MODULES = {
+    "penalizacao":{"label":"Penalização contratual","short":"Penalização","desc":"Responsabilização de fornecedor, contraditório, defesa, sanção e decisão."},
+    "fiscalizacao":{"label":"Fiscalização de contratos","short":"Fiscalização","desc":"Execução, entregas, ocorrências, fiscalização, medições e providências."},
+    "reequilibrio":{"label":"Reequilíbrio econômico-financeiro","short":"Reequilíbrio","desc":"Pedido, fatos supervenientes, planilhas, pareceres e decisão."},
+    "rescisao":{"label":"Rescisão / extinção contratual","short":"Rescisão","desc":"Motivação, comunicação, contraditório, parecer e decisão de extinção."},
+    "disciplinar":{"label":"Processo disciplinar","short":"Disciplinar","desc":"Instauração, citação, instrução, defesa, relatório e julgamento."},
+    "sindicancia":{"label":"Sindicância","short":"Sindicância","desc":"Fato investigado, diligências, depoimentos, relatório e encaminhamento."},
+    "lai":{"label":"Ouvidoria e LAI","short":"Ouvidoria / LAI","desc":"Pedido, protocolo, prazo, resposta, recurso e transparência."},
+    "prestacao":{"label":"Convênios e prestação de contas","short":"Prestação de contas","desc":"Instrumento, plano, execução, comprovação, análise e decisão."},
+    "licitacoes":{"label":"Licitações e contratação","short":"Licitações","desc":"Edital, termo de referência, habilitação, propostas e homologação."},
+    "cobranca":{"label":"Cobrança administrativa","short":"Cobrança","desc":"Origem do débito, memória de cálculo, notificação e manifestação."},
+    "servidores":{"label":"Processos de servidores","short":"Servidores","desc":"Requerimentos funcionais, RH, documentos, pareceres e decisão."},
+    "tributario":{"label":"Processo tributário municipal","short":"Tributário","desc":"Lançamento, auto, ciência, impugnação, recurso e julgamento."},
+    "geral":{"label":"Análise geral","short":"Geral","desc":"Leitura, cronologia, peças, evidências, divergências e decisão."}
+}
+
+MODULE_RULES = {
+    "fiscalizacao":[("Instrumento contratual",["contrato"]),("Designação de fiscal/gestor",["fiscal"]),("Relatório de execução",["relatorio","execucao"]),("Entrega/medição/recebimento",["entrega"]),("Ocorrência ou comunicação",["notificacao"]),("Providência administrativa",["providencia"])],
+    "reequilibrio":[("Pedido de reequilíbrio",["reequilibrio"]),("Contrato/instrumento",["contrato"]),("Planilha, orçamento ou cotação",["orcamento"]),("Fato superveniente/justificativa",["desequilibrio"]),("Parecer técnico/jurídico",["parecer"]),("Decisão",["decisao"])],
+    "rescisao":[("Contrato/instrumento",["contrato"]),("Motivação da extinção",["rescis"]),("Notificação da contratada",["notificacao"]),("Manifestação/defesa",["defesa"]),("Parecer jurídico",["parecer juridico"]),("Decisão de extinção",["decisao"])],
+    "disciplinar":[("Portaria/ato de instauração",["instaur"]),("Citação/notificação",["citacao"]),("Instrução/provas",["prova"]),("Defesa",["defesa"]),("Relatório da comissão",["relatorio"]),("Julgamento/decisão",["decisao"])],
+    "sindicancia":[("Ato de instauração",["sindicancia"]),("Descrição do fato",["fato"]),("Diligências/depoimentos",["diligencia"]),("Documentos/provas",["prova"]),("Relatório conclusivo",["relatorio"]),("Encaminhamento/decisão",["decisao"])],
+    "lai":[("Pedido/protocolo",["pedido"]),("Identificação do órgão",["orgao"]),("Prazo",["prazo"]),("Resposta",["resposta"]),("Recurso",["recurso"]),("Decisão final",["decisao"])],
+    "prestacao":[("Convênio/instrumento",["convenio"]),("Plano de trabalho",["plano de trabalho"]),("Execução do objeto",["execucao"]),("Prestação de contas",["prestacao de contas"]),("Análise técnica/financeira",["analise"]),("Decisão/aprovação",["decisao"])],
+    "licitacoes":[("Edital/aviso",["edital"]),("Termo de referência",["termo de referencia"]),("Propostas/habilitação",["habilitacao"]),("Ata da sessão",["ata"]),("Parecer jurídico",["parecer juridico"]),("Adjudicação/homologação",["homolog"])],
+    "cobranca":[("Origem do débito",["debito"]),("Memória de cálculo",["calculo"]),("Notificação",["notificacao"]),("Comprovação de ciência",["ciencia"]),("Manifestação do interessado",["manifestacao"]),("Decisão/providência",["decisao"])],
+    "servidores":[("Requerimento",["requer"]),("Documentos funcionais",["servidor"]),("Manifestação do RH",["recursos humanos"]),("Parecer técnico/jurídico",["parecer"]),("Ciência do interessado",["ciencia"]),("Decisão",["decisao"])],
+    "tributario":[("Lançamento/auto",["lancamento"]),("Ciência do contribuinte",["ciencia"]),("Impugnação",["impugn"]),("Instrução/provas",["prova"]),("Decisão",["decisao"]),("Recurso",["recurso"])],
+    "geral":[("Identificação do processo",["processo"]),("Documento de origem",["protocolo"]),("Manifestação do interessado",["manifestacao"]),("Parecer/análise",["parecer"]),("Decisão",["decisao"]),("Prazo/documento de ciência",["prazo"])]
+}
+
+def _term_pages(pages, terms):
+    found=[]
+    for p in pages:
+        z=norm(p.get("text") or "")
+        if all(norm(t) in z for t in terms):
+            found.append(p["page"])
+    return found
+
+def _module_overlay(pages,a,module):
+    module=module if module in MODULES else "geral"
+    info=MODULES[module]
+    a["module_key"]=module
+    a["module_label"]=info["label"]
+    a["module_desc"]=info["desc"]
+
+    if module=="penalizacao":
+        qv=str(a.get("quantity",{}).get("value",""))
+        a["module_summary"]=[
+            {"label":"Defesa","ok":bool(a.get("has",{}).get("defesa")),"value":"Localizada" if a.get("has",{}).get("defesa") else "Não localizada"},
+            {"label":"Notificação / intimação","ok":bool(a.get("has",{}).get("notificacao") or a.get("has",{}).get("intimacao")),"value":"Localizada" if (a.get("has",{}).get("notificacao") or a.get("has",{}).get("intimacao")) else "Não localizada"},
+            {"label":"Decisão","ok":bool(a.get("has",{}).get("decisao")),"value":"Localizada" if a.get("has",{}).get("decisao") else "Não localizada"},
+            {"label":"Quantidade total","ok":"nao identificado" not in norm(qv),"value":qv or "Inconclusivo"}
+        ]
+        return a
+
+    rules=MODULE_RULES.get(module,MODULE_RULES["geral"])
+    checklist=[]
+    for label,terms in rules:
+        pgs=_term_pages(pages,terms)
+        checklist.append({"label":label,"ok":bool(pgs),"pages":pgs[:6]})
+    a["process_checklist"]=checklist
+    a["metrics"]["checklist_ok"]=sum(1 for x in checklist if x["ok"])
+    a["metrics"]["checklist_total"]=len(checklist)
+
+    missing=[x["label"] for x in checklist if not x["ok"]]
+    present=[x["label"] for x in checklist if x["ok"]]
+    a["review_flags"]=[{"level":"media","text":"Não identificado com segurança: "+x+"."} for x in missing[:5]]
+
+    if present:
+        stage=present[-1]
+        if missing:
+            action="Conferir ou localizar o seguinte elemento esperado para este módulo: "+missing[0]+"."
+            why="O processo contém "+str(len(present))+" de "+str(len(checklist))+" controles previstos no módulo "+info["short"]+"."
+        else:
+            action="Revisar a coerência entre os documentos identificados e conferir se a decisão ou encaminhamento enfrenta os pontos relevantes."
+            why="Todos os controles básicos deste módulo foram localizados automaticamente."
+    else:
+        stage="Triagem inicial"
+        action="Confirmar o tipo de processo e localizar os documentos estruturantes antes de avançar para uma conclusão."
+        why="Poucos elementos específicos deste módulo foram identificados com segurança."
+    a["next_action"]={"stage":stage,"action":action,"why":why}
+
+    a["module_summary"]=[
+        {"label":x["label"],"ok":x["ok"],"value":"Localizado" if x["ok"] else "Conferir"}
+        for x in checklist[:4]
+    ]
+    a["conclusion"]="Modo "+info["label"]+": o sistema organizou os autos segundo os controles próprios deste tipo de processo, mantendo as evidências rastreáveis e a revisão humana."
+    return a
+
+async def analyze_v61(files:List[UploadFile]=File(...), module:str="penalizacao"):
+    pages=[];ocr=0;names=[]
+    for f in files:
+        if not f.filename.lower().endswith(".pdf"):continue
+        pp,oo=extract_pdf(await f.read(),f.filename);pages.extend(pp);ocr+=oo;names.append(f.filename)
+    if not pages:raise HTTPException(400,"Envie pelo menos um PDF.")
+    a=analyze_pages(pages)
+    a=_module_overlay(pages,a,module)
+    aid=uuid.uuid4().hex
+    ANALYSES[aid]={"pages":pages,"analysis":a,"created":datetime.utcnow().isoformat(),"module":module}
+    return {"analysis_id":aid,"files":names,"pages":len(pages),"ocr_pages":ocr,"module":module,"analysis":a}
+
+app.router.routes=[
+    r for r in app.router.routes
+    if not (getattr(r,"path",None)=="/api/analyze" and "POST" in getattr(r,"methods",set()))
+]
+app.add_api_route("/api/analyze",analyze_v61,methods=["POST"])
+app.version="6.1"
+
+_module_css = """
+.module-panel{margin-top:18px}.module-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.module-card{appearance:none;text-align:left;background:#fff;border:1px solid var(--line);border-radius:13px;padding:13px;cursor:pointer;transition:.16s ease;color:var(--ink)}
+.module-card:hover{transform:translateY(-1px);border-color:#a8bacb;box-shadow:0 6px 18px rgba(16,42,67,.06)}
+.module-card.active{border:2px solid var(--teal);background:var(--teal-soft);padding:12px}
+.module-icon{width:30px;height:30px;border-radius:8px;background:#eef3f8;color:var(--navy);display:grid;place-items:center;font-size:13px;font-weight:900;margin-bottom:9px}
+.module-card.active .module-icon{background:var(--teal);color:#fff}
+.module-name{font-size:11px;font-weight:900;color:var(--navy);line-height:1.25}.module-desc{font-size:9px;color:var(--muted);margin-top:4px;line-height:1.35}
+.module-selected{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-top:12px;font-size:10px;color:var(--muted)}
+.module-selected strong{color:var(--teal)}
+@media(max-width:1100px){.module-grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.module-grid{grid-template-columns:1fr 1fr}}@media(max-width:480px){.module-grid{grid-template-columns:1fr}}
+"""
+HTML=HTML.replace("</style>",_module_css+"</style>",1)
+
+_module_html = """<section class="panel module-panel">
+  <div class="panel-head"><div><div class="kicker">Módulos especializados</div><h2 class="title">Que tipo de processo você deseja analisar?</h2><p class="desc">A leitura documental é comum a todos os módulos; checklist, pendências e próximo passo se adaptam ao procedimento selecionado.</p></div></div>
+  <div class="module-grid">
+    <button class="module-card active" data-module="penalizacao" onclick="selecionarModulo('penalizacao',this)"><div class="module-icon">⚖</div><div class="module-name">Penalização contratual</div><div class="module-desc">Responsabilização, defesa, sanção e decisão.</div></button>
+    <button class="module-card" data-module="fiscalizacao" onclick="selecionarModulo('fiscalizacao',this)"><div class="module-icon">◎</div><div class="module-name">Fiscalização de contratos</div><div class="module-desc">Execução, entregas, ocorrências e fiscalização.</div></button>
+    <button class="module-card" data-module="reequilibrio" onclick="selecionarModulo('reequilibrio',this)"><div class="module-icon">↔</div><div class="module-name">Reequilíbrio econômico-financeiro</div><div class="module-desc">Pedido, custos, justificativas, pareceres e decisão.</div></button>
+    <button class="module-card" data-module="rescisao" onclick="selecionarModulo('rescisao',this)"><div class="module-icon">✕</div><div class="module-name">Rescisão / extinção</div><div class="module-desc">Motivação, contraditório, parecer e decisão.</div></button>
+    <button class="module-card" data-module="disciplinar" onclick="selecionarModulo('disciplinar',this)"><div class="module-icon">§</div><div class="module-name">Processo disciplinar</div><div class="module-desc">Instauração, citação, defesa, relatório e julgamento.</div></button>
+    <button class="module-card" data-module="sindicancia" onclick="selecionarModulo('sindicancia',this)"><div class="module-icon">⌕</div><div class="module-name">Sindicância</div><div class="module-desc">Fato, diligências, provas e relatório conclusivo.</div></button>
+    <button class="module-card" data-module="lai" onclick="selecionarModulo('lai',this)"><div class="module-icon">◉</div><div class="module-name">Ouvidoria e LAI</div><div class="module-desc">Pedido, prazo, resposta, recurso e transparência.</div></button>
+    <button class="module-card" data-module="prestacao" onclick="selecionarModulo('prestacao',this)"><div class="module-icon">▣</div><div class="module-name">Convênios e prestação de contas</div><div class="module-desc">Plano, execução, comprovação, análise e decisão.</div></button>
+    <button class="module-card" data-module="licitacoes" onclick="selecionarModulo('licitacoes',this)"><div class="module-icon">◆</div><div class="module-name">Licitações e contratação</div><div class="module-desc">Edital, habilitação, propostas e homologação.</div></button>
+    <button class="module-card" data-module="cobranca" onclick="selecionarModulo('cobranca',this)"><div class="module-icon">R$</div><div class="module-name">Cobrança administrativa</div><div class="module-desc">Débito, cálculo, notificação e manifestação.</div></button>
+    <button class="module-card" data-module="servidores" onclick="selecionarModulo('servidores',this)"><div class="module-icon">●</div><div class="module-name">Processos de servidores</div><div class="module-desc">Requerimento, RH, pareceres e decisão.</div></button>
+    <button class="module-card" data-module="tributario" onclick="selecionarModulo('tributario',this)"><div class="module-icon">#</div><div class="module-name">Processo tributário municipal</div><div class="module-desc">Lançamento, impugnação, decisão e recurso.</div></button>
+    <button class="module-card" data-module="geral" onclick="selecionarModulo('geral',this)"><div class="module-icon">◇</div><div class="module-name">Análise geral</div><div class="module-desc">Cronologia, evidências, divergências e decisão.</div></button>
+  </div>
+  <div class="module-selected">Módulo ativo: <strong id="moduleActiveLabel">Penalização contratual</strong><span>Você pode trocar antes de analisar.</span></div>
+</section>
+"""
+_upload_marker='<section class="panel">\n    <div class="panel-head"><div><div class="kicker">Analisar seus documentos</div>'
+if _upload_marker in HTML:
+    HTML=HTML.replace(_upload_marker,_module_html+"\n"+_upload_marker,1)
+
+HTML=HTML.replace(
+    "var analysisId=null; var demoMode=false;",
+    """var analysisId=null; var demoMode=false; var selectedModule="penalizacao";
+var moduleLabels={penalizacao:"Penalização contratual",fiscalizacao:"Fiscalização de contratos",reequilibrio:"Reequilíbrio econômico-financeiro",rescisao:"Rescisão / extinção contratual",disciplinar:"Processo disciplinar",sindicancia:"Sindicância",lai:"Ouvidoria e LAI",prestacao:"Convênios e prestação de contas",licitacoes:"Licitações e contratação",cobranca:"Cobrança administrativa",servidores:"Processos de servidores",tributario:"Processo tributário municipal",geral:"Análise geral"};
+function selecionarModulo(key,el){
+  selectedModule=key;
+  document.querySelectorAll(".module-card").forEach(function(x){x.classList.remove("active")});
+  if(el)el.classList.add("active");
+  var lab=document.getElementById("moduleActiveLabel");if(lab)lab.textContent=moduleLabels[key]||key;
+}"""
+)
+
+HTML=HTML.replace(
+    "demoMode=true;\n    await analisar();",
+    """demoMode=true;
+    selectedModule="penalizacao";
+    var mc=document.querySelector('.module-card[data-module="penalizacao"]');if(mc)selecionarModulo("penalizacao",mc);
+    await analisar();""",
+    1
+)
+
+HTML=HTML.replace(
+    'var r=await fetch("/api/analyze",{method:"POST",body:fd});var d=await r.json();',
+    'var r=await fetch("/api/analyze?module="+encodeURIComponent(selectedModule),{method:"POST",body:fd});var d=await r.json();',
+    1
+)
+
+HTML=HTML.replace(
+    """h+='<section class="section"><div class="kicker">Resumo executivo</div><h2>Análise assistida</h2><p>'+esc(a.conclusion)+'</p><div class="summary-grid">';""",
+    """h+='<section class="section"><div class="kicker">Resumo executivo · '+esc(a.module_label||moduleLabels[selectedModule]||selectedModule)+'</div><h2>Análise assistida</h2><p>'+esc(a.conclusion)+'</p><div class="summary-grid">';""",
+    1
+)
+
+_old_summary = """  h+='<div class="summary-card"><div class="summary-label">Defesa</div><div class="summary-value">'+stateIcon(a.has.defesa,false)+(a.has.defesa?"Localizada":"Não localizada")+'</div></div>';
+  h+='<div class="summary-card"><div class="summary-label">Notificação / intimação</div><div class="summary-value">'+stateIcon(a.has.notificacao||a.has.intimacao,false)+((a.has.notificacao||a.has.intimacao)?"Localizada":"Não localizada")+'</div></div>';
+  h+='<div class="summary-card"><div class="summary-label">Decisão</div><div class="summary-value">'+stateIcon(a.has.decisao,false)+(a.has.decisao?"Localizada":"Não localizada")+'</div></div>';
+  h+='<div class="summary-card"><div class="summary-label">Quantidade total</div><div class="summary-value">'+stateIcon(!qUnknown,qUnknown)+esc(qUnknown?"Inconclusivo":a.quantity.value)+'</div></div></div></section>';"""
+_new_summary = """  if(a.module_summary&&a.module_summary.length){
+    for(var ms=0;ms<a.module_summary.length;ms++){var sm=a.module_summary[ms];h+='<div class="summary-card"><div class="summary-label">'+esc(sm.label)+'</div><div class="summary-value">'+stateIcon(sm.ok,!sm.ok)+esc(sm.value)+'</div></div>'}
+  }else{
+    h+='<div class="summary-card"><div class="summary-label">Defesa</div><div class="summary-value">'+stateIcon(a.has.defesa,false)+(a.has.defesa?"Localizada":"Não localizada")+'</div></div>';
+    h+='<div class="summary-card"><div class="summary-label">Notificação / intimação</div><div class="summary-value">'+stateIcon(a.has.notificacao||a.has.intimacao,false)+((a.has.notificacao||a.has.intimacao)?"Localizada":"Não localizada")+'</div></div>';
+    h+='<div class="summary-card"><div class="summary-label">Decisão</div><div class="summary-value">'+stateIcon(a.has.decisao,false)+(a.has.decisao?"Localizada":"Não localizada")+'</div></div>';
+    h+='<div class="summary-card"><div class="summary-label">Quantidade total</div><div class="summary-value">'+stateIcon(!qUnknown,qUnknown)+esc(qUnknown?"Inconclusivo":a.quantity.value)+'</div></div>';
+  }
+  h+='</div></section>';"""
+if _old_summary in HTML:
+    HTML=HTML.replace(_old_summary,_new_summary,1)
+
+HTML=HTML.replace(
+    """h+='<div class="cols"><section class="section"><div class="kicker">Contraditório</div><h2>Elementos favoráveis à defesa</h2>';""",
+    """h+='<div class="cols"><section class="section"><div class="kicker">'+(a.module_key==="penalizacao"?"Contraditório":"Manifestações")+'</div><h2>'+(a.module_key==="penalizacao"?"Elementos favoráveis à defesa":"Elementos apresentados pelo interessado")+'</h2>';""",
+    1
+)
+
+HTML=HTML.replace("VERSÃO 6.0 · CONTROLE PROCESSUAL COMPLETO","VERSÃO 6.1 · PLATAFORMA MODULAR")
