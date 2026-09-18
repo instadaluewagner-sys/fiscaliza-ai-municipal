@@ -220,3 +220,87 @@ Contrato nº 140/2026.
     assert p.sources["contrato"].page==2
     assert p.sources["empenhos"].page==3
     assert p.sources["quantity"].page==2
+
+
+def test_wrapper_1doc_de_despacho_com_anexo_nao_e_a_decisao():
+    pages=[
+        page(59, """
+1Doc: Protocolo 14- 15.566/2025 59/67
+De: Gabinete
+Para: Envolvidos internos
+Data: 21/10/2025 às 10:00:00
+Despacho com parecer jurídico favorável para extinção unilateral do Contrato nº 308/2025.
+Anexos:
+Despacho_693_2025.pdf
+"""),
+        page(60, """
+MUNICÍPIO DE FRANCISCO BELTRÃO
+DESPACHO Nº 693/2025
+PROCESSO N.º: 15566/2025
+INTERESSADA: ASSESTE COMÉRCIO DE EXTINTORES LTDA
+DEFIRO a extinção unilateral e autorizo a abertura de processo administrativo sancionador.
+"""),
+        page(61, """
+VERIFICAÇÃO DAS ASSINATURAS
+Código para verificação do documento assinado.
+"""),
+    ]
+    docs=segment_documents(pages)
+    assert [d.type for d in docs]==["movimentacao_1doc","decisao"]
+    assert docs[1].pages==[60,61]
+
+
+def test_cnpj_valido_e_contextual_prevalece_e_divergencia_e_preservada():
+    pages=[
+        page(1, """
+PEDIDO DE REEQUILÍBRIO ECONÔMICO-FINANCEIRO
+ASSESTE COMÉRCIO DE EXTINTORES LTDA
+CNPJ 82.253.642/0001-57
+Contrato nº 308/2025.
+"""),
+        page(2, """
+NOTIFICAÇÃO EXTRAJUDICIAL
+NOTIFICADO: ASSESTE COMÉRCIO DE EXTINTORES LTDA, inscrita no CNPJ 82.253.642/0001-67
+Contrato nº 308/2025.
+"""),
+        page(3, """
+VERIFICAÇÃO DAS ASSINATURAS
+ASSESTE COMÉRCIO DE EXTINTORES LTDA - CNPJ 82.253.642/0001-67
+"""),
+    ]
+    docs=segment_documents(pages)
+    result=analyze_penalizacao(docs)
+    p=result.profile
+    assert p.cnpj=="82.253.642/0001-67"
+    assert "82.253.642/0001-57" in p.conflicts.get("cnpj",[])
+    assert p.sources["cnpj"].page in {2,3}
+
+
+def test_empresa_nao_e_substituida_por_texto_de_assinatura():
+    pages=[
+        page(1, """
+VERIFICAÇÃO DAS ASSINATURAS
+Empresa: Assinado por 1 pessoa: PAULO DE BARCELOS MEDEIROS
+"""),
+        page(2, """
+PARECER JURÍDICO Nº 100/2026
+INTERESSADA: ASSESTE COMÉRCIO DE EXTINTORES LTDA
+CNPJ: 82.253.642/0001-67
+"""),
+    ]
+    docs=segment_documents(pages)
+    p=analyze_penalizacao(docs).profile
+    assert p.company=="ASSESTE COMÉRCIO DE EXTINTORES LTDA"
+
+
+def test_numero_de_contrato_exige_identificador_com_ano():
+    pages=[
+        page(1, """
+PARECER JURÍDICO Nº 100/2026
+A cláusula 9 do Contrato estabelece o prazo.
+Contrato nº 308/2025.
+""")
+    ]
+    docs=segment_documents(pages)
+    p=analyze_penalizacao(docs).profile
+    assert p.contrato=="308/2025"
