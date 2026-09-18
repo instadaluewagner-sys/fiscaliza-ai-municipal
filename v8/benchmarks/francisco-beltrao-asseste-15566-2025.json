@@ -99,5 +99,13 @@
     "A quantidade 60 aparece em simulação logística e não representa quantidade total contratada.",
     "A V8 deve distinguir decisão de extinção contratual de decisão final sancionadora.",
     "Para o benchmark de segmentação, envelopes/protocolos 1Doc são peças separadas do documento anexado; páginas de verificação de assinatura permanecem vinculadas à peça assinada."
-  ]
+  ],
+  "profile_expectations": {
+    "origin_process": "15.566/2025",
+    "company": "ASSESTE COMÉRCIO DE EXTINTORES LTDA",
+    "cnpj": "82.253.642/0001-67",
+    "pregao": "90025/2025",
+    "contrato": "308/2025",
+    "quantity": null
+  }
 }
