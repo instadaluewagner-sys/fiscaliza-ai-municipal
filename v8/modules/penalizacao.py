@@ -92,7 +92,7 @@ def _collect_company_candidates(documents: list[Document]):
         r"(?im)^\s*(INTERESSAD[AO]|CONTRATAD[AO]|NOTIFICAD[AO]|EMPRESA)\s*[:\-]\s*([^\n]{3,180})"
     )
     paired_rx = re.compile(
-        r"(?i)\b([A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9][A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9 .&'/-]{3,120}?"
+        r"(?i)\b([A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9][A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9\s.&'/-]{3,140}?"
         r"(?:LTDA\.?|EIRELI|S/?A\.?|ME|EPP))\s*,?\s*(?:inscrit[ao]\s+no\s+)?CNPJ\b"
     )
     label_bonus = {
