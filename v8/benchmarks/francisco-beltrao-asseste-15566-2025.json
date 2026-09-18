@@ -23,13 +23,29 @@
       "type": "notificacao",
       "title": "NOTIFICAÇÃO EXTRAJUDICIAL",
       "page_start": 38,
-      "page_end": 39
+      "page_end": 40,
+      "content_pages": [
+        38,
+        39,
+        40
+      ],
+      "notes": "Inclui a página de verificação de assinatura vinculada à notificação."
     },
     {
       "type": "parecer_juridico",
       "title": "PARECER JURÍDICO N.º 1079/2025",
       "page_start": 43,
-      "page_end": 48
+      "page_end": 49,
+      "content_pages": [
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49
+      ],
+      "notes": "Inclui as seis páginas do parecer e a verificação de assinatura vinculada."
     },
     {
       "type": "intimacao",
@@ -40,17 +56,28 @@
     {
       "type": "defesa",
       "title": "Defesa Administrativa – Processo nº 15566/2025 – Contrato nº 308/2025",
-      "page_start": 51,
+      "page_start": 52,
       "page_end": 55,
-      "content_pages": [52, 53, 54, 55]
+      "content_pages": [
+        52,
+        53,
+        54,
+        55
+      ],
+      "notes": "A página 51 é o envelope/protocolo 1Doc; a peça autônoma de defesa começa na página 52."
     },
     {
       "type": "decisao",
       "title": "DESPACHO Nº 693/2025",
-      "page_start": 59,
-      "page_end": 60,
+      "page_start": 60,
+      "page_end": 61,
       "substantive_page": 60,
-      "meaning": "extingue unilateralmente o contrato e autoriza a abertura de processo administrativo sancionador separado"
+      "meaning": "extingue unilateralmente o contrato e autoriza a abertura de processo administrativo sancionador separado",
+      "content_pages": [
+        60,
+        61
+      ],
+      "notes": "A página 59 é o envelope/protocolo de encaminhamento; o Despacho nº 693/2025 começa na página 60 e sua verificação de assinatura ocupa a página 61."
     }
   ],
   "critical_facts": [
@@ -70,6 +97,7 @@
   "notes": [
     "O processo começa com pedido de reequilíbrio econômico-financeiro; isso não deve ser classificado como defesa sancionadora.",
     "A quantidade 60 aparece em simulação logística e não representa quantidade total contratada.",
-    "A V8 deve distinguir decisão de extinção contratual de decisão final sancionadora."
+    "A V8 deve distinguir decisão de extinção contratual de decisão final sancionadora.",
+    "Para o benchmark de segmentação, envelopes/protocolos 1Doc são peças separadas do documento anexado; páginas de verificação de assinatura permanecem vinculadas à peça assinada."
   ]
 }
