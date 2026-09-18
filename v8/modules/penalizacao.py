@@ -924,6 +924,7 @@ def build_evidence(documents: list[Document], stage: StageResult | None = None):
             r"n[aã]o\s+entreg(?:ou|aram)",
             r"nenhuma[\s\S]{0,20}entrega",
             r"n[aã]o[\s\S]{0,40}realiz(?:ou|aram)[\s\S]{0,50}entrega",
+            r"realiz(?:ou|aram)[\s\S]{0,30}nenhuma[\s\S]{0,20}entrega",
             r"aus[eê]ncia[\s\S]{0,20}de[\s\S]{0,20}(?:entrega|execu[cç][aã]o)",
             r"inexecu[cç][aã]o(?:\s+total|\s+parcial)?",
         ],
