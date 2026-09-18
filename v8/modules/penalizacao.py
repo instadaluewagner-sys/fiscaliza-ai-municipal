@@ -413,7 +413,7 @@ def determine_stage(documents: list[Document]) -> StageResult:
     # 1. Uma decisão do processo de origem que só AUTORIZA abrir um PAS
     # não pode ser tratada como julgamento sancionador, mesmo que haja defesa,
     # notificação ou recurso no processo contratual de origem.
-    if authorizes_new_pas and not final_sanction:
+    if authorizes_new_pas and not final_sanction and not current_pas:
         return StageResult(
             key="instauracao_sancionadora_autorizada",
             label="Instauração sancionadora autorizada",
