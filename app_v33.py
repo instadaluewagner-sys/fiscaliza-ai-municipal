@@ -3890,3 +3890,85 @@ HTML=HTML.replace(
 )
 
 HTML=HTML.replace("VERSÃO 6.3 · MÓDULOS EM ABAS","VERSÃO 6.4 · NAVEGAÇÃO EM CAMADAS")
+
+
+# --- Tela inicial exclusiva de seleção v6.5 ---
+# A primeira camada mostra SOMENTE a escolha do módulo.
+# O painel operacional só existe visualmente após a seleção.
+
+_layer2_css = """
+.screen-home{min-height:calc(100vh - 170px);display:none}
+.screen-home.active{display:flex;flex-direction:column;justify-content:flex-start}
+.screen-home .module-panel{margin-top:0}
+.screen-home .home-intro{margin-bottom:14px}
+.screen-home .module-grid{margin-top:6px}
+.screen-workspace{display:none}
+.screen-workspace.active{display:block}
+.screen-workspace .hero{display:none!important}
+.module-panel.home-only{box-shadow:var(--shadow)}
+.home-welcome{padding:8px 0 18px}
+.home-welcome .kicker{margin-bottom:5px}
+.home-welcome h1{margin:0;color:var(--navy);font-size:30px;line-height:1.12;letter-spacing:-.6px}
+.home-welcome p{margin:8px 0 0;color:var(--muted);font-size:12px;max-width:760px}
+@media(max-width:760px){.home-welcome h1{font-size:24px}}
+"""
+HTML=HTML.replace("</style>",_layer2_css+"</style>",1)
+
+_layer2_js = r"""
+function configurarCamadas(){
+  if(_layersReady)return;
+  var main=document.querySelector("main.shell");
+  var modulePanel=document.querySelector(".module-panel");
+  var hero=document.querySelector(".hero");
+  if(!main||!modulePanel)return;
+
+  var home=document.createElement("div");
+  home.id="screenHome";
+  home.className="app-screen screen-home active";
+
+  var welcome=document.createElement("div");
+  welcome.className="home-welcome";
+  welcome.innerHTML='<div class="kicker">Fiscaliza.AI Municipal</div><h1>O que você deseja analisar?</h1><p>Escolha o tipo de processo. Depois da seleção, o sistema abre uma nova tela interna com apenas o fluxo e as ferramentas daquele módulo.</p>';
+  home.appendChild(welcome);
+
+  var workspace=document.createElement("div");
+  workspace.id="screenWorkspace";
+  workspace.className="app-screen screen-workspace";
+
+  var wh=document.createElement("div");
+  wh.className="workspace-head";
+  wh.innerHTML='<div class="workspace-left"><button class="workspace-back" onclick="voltarAosModulos()">← Voltar aos módulos</button><div class="workspace-title"><small>Área de trabalho</small><strong id="workspaceModuleTitle">Penalização contratual</strong><span id="workspaceModuleDesc">Responsabilização, defesa, sanção e decisão.</span></div></div><div class="workspace-chip">Módulo ativo</div>';
+  workspace.appendChild(wh);
+
+  main.insertBefore(home,main.firstChild);
+  main.insertBefore(workspace,home.nextSibling);
+
+  // A tela inicial recebe SOMENTE a seleção dos módulos.
+  modulePanel.classList.add("home-only");
+  home.appendChild(modulePanel);
+
+  // O antigo banner institucional não integra mais a primeira tela.
+  if(hero){hero.remove();}
+
+  // Todo o restante pertence exclusivamente à tela de trabalho.
+  Array.from(main.children).forEach(function(el){
+    if(el!==home && el!==workspace)workspace.appendChild(el);
+  });
+
+  _layersReady=true;
+
+  var q=new URLSearchParams(window.location.search).get("module");
+  if(q&&moduleLabels[q]){
+    abrirTelaModulo(q,null,false);
+  }else{
+    history.replaceState({screen:"home"},"",window.location.pathname);
+  }
+}
+"""
+# Substitui a implementação v6.4 de configurarCamadas por esta versão.
+_start=HTML.find("function configurarCamadas(){")
+_end=HTML.find("\nfunction aplicarContextoDoModulo",_start)
+if _start!=-1 and _end!=-1:
+    HTML=HTML[:_start]+_layer2_js+HTML[_end:]
+
+HTML=HTML.replace("VERSÃO 6.4 · NAVEGAÇÃO EM CAMADAS","VERSÃO 6.5 · TELAS INTERNAS")
