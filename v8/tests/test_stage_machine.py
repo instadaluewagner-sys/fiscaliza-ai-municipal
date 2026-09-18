@@ -96,3 +96,13 @@ def test_pas_com_recurso_apos_decisao():
     ])
     assert result.stage.key=="recurso"
     assert result.stage.suggested_draft=="decisao_recurso"
+
+
+def test_decisao_de_origem_anexada_nao_rebaixa_pas_ja_instaurado():
+    result=analyze_penalizacao([
+        doc(1,"oficio","PROCESSO ADMINISTRATIVO DE PENALIZAÇÃO Nº 2-0001/2026. Fica instaurado o procedimento.",1),
+        doc(2,"decisao","DESPACHO Nº 693/2025. AUTORIZO A ABERTURA DE PROCESSO ADMINISTRATIVO SANCIONADOR para apuração das penalidades cabíveis.",2),
+        doc(3,"notificacao","NOTIFICAÇÃO DE INSTAURAÇÃO DO PROCESSO ADMINISTRATIVO DE PENALIZAÇÃO Nº 2-0001/2026. Apresente defesa.",3),
+    ])
+    assert result.stage.key=="aguardando_defesa"
+    assert result.stage.suggested_draft=="certidao_prazo"
