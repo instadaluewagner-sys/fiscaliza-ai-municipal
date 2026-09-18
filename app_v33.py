@@ -3717,3 +3717,176 @@ HTML = HTML.replace(
 )
 
 HTML = HTML.replace("VERSÃO 6.2 · MODELOS POR MÓDULO","VERSÃO 6.3 · MÓDULOS EM ABAS")
+
+
+# --- Navegação em camadas / telas internas v6.4 ---
+# Corrige a interpretação anterior: os módulos NÃO abrem novas abas do navegador.
+# A aplicação passa a funcionar como um sistema convencional: seleção -> área do módulo -> análise.
+
+for _mk in MODULES.keys():
+    HTML = HTML.replace(
+        "onclick=\"abrirModulo('"+_mk+"')\"",
+        "onclick=\"abrirTelaModulo('"+_mk+"',this)\""
+    )
+    HTML = HTML.replace(
+        "onclick=\"selecionarModulo('"+_mk+"',this)\"",
+        "onclick=\"abrirTelaModulo('"+_mk+"',this)\""
+    )
+
+_layer_css = """
+.app-screen{display:none}.app-screen.active{display:block}
+.screen-home .hero{margin-bottom:18px}
+.workspace-head{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px 22px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.workspace-left{display:flex;align-items:center;gap:14px}.workspace-back{border:1px solid var(--line);background:#fff;color:var(--navy);border-radius:10px;padding:9px 12px;font-weight:800;cursor:pointer}
+.workspace-back:hover{background:#f8fafc}.workspace-title small{display:block;color:var(--teal);font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.11em}
+.workspace-title strong{display:block;color:var(--navy);font-size:18px;margin-top:2px}.workspace-title span{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+.workspace-chip{border:1px solid #b8d8d2;background:var(--teal-soft);color:var(--teal);padding:7px 10px;border-radius:999px;font-size:9px;font-weight:900}
+.module-panel .module-selected{display:none}
+.home-intro{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 16px;margin:0 0 14px;color:var(--muted);font-size:11px}
+.home-intro b{color:var(--navy)}
+@media(max-width:760px){.workspace-head{align-items:flex-start;flex-direction:column}.workspace-left{align-items:flex-start}.workspace-chip{align-self:flex-start}}
+"""
+HTML=HTML.replace("</style>",_layer_css+"</style>",1)
+
+_layer_js = r"""
+var _layersReady=false;
+
+function configurarCamadas(){
+  if(_layersReady)return;
+  var main=document.querySelector("main.shell");
+  var modulePanel=document.querySelector(".module-panel");
+  var hero=document.querySelector(".hero");
+  if(!main||!modulePanel||!hero)return;
+
+  var home=document.createElement("div");
+  home.id="screenHome";home.className="app-screen screen-home active";
+
+  var intro=document.createElement("div");
+  intro.className="home-intro";
+  intro.innerHTML="<b>1. Escolha o tipo de processo.</b> Na próxima tela aparecerão somente as ferramentas e o fluxo de trabalho do módulo selecionado.";
+  home.appendChild(intro);
+
+  var workspace=document.createElement("div");
+  workspace.id="screenWorkspace";workspace.className="app-screen screen-workspace";
+
+  var wh=document.createElement("div");
+  wh.className="workspace-head";
+  wh.innerHTML='<div class="workspace-left"><button class="workspace-back" onclick="voltarAosModulos()">← Módulos</button><div class="workspace-title"><small>Módulo selecionado</small><strong id="workspaceModuleTitle">Penalização contratual</strong><span id="workspaceModuleDesc">Responsabilização, defesa, sanção e decisão.</span></div></div><div class="workspace-chip">Área de trabalho</div>';
+  workspace.appendChild(wh);
+
+  // Insere as telas antes dos elementos atuais.
+  main.insertBefore(home,main.firstChild);
+  main.insertBefore(workspace,home.nextSibling);
+
+  // Tela 1: identidade + seleção de módulo.
+  home.appendChild(hero);
+  home.appendChild(modulePanel);
+
+  // Tela 2: todo o restante do fluxo operacional.
+  Array.from(main.children).forEach(function(el){
+    if(el!==home && el!==workspace)workspace.appendChild(el);
+  });
+
+  _layersReady=true;
+
+  // Se alguém chegar por URL antiga com ?module=, abre a tela interna, sem nova aba.
+  var q=new URLSearchParams(window.location.search).get("module");
+  if(q&&moduleLabels[q]){
+    abrirTelaModulo(q,null,false);
+  }else{
+    history.replaceState({screen:"home"},"",window.location.pathname);
+  }
+}
+
+function aplicarContextoDoModulo(key){
+  var label=moduleLabels[key]||key;
+  var descMap={
+    penalizacao:"Responsabilização de fornecedor, contraditório, defesa, sanção e decisão.",
+    fiscalizacao:"Execução, entregas, ocorrências, fiscalização, medições e providências.",
+    reequilibrio:"Pedido, fatos supervenientes, custos, pareceres e decisão.",
+    rescisao:"Motivação, comunicação, contraditório, parecer e decisão de extinção.",
+    disciplinar:"Instauração, citação, instrução, defesa, relatório e julgamento.",
+    sindicancia:"Fato investigado, diligências, provas, relatório e encaminhamento.",
+    lai:"Pedido, protocolo, prazo, resposta, recurso e transparência.",
+    prestacao:"Instrumento, plano, execução, comprovação, análise e decisão.",
+    licitacoes:"Edital, termo de referência, habilitação, propostas e homologação.",
+    cobranca:"Origem do débito, memória de cálculo, notificação e manifestação.",
+    servidores:"Requerimentos funcionais, RH, documentos, pareceres e decisão.",
+    tributario:"Lançamento, ciência, impugnação, recurso e julgamento.",
+    geral:"Cronologia, peças, evidências, divergências e decisão."
+  };
+  var t=document.getElementById("workspaceModuleTitle");if(t)t.textContent=label;
+  var d=document.getElementById("workspaceModuleDesc");if(d)d.textContent=descMap[key]||"Análise administrativa assistida.";
+  document.title="Fiscaliza.AI · "+label;
+
+  // A minuta institucional específica de penalização só aparece no módulo correspondente.
+  document.querySelectorAll("section.panel").forEach(function(p){
+    var tx=(p.textContent||"").toLowerCase();
+    if(tx.indexOf("notificação institucional com preenchimento validado")>=0){
+      p.style.display=(key==="penalizacao")?"":"none";
+    }
+  });
+
+  // No fluxo documental, ajusta a ênfase sem esconder recursos genéricos.
+  var chain=document.querySelector(".doc-chain");
+  if(chain){
+    Array.from(chain.querySelectorAll("button")).forEach(function(b){
+      if((b.textContent||"").toLowerCase().indexOf("notificação")>=0){
+        b.style.display=(key==="penalizacao"||key==="fiscalizacao"||key==="rescisao"||key==="cobranca")?"":"none";
+      }else if((b.textContent||"").toLowerCase().indexOf("intimação")>=0){
+        b.style.display=(key==="penalizacao"||key==="disciplinar"||key==="tributario")?"":"none";
+      }else{
+        b.style.display="";
+      }
+    });
+  }
+}
+
+function abrirTelaModulo(key,el,push){
+  if(!moduleLabels[key])return;
+  selectedModule=key;
+  document.querySelectorAll(".module-card").forEach(function(x){x.classList.toggle("active",x.getAttribute("data-module")===key)});
+  aplicarContextoDoModulo(key);
+
+  var home=document.getElementById("screenHome"),work=document.getElementById("screenWorkspace");
+  if(home)home.classList.remove("active");
+  if(work)work.classList.add("active");
+
+  if(push!==false){
+    var u=new URL(window.location.href);
+    u.searchParams.set("module",key);
+    u.searchParams.delete("utm_source");
+    history.pushState({screen:"module",module:key},"",u.pathname+u.search);
+  }
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function voltarAosModulos(push){
+  var home=document.getElementById("screenHome"),work=document.getElementById("screenWorkspace");
+  if(work)work.classList.remove("active");
+  if(home)home.classList.add("active");
+  document.title="Fiscaliza.AI Municipal";
+  if(push!==false){
+    history.pushState({screen:"home"},"",window.location.pathname);
+  }
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+window.abrirModulo=abrirTelaModulo;
+
+window.addEventListener("popstate",function(e){
+  var q=new URLSearchParams(window.location.search).get("module");
+  if(q&&moduleLabels[q])abrirTelaModulo(q,null,false);
+  else voltarAosModulos(false);
+});
+
+document.addEventListener("DOMContentLoaded",configurarCamadas);
+"""
+HTML=HTML.replace("</script>",_layer_js+"\n</script>",1)
+
+HTML=HTML.replace(
+    "Escolha um módulo. Ele será aberto em uma nova aba do navegador, mantendo esta tela inicial disponível. Checklist, pendências e próximo passo se adaptam ao procedimento.",
+    "Escolha um módulo para entrar na área de trabalho correspondente. A próxima tela mostrará o fluxo, os controles e as ferramentas daquele tipo de processo."
+)
+
+HTML=HTML.replace("VERSÃO 6.3 · MÓDULOS EM ABAS","VERSÃO 6.4 · NAVEGAÇÃO EM CAMADAS")
