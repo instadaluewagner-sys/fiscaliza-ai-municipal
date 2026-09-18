@@ -87,6 +87,14 @@ function pendingKindLabel(kind){
 function evidenceCategoryLabel(category){
   return {fact:"Fato",procedural:"Processual",defense:"Defesa",legal:"Jurídico",decision:"Decisão"}[category]||"Evidência";
 }
+function stageSourcesHtml(stage){
+  const sources=(stage&&stage.sources)||[];
+  if(!sources.length)return '<span class="stage-source-empty">Base documental não consolidada para esta fase.</span>';
+  return sources.map(function(src){
+    if(!src.document_id)return '';
+    return '<button class="stage-source" onclick="openDocument(\''+esc(src.document_id)+'\','+Number(src.page)+')">'+esc(src.document_id)+' · p. '+esc(src.page)+'</button>';
+  }).join("");
+}
 
 async function openDocument(documentId,page){
   if(!currentAnalysisId)return;
@@ -210,6 +218,7 @@ function renderAnalysis(a,meta){
     '<div class="process-meta"><span class="chip">'+esc(meta.pages||0)+' páginas</span><span class="chip">'+esc(docs.length)+' peças segmentadas</span><span class="chip">'+esc(meta.ocr_pages||0)+' OCR</span></div></div>'+
     '<span class="stage-badge">'+esc(stage.label||"Estágio não definido")+'</span></div>'+
     '<div class="stage-card"><small>Leitura processual</small><strong>'+esc(stage.rationale||"")+'</strong><p>'+esc(stage.next_action||"")+'</p>'+
+    '<div class="stage-sources"><b>Base documental da fase</b><div>'+stageSourcesHtml(stage)+'</div></div>'+
     '<div class="next-grid"><div class="next-box"><b>Próximo ato</b><span>'+esc(stage.next_action||"—")+'</span></div><div class="next-box"><b>Minuta compatível</b><span>'+esc(stage.suggested_draft||"—")+'</span></div></div>'+
     '<div class="stage-actions"><button onclick="loadCompatibleDraft()">Gerar minuta compatível</button></div></div>'+
     '<div id="stageDraft"></div>'+
