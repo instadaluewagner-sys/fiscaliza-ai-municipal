@@ -50,6 +50,9 @@ def test_pas_com_notificacao_aguarda_defesa():
     ])
     assert result.stage.key=="aguardando_defesa"
     assert result.stage.suggested_draft=="certidao_prazo"
+    assert result.stage.sources
+    assert result.stage.sources[0].document_id=="DOC-002"
+    assert result.stage.sources[0].page==2
 
 
 def test_pas_com_defesa_apresentada():
@@ -106,3 +109,14 @@ def test_decisao_de_origem_anexada_nao_rebaixa_pas_ja_instaurado():
     ])
     assert result.stage.key=="aguardando_defesa"
     assert result.stage.suggested_draft=="certidao_prazo"
+
+
+def test_estagio_autorizacao_pas_aponta_decisao_fonte():
+    result=analyze_penalizacao([
+        doc(1,"parecer_tecnico","PARECER TÉCNICO. A empresa não realizou nenhuma entrega.",35),
+        doc(2,"decisao","DESPACHO Nº 693/2025. AUTORIZO A ABERTURA DE PROCESSO ADMINISTRATIVO SANCIONADOR para apuração das responsabilidades.",60),
+    ])
+    assert result.stage.key=="instauracao_sancionadora_autorizada"
+    assert result.stage.sources
+    assert result.stage.sources[0].document_id=="DOC-002"
+    assert result.stage.sources[0].page==60
