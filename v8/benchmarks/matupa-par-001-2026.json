@@ -1,0 +1,51 @@
+{
+  "case_id": "matupa-par-001-2026",
+  "source": {
+    "type": "public_final_decision",
+    "url": "https://www.matupa.mt.gov.br/fotos_downloads/6724.pdf",
+    "pdf_pages": 5
+  },
+  "process_number": "001/2026",
+  "company": "YNEMED PRODUTOS MEDICOS E HOSPITALARES LTDA",
+  "object_description": "aquisição imediata de medicamentos e materiais em atendimento ao Hospital Municipal de Matupá-MT",
+  "expected_stage": "julgamento",
+  "expected_suggested_draft": "notificacao_decisao",
+  "expected_stage_source_page": 1,
+  "expected_ocr_min": 0,
+  "documents": [
+    {
+      "type": "decisao",
+      "title": "DECISÃO FINAL",
+      "page_start": 1,
+      "page_end": 5,
+      "content_pages": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "notes": "Decisão final em recurso no Processo Administrativo de Apuração de Responsabilidade nº 001/2026."
+    }
+  ],
+  "critical_facts": [
+    {
+      "key": "final_decision",
+      "fact": "decisão final mantém e ratifica penalidades após recurso administrativo",
+      "support_page": 4
+    }
+  ],
+  "profile_expectations": {
+    "process_number": "001/2026",
+    "company": "YNEMED PRODUTOS MEDICOS E HOSPITALARES LTDA",
+    "cnpj": "51.740.794/0001-60",
+    "contrato": "397/2025",
+    "quantity": null
+  },
+  "profile_conflicts": {},
+  "notes": [
+    "Documento público de cinco páginas, textual, útil para validar decisão final sancionadora em PAR.",
+    "A decisão registra defesa, decisão sancionatória anterior, recurso administrativo e manutenção das penalidades.",
+    "As penalidades mantidas incluem multa de 30% e impedimento de licitar e contratar por 2 anos."
+  ]
+}
