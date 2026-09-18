@@ -21,15 +21,67 @@ def find_first(text: str, patterns: list[str]):
             return re.sub(r"\s+", " ", m.group(1)).strip()
     return None
 
+def _preferred_text(documents: list[Document], types: tuple[str, ...]) -> str:
+    return "\n".join(d.text for d in documents if d.type in types)
+
+def _safe_quantity(documents: list[Document]):
+    # Quantidade só é inferida de peças de contratação/execução e com expressão
+    # suficientemente explícita. Isso evita transformar uma simulação logística
+    # ("60 unidades por viagem") em quantidade contratada.
+    source = _preferred_text(
+        documents,
+        ("contrato", "ata_registro_precos", "empenho", "ordem_fornecimento", "termo_referencia"),
+    )
+    if not source:
+        return None
+    patterns = [
+        r"(?:quantidade\s+total|quantidade\s+contratada|total\s+contratado)\s*[:.-]?\s*(\d{1,7}\s+(?:kits?|unidades?|itens?|caixas?|frascos?|equipamentos?)(?:\s+de\s+[^.,;\n]{2,80})?)",
+        r"(?:objeto|fornecimento|aquisi[cç][aã]o)\s+(?:de\s+)?(\d{1,7}\s+(?:kits?|unidades?|itens?|caixas?|frascos?|equipamentos?)(?:\s+de\s+[^.,;\n]{2,80})?)",
+    ]
+    return find_first(source, patterns)
+
 def build_profile(documents: list[Document]) -> ProcessProfile:
-    text = "\n".join(d.text for d in documents)
+    all_text = "\n".join(d.text for d in documents)
+    contracting_text = _preferred_text(
+        documents,
+        ("contrato", "ata_registro_precos", "empenho", "ordem_fornecimento", "termo_referencia", "notificacao"),
+    ) or all_text
+
+    process_number = find_first(
+        all_text,
+        [r"Processo Administrativo de Penaliza[cç][aã]o\s*(?:n[ºo.]?)?\s*[:.-]?\s*([0-9./-]+)"],
+    )
+    origin_process = find_first(
+        all_text,
+        [
+            r"(?:Processo|Protocolo)\s+(?:de\s+origem\s+)?(?:n[ºo.]?)?\s*[:.-]?\s*([0-9./-]+)",
+            r"\bPROCESSO\s+N[ºO.]?\s*[:.-]\s*([0-9./-]+)",
+        ],
+    )
+
+    company = find_first(
+        contracting_text,
+        [
+            r"(?:Empresa|Contratada|Interessada)\s*[:.-]\s*([^\n]{3,120})",
+            r"\bempresa\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9][A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9 .&-]{4,100}(?:LTDA|S/A|EIRELI))\b",
+        ],
+    )
+    cnpj = find_first(contracting_text, [r"\bCNPJ(?:/MF)?\s*[:.-]?\s*([0-9./-]{14,20})"])
+    object_description = find_first(
+        contracting_text,
+        [
+            r"Objeto(?:\s+do\s+Contrato)?\s*[:.-]\s*([^\n]{5,180})",
+            r"\btem\s+por\s+objeto\s+(?:o\s+)?([^\n.]{5,180})",
+        ],
+    )
+
     return ProcessProfile(
-        process_number=find_first(text,[r"Processo Administrativo de Penaliza[cç][aã]o\s*(?:n[ºo.]?)?\s*[:.-]?\s*([0-9./-]+)"]),
-        origin_process=find_first(text,[r"(?:Processo|Protocolo)\s+(?:de\s+origem\s+)?(?:n[ºo.]?)?\s*[:.-]?\s*([0-9./-]+)"]),
-        company=find_first(text,[r"(?:Empresa|Contratada)\s*[:.-]\s*([^\n]{3,120})"]),
-        cnpj=find_first(text,[r"\bCNPJ\s*[:.-]?\s*([0-9./-]{14,20})"]),
-        object_description=find_first(text,[r"Objeto\s*[:.-]\s*([^\n]{5,180})"]),
-        quantity=find_first(text,[r"\b(\d{1,7}\s+(?:kits?|unidades?|itens?|caixas?|frascos?|equipamentos?)(?:\s+de\s+[^.,;\n]{2,80})?)"]),
+        process_number=process_number,
+        origin_process=origin_process,
+        company=company,
+        cnpj=cnpj,
+        object_description=object_description,
+        quantity=_safe_quantity(documents),
     )
 
 def item(key: str, label: str, status: str, reason: str, docs=None) -> ChecklistItem:
