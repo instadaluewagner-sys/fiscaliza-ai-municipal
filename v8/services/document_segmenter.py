@@ -61,6 +61,29 @@ def _has_attachment(lines: list[str]) -> bool:
             return bool(PDF_FILENAME.search(tail))
     return False
 
+def _looks_like_formal_notification(lines: list[str]) -> bool:
+    compact = norm(" ".join(lines[:45]))
+    return any(marker in compact for marker in [
+        "notificante",
+        "notificado",
+        "assunto:",
+        "fica notificada",
+        "fica notificado",
+        "notifica e intima",
+        "notifica a empresa",
+        "notifica o interessado",
+    ])
+
+def _continuation_number(lines: list[str]) -> tuple[int, int] | None:
+    compact = " ".join(lines[:16])
+    m = re.search(r"(?i)\bP[aá]gina\s+(\d{1,3})\s+de\s+(\d{1,3})\b", compact)
+    if not m:
+        return None
+    current, total = int(m.group(1)), int(m.group(2))
+    if 1 < current <= total:
+        return current, total
+    return None
+
 def _find_strong_header(lines: list[str]):
     # Até 35 linhas: permite timbre/cabeçalho institucional antes do título,
     # mas não deixa menções do corpo decidirem o tipo da peça.
@@ -82,6 +105,17 @@ def _find_strong_header(lines: list[str]):
                 and not re.match(r"(?i)^\s*ASSUNTO\s*:", line)
             ):
                 continue
+
+            # Um rótulo isolado como "Notificação" pode aparecer no corpo de outra
+            # peça por quebra de linha do PDF. Só o aceitamos como cabeçalho autônomo
+            # quando há sinais formais do ato no mesmo começo de página.
+            if (
+                doc_type == "notificacao"
+                and norm(line) in {"notificacao", "notificacao extrajudicial"}
+                and not _looks_like_formal_notification(lines)
+            ):
+                continue
+
             candidates.append((confidence, -index, doc_type, line[:220], index))
 
     if not candidates:
@@ -150,13 +184,21 @@ def segment_documents(pages: list[dict]) -> list[Document]:
         starts_new = current is None or file_changed
         if current is not None and detected and not file_changed:
             dtype, title, _ = detected
+            page_lines = _clean_lines(page["text"])
+            continuation = _continuation_number(page_lines)
 
-            # Um cabeçalho forte/protocolo inicia uma nova peça. A exceção é quando
-            # páginas sucessivas repetem exatamente o mesmo título/tipo.
-            same_type = dtype == current["type"]
-            same_title = norm(title)[:120] == norm(current["title"])[:120]
-            if not (same_type and same_title):
-                starts_new = True
+            # "Página 2 de 6", "Página 5 de 6" etc. é forte evidência de que a página
+            # continua a peça anterior. Isso impede que contratos ou cláusulas citados
+            # dentro de pareceres gerem documentos falsos.
+            if continuation and current["type"] not in {"movimentacao_1doc", "unclassified"}:
+                starts_new = False
+            else:
+                # Um cabeçalho forte/protocolo inicia uma nova peça. A exceção é quando
+                # páginas sucessivas repetem exatamente o mesmo título/tipo.
+                same_type = dtype == current["type"]
+                same_title = norm(title)[:120] == norm(current["title"])[:120]
+                if not (same_type and same_title):
+                    starts_new = True
 
         if starts_new:
             if current:
