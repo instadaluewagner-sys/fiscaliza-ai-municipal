@@ -17,6 +17,47 @@ def validate_analysis_integrity(a: AnalysisResult) -> list[str]:
                 f"Evidência {ev.document_id} aponta p. {ev.page}, fora das páginas segmentadas da peça."
             )
 
+    if a.stage.key != "triagem" and not a.stage.sources:
+        warnings.append(
+            f"Estágio '{a.stage.label}' foi determinado sem fonte documental rastreável."
+        )
+    for ref in a.stage.sources:
+        if not ref.document_id or ref.document_id not in doc_set:
+            warnings.append(
+                f"Estágio processual referencia documento inexistente: {ref.document_id or '[sem DOC-ID]'}."
+            )
+            continue
+        doc = next((d for d in a.documents if d.id == ref.document_id), None)
+        if doc and ref.page not in doc.pages:
+            warnings.append(
+                f"Estágio {ref.document_id} aponta p. {ref.page}, fora das páginas segmentadas."
+            )
+
+    for field, ref in a.profile.sources.items():
+        if not ref.document_id or ref.document_id not in doc_set:
+            warnings.append(
+                f"Perfil '{field}' referencia documento inexistente: {ref.document_id or '[sem DOC-ID]'}."
+            )
+            continue
+        doc = next((d for d in a.documents if d.id == ref.document_id), None)
+        if doc and ref.page not in doc.pages:
+            warnings.append(
+                f"Perfil '{field}' aponta p. {ref.page}, fora das páginas segmentadas."
+            )
+
+    for field, refs in a.profile.conflict_sources.items():
+        for ref in refs:
+            if not ref.document_id or ref.document_id not in doc_set:
+                warnings.append(
+                    f"Divergência de perfil '{field}' referencia documento inexistente: {ref.document_id or '[sem DOC-ID]'}."
+                )
+                continue
+            doc = next((d for d in a.documents if d.id == ref.document_id), None)
+            if doc and ref.page not in doc.pages:
+                warnings.append(
+                    f"Divergência de perfil '{field}' aponta p. {ref.page}, fora das páginas segmentadas."
+                )
+
     for event in a.timeline:
         if event.document_id not in doc_set:
             warnings.append(f"Cronologia referencia documento inexistente: {event.document_id}.")
