@@ -54,6 +54,15 @@ function typeLabel(type){
 }
 function profileValue(v){return v?esc(v):"Não identificado com segurança";}
 
+function formatIsoDate(value){
+  if(!value)return "Data não identificada";
+  const m=String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m?m[3]+"/"+m[2]+"/"+m[1]:value;
+}
+function pendingKindLabel(kind){
+  return {missing:"Pendência",review:"Conferência",next_step:"Próximo passo"}[kind]||kind;
+}
+
 async function openDocument(documentId,page){
   if(!currentAnalysisId)return;
   try{
@@ -133,6 +142,8 @@ function renderAnalysis(a,meta){
   const docs=a.documents||[];
   const evidence=a.evidence||[];
   const checks=a.checklist||[];
+  const timeline=a.timeline||[];
+  const pending=a.pending_items||[];
   const stage=a.stage||{};
 
   const docsHtml=docs.map(function(d){
@@ -155,6 +166,20 @@ function renderAnalysis(a,meta){
     return '<div class="check-card"><small>'+esc(x.label)+'</small><b class="'+statusClass(x.status)+'">'+esc(statusLabel(x.status))+'</b><p>'+esc(x.reason)+'</p></div>';
   }).join("");
 
+  const pendingHtml=pending.length?pending.map(function(x){
+    const cls=x.kind==="missing"?"warn":(x.kind==="next_step"?"ok":"neutral");
+    return '<div class="pending-row"><div><small>'+esc(pendingKindLabel(x.kind))+' · '+esc(x.severity)+'</small><b class="'+cls+'">'+esc(x.label)+'</b><p>'+esc(x.reason)+'</p></div></div>';
+  }).join(""):'<div class="check-card"><small>Pendências</small><b class="ok">Nenhuma pendência atual identificada.</b></div>';
+
+  const timelineHtml=timeline.length?timeline.map(function(t){
+    const dateLabel=formatIsoDate(t.date);
+    const sourceLabel=t.date_source==="envelope"?"data do envelope":(t.date_source==="document"?"data do documento":"sem data");
+    return '<button class="timeline-event" onclick="openDocument(\''+esc(t.document_id)+'\','+Number(t.page)+')">'+
+      '<span class="timeline-dot"></span>'+
+      '<div><small>'+esc(dateLabel)+' · '+esc(sourceLabel)+'</small><b>'+esc(t.label)+'</b><span>'+esc(t.document_id)+' · p. '+esc(t.page)+'</span></div>'+
+    '</button>';
+  }).join(""):'<div class="check-card"><small>Cronologia</small><b class="neutral">Nenhum marco cronológico consolidado.</b></div>';
+
   out.innerHTML=
     '<div class="summary-head"><div><small>Análise V8</small><h2>'+profileValue(p.process_number||p.origin_process)+'</h2>'+
     '<div class="process-meta"><span class="chip">'+esc(meta.pages||0)+' páginas</span><span class="chip">'+esc(docs.length)+' peças segmentadas</span><span class="chip">'+esc(meta.ocr_pages||0)+' OCR</span></div></div>'+
@@ -163,6 +188,8 @@ function renderAnalysis(a,meta){
     '<div class="next-grid"><div class="next-box"><b>Próximo ato</b><span>'+esc(stage.next_action||"—")+'</span></div><div class="next-box"><b>Minuta compatível</b><span>'+esc(stage.suggested_draft||"—")+'</span></div></div>'+
     '<div class="stage-actions"><button onclick="loadCompatibleDraft()">Gerar minuta compatível</button></div></div>'+
     '<div id="stageDraft"></div>'+
+    '<div class="section-title"><h3>Pendências e próximo passo</h3><span>Ausência ≠ não aplicabilidade</span></div><div class="pending-list">'+pendingHtml+'</div>'+
+    '<div class="section-title"><h3>Cronologia essencial</h3><span>Clique para abrir a fonte</span></div><div class="timeline-list">'+timelineHtml+'</div>'+
     '<div class="section-title"><h3>Perfil extraído</h3><span>Somente quando há suporte documental</span></div>'+
     '<div class="check-grid">'+
       '<div class="check-card"><small>Empresa</small><b class="neutral">'+profileValue(p.company)+'</b></div>'+
