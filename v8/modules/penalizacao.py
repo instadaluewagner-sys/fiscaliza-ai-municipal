@@ -862,25 +862,128 @@ def determine_stage(documents: list[Document]) -> StageResult:
 
 def build_evidence(documents: list[Document], stage: StageResult | None = None):
     evidence = []
-    for doc in documents:
-        z = norm(doc.text)
-        if any(k in z for k in ["nao houve entrega","inexecucao"]):
-            evidence.append(evidence_from_document(doc,"Execução/inexecução registrada",[r"n[aã]o houve entrega",r"inexecu[cç][aã]o"],.94))
-        if doc.type == "defesa":
-            fact = (
-                "Defesa/manifestação localizada no processo de origem; não equivale à defesa do futuro PAS"
-                if stage and stage.key == "instauracao_sancionadora_autorizada"
-                else "Defesa administrativa apresentada"
-            )
-            evidence.append(evidence_from_document(doc,fact,[r"defesa",r"alega",r"requer"],.97))
-        if doc.type == "decisao":
-            fact = (
-                "Decisão de origem que autoriza a abertura de processo sancionador separado"
-                if stage and stage.key == "instauracao_sancionadora_autorizada"
-                else "Decisão administrativa localizada"
-            )
-            evidence.append(evidence_from_document(doc,fact,[r"autoriz",r"decid",r"julgo",r"determino"],.95))
-    return evidence[:12]
+    used_keys = set()
+
+    def add_once(
+        key: str,
+        category: str,
+        fact: str,
+        types: tuple[str, ...],
+        patterns: list[str],
+        confidence: float,
+    ):
+        if key in used_keys:
+            return
+        regs = [re.compile(p, re.I) for p in patterns]
+        ordered = sorted(
+            [d for d in documents if d.type in types],
+            key=lambda d: (-_source_weight(d.type), d.page_start),
+        )
+        for doc in ordered:
+            if any(rx.search(doc.text or "") for rx in regs):
+                evidence.append(
+                    evidence_from_document(
+                        doc,
+                        fact,
+                        patterns,
+                        confidence,
+                        key=key,
+                        category=category,
+                    )
+                )
+                used_keys.add(key)
+                return
+
+    add_once(
+        "non_delivery",
+        "fact",
+        "Há registro de não entrega/inexecução do objeto",
+        ("relatorio_tecnico","parecer_tecnico","oficio","notificacao","decisao"),
+        [
+            r"n[aã]o\s+(?:houve|ocorreu)\s+(?:a\s+)?entrega",
+            r"n[aã]o\s+(?:realizou|realizaram|efetuou|efetuaram)\s+(?:a[s]?\s+)?entrega",
+            r"n[aã]o\s+entreg(?:ou|aram)",
+            r"aus[eê]ncia\s+de\s+entrega",
+            r"inexecu[cç][aã]o(?:\s+total|\s+parcial)?",
+        ],
+        .96,
+    )
+
+    add_once(
+        "defense_deadline",
+        "procedural",
+        "Foi localizado ato que abre prazo para apresentação de defesa",
+        ("intimacao","notificacao"),
+        [
+            r"prazo\s+de\s+\d+\s*(?:\([^)]+\)\s*)?dias?\s+[uú]teis?.{0,180}defesa",
+            r"defesa.{0,180}prazo\s+de\s+\d+\s*(?:\([^)]+\)\s*)?dias?\s+[uú]teis?",
+            r"apresent(?:e|ar)\s+(?:sua\s+)?defesa",
+        ],
+        .98,
+    )
+
+    if any(d.type == "defesa" for d in documents):
+        fact = (
+            "Defesa/manifestação localizada no processo de origem; não equivale à defesa do futuro PAS"
+            if stage and stage.key == "instauracao_sancionadora_autorizada"
+            else "Defesa administrativa apresentada"
+        )
+        add_once(
+            "defense_submitted",
+            "defense",
+            fact,
+            ("defesa",),
+            [r"defesa\s+administrativa",r"raz[oõ]es\s+de\s+defesa",r"\bdefesa\b"],
+            .98,
+        )
+
+    if any(d.type == "parecer_juridico" for d in documents):
+        add_once(
+            "legal_opinion",
+            "legal",
+            "Parecer jurídico localizado nos autos",
+            ("parecer_juridico",),
+            [r"parecer\s+jur[ií]dico"],
+            .98,
+        )
+
+    if stage and stage.key == "instauracao_sancionadora_autorizada":
+        add_once(
+            "origin_pas_authorization",
+            "decision",
+            "Decisão do processo de origem autoriza a abertura de processo administrativo sancionador separado",
+            ("decisao",),
+            [
+                r"autoriz[oa].{0,120}abertura\s+de\s+processo\s+administrativo\s+sancionador",
+                r"autoriz[oa].{0,120}instaura[cç][aã]o\s+de\s+processo\s+administrativo\s+sancionador",
+            ],
+            .99,
+        )
+    elif stage and stage.key in {"julgamento","recurso"}:
+        add_once(
+            "sanction_decision",
+            "decision",
+            "Decisão sancionadora localizada",
+            ("decisao",),
+            [
+                r"aplico\s+(?:a\s+)?san[cç][aã]o",
+                r"aplico\s+(?:a\s+)?penalidade",
+                r"impedimento\s+de\s+licitar",
+                r"declara[cç][aã]o\s+de\s+inidoneidade",
+            ],
+            .99,
+        )
+    else:
+        add_once(
+            "administrative_decision",
+            "decision",
+            "Decisão ou despacho administrativo localizado",
+            ("decisao",),
+            [r"decis[aã]o\s+administrativa",r"despacho\s+n"],
+            .94,
+        )
+
+    return evidence[:16]
 
 def analyze_penalizacao(documents: list[Document]) -> AnalysisResult:
     stage = determine_stage(documents)
