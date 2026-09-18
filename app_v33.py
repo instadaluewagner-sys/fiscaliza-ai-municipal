@@ -534,7 +534,14 @@ button,input{font:inherit}
 <script>
 var analysisId=null;
 function plist(x){return x.pages.join(", ")}
-function escapeHtml(s){return String(s||"").replace(/[&<>"']/g,function(m){return({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#039;"}[m])})}
+function escapeHtml(s){
+ return String(s||"")
+   .replace(/&/g,"&amp;")
+   .replace(/</g,"&lt;")
+   .replace(/>/g,"&gt;")
+   .replace(/"/g,"&quot;")
+   .replace(/'/g,"&#039;");
+}
 async function analisar(){
  var fs=document.getElementById("files").files;
  if(!fs.length){alert("Selecione pelo menos um PDF.");return}
