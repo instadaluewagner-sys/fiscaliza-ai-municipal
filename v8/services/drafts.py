@@ -1,4 +1,4 @@
-from v8.core.models import AnalysisResult, DraftResult
+from v8.core.models import AnalysisResult, DraftResult, PageRef
 
 ALLOWED_DRAFTS_BY_STAGE = {
     "triagem": {"despacho_diligencia"},
@@ -30,14 +30,50 @@ def _profile_lines(a: AnalysisResult) -> list[str]:
     ]
 
 
+def _source_refs(a: AnalysisResult) -> list[PageRef]:
+    refs = []
+    seen = set()
+
+    def add(ref: PageRef | None):
+        if not ref or not ref.document_id:
+            return
+        token = (ref.document_id, ref.page)
+        if token in seen:
+            return
+        seen.add(token)
+        refs.append(ref)
+
+    for ref in a.stage.sources:
+        add(ref)
+
+    for key in [
+        "process_number","origin_process","pregao","ata","contrato","empenhos",
+        "company","cnpj","object_description","quantity",
+    ]:
+        add(a.profile.sources.get(key))
+
+    by_id = {d.id: d for d in a.documents}
+    for ev in a.evidence:
+        doc = by_id.get(ev.document_id)
+        add(PageRef(
+            file=doc.file if doc else "",
+            page=ev.page,
+            document_id=ev.document_id,
+        ))
+
+    if not refs:
+        for doc in a.documents[:5]:
+            add(PageRef(file=doc.file, page=doc.page_start, document_id=doc.id))
+
+    return refs[:12]
+
+
 def _source_ids(a: AnalysisResult) -> list[str]:
     ids = []
-    for ev in a.evidence:
-        if ev.document_id not in ids:
-            ids.append(ev.document_id)
-    if not ids:
-        ids = [d.id for d in a.documents[:5]]
-    return ids[:8]
+    for ref in _source_refs(a):
+        if ref.document_id and ref.document_id not in ids:
+            ids.append(ref.document_id)
+    return ids
 
 
 def _header(title: str, a: AnalysisResult) -> list[str]:
@@ -350,11 +386,17 @@ def generate_draft(a: AnalysisResult, kind: str | None = None) -> DraftResult:
         "Conferir competência, rito, prazo e normas municipais antes da expedição.",
         "A minuta não substitui revisão jurídica ou decisão da autoridade competente.",
     ]
+    source_refs = _source_refs(a)
     return DraftResult(
         kind=requested,
         title=title,
         stage_key=stage_key,
         text=builder(a),
-        source_document_ids=_source_ids(a),
+        source_document_ids=[
+            ref.document_id
+            for ref in source_refs
+            if ref.document_id
+        ],
+        source_refs=source_refs,
         warnings=warnings,
     )
