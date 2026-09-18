@@ -392,11 +392,7 @@ def generate_draft(a: AnalysisResult, kind: str | None = None) -> DraftResult:
         title=title,
         stage_key=stage_key,
         text=builder(a),
-        source_document_ids=[
-            ref.document_id
-            for ref in source_refs
-            if ref.document_id
-        ],
+        source_document_ids=_source_ids(a),
         source_refs=source_refs,
         warnings=warnings,
     )
