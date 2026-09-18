@@ -3,6 +3,7 @@ import unicodedata
 from v8.core.models import AnalysisResult, ChecklistItem, Document, PendingItem, ProcessProfile, StageResult
 from v8.services.evidence import evidence_from_document
 from v8.services.timeline import build_timeline
+from v8.services.quality import validate_analysis_integrity
 
 def norm(value: str) -> str:
     value = unicodedata.normalize("NFKD", value or "")
@@ -538,7 +539,7 @@ def build_evidence(documents: list[Document], stage: StageResult | None = None):
 def analyze_penalizacao(documents: list[Document]) -> AnalysisResult:
     stage = determine_stage(documents)
     checklist = build_checklist(documents, stage)
-    return AnalysisResult(
+    result = AnalysisResult(
         module="penalizacao",
         profile=build_profile(documents),
         documents=documents,
@@ -549,3 +550,5 @@ def analyze_penalizacao(documents: list[Document]) -> AnalysisResult:
         pending_items=build_pending_items(checklist, stage),
         warnings=[],
     )
+    result.warnings = validate_analysis_integrity(result)
+    return result
