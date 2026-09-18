@@ -741,10 +741,39 @@ def _has_current_pas_context(documents: list[Document]) -> bool:
     return False
 
 
+def _has_sanction_command(text: str) -> bool:
+    negative = [
+        r"deixo\s+de\s+aplicar.{0,80}(?:sancao|penalidade|multa)",
+        r"nao\s+aplic(?:o|ar).{0,80}(?:sancao|penalidade|multa)",
+        r"afast[oa].{0,80}(?:sancao|penalidade|multa)",
+    ]
+    if any(re.search(p, text) for p in negative):
+        return False
+    positive = [
+        r"(?:decido.{0,80})?aplic(?:o|ar|a-se).{0,80}(?:sancao|penalidade|multa|advertencia|impedimento|inidoneidade)",
+        r"fica\s+aplicada.{0,80}(?:sancao|penalidade|multa|advertencia)",
+        r"imponho.{0,80}(?:sancao|penalidade|multa|advertencia|impedimento)",
+        r"declaro.{0,40}inidone",
+    ]
+    return any(re.search(p, text) for p in positive)
+
+
+def _has_final_no_sanction_command(text: str) -> bool:
+    patterns = [
+        r"julgo.{0,80}(?:improcedente|insubsistente)",
+        r"deixo\s+de\s+aplicar.{0,80}(?:sancao|penalidade|multa)",
+        r"decido.{0,100}(?:pelo\s+)?arquivamento",
+        r"determino.{0,100}(?:o\s+)?arquivamento",
+        r"absolv(?:o|er)",
+    ]
+    return any(re.search(p, text) for p in patterns)
+
+
 def determine_stage(documents: list[Document]) -> StageResult:
     by = docs_by_type(documents)
     all_text = norm("\n".join(d.text for d in documents))
     decision_texts = [norm(d.text) for d in by.get("decisao", [])]
+    current_pas = _has_current_pas_context(documents)
 
     authorizes_new_pas = any(
         ("autorizo" in t or "autoriza" in t)
@@ -755,30 +784,17 @@ def determine_stage(documents: list[Document]) -> StageResult:
         for t in decision_texts
     )
 
-    final_sanction = any(
-        any(k in t for k in [
-            "aplico a sancao",
-            "aplica-se a sancao",
-            "aplico a penalidade",
-            "multa",
-            "impedimento de licitar",
-            "declaracao de inidoneidade",
-        ])
-        and any(k in t for k in [
-            "processo administrativo sancionador",
-            "processo administrativo de penalizacao",
-            "penalidade",
-            "sancao",
-        ])
+    final_sanction = any(_has_sanction_command(t) for t in decision_texts)
+    final_no_sanction = current_pas and any(
+        _has_final_no_sanction_command(t)
         for t in decision_texts
     )
-
-    current_pas = _has_current_pas_context(documents)
+    final_decision = final_sanction or final_no_sanction
 
     # 1. Uma decisão do processo de origem que só AUTORIZA abrir um PAS
     # não pode ser tratada como julgamento sancionador, mesmo que haja defesa,
     # notificação ou recurso no processo contratual de origem.
-    if authorizes_new_pas and not final_sanction and not current_pas:
+    if authorizes_new_pas and not final_decision and not current_pas:
         return StageResult(
             key="instauracao_sancionadora_autorizada",
             label="Instauração sancionadora autorizada",
@@ -790,23 +806,27 @@ def determine_stage(documents: list[Document]) -> StageResult:
 
     # 2. Recurso só caracteriza fase recursal sancionadora quando há decisão
     # sancionadora final ou contexto inequívoco do PAS.
-    if by.get("recurso") and final_sanction:
+    if by.get("recurso") and final_decision:
         return StageResult(
             key="recurso",
             label="Fase recursal",
             confidence=.96,
-            rationale="Recurso administrativo localizado após decisão sancionadora.",
+            rationale="Recurso administrativo localizado após decisão final no processo sancionador.",
             next_action="Analisar o recurso e conferir os efeitos da decisão recorrida.",
             suggested_draft="decisao_recurso",
         )
 
-    if by.get("decisao") and final_sanction:
+    if by.get("decisao") and final_decision:
         return StageResult(
             key="julgamento",
-            label="Julgamento sancionador identificado",
+            label="Julgamento do PAS identificado",
             confidence=.96,
-            rationale="Decisão sancionadora com comando de aplicação de penalidade localizada.",
-            next_action="Dar ciência da decisão, controlar eventual prazo recursal e registrar a sanção quando cabível.",
+            rationale=(
+                "Decisão final com comando de aplicação de sanção localizada."
+                if final_sanction
+                else "Decisão final sem aplicação de sanção localizada no processo sancionador."
+            ),
+            next_action="Dar ciência da decisão, controlar eventual prazo recursal e registrar a sanção somente quando cabível.",
             suggested_draft="notificacao_decisao",
         )
 
