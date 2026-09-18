@@ -122,6 +122,7 @@ def _new_document(counter: int, page: dict, detected) -> dict:
         "page_start": page["page"],
         "page_end": page["page"],
         "pages": [page["page"]],
+        "page_texts": {page["page"]: page["text"]},
         "confidence": confidence,
         "text": page["text"],
     }
@@ -154,6 +155,7 @@ def segment_documents(pages: list[dict]) -> list[Document]:
         else:
             current["page_end"] = page["page"]
             current["pages"].append(page["page"])
+            current["page_texts"][page["page"]] = page["text"]
             current["text"] += "\n\n" + page["text"]
 
     if current:
