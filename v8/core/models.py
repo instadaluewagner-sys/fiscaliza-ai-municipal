@@ -97,4 +97,5 @@ class DraftResult(BaseModel):
     stage_key: str
     text: str
     source_document_ids: list[str] = Field(default_factory=list)
+    source_refs: list[PageRef] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
