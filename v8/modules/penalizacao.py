@@ -67,12 +67,31 @@ def build_checklist(documents: list[Document]) -> list[ChecklistItem]:
 def determine_stage(documents: list[Document]) -> StageResult:
     by = docs_by_type(documents)
     all_text = norm("\n".join(d.text for d in documents))
-    has_final_decision = any(re.search(r"\b(decido|julgo|aplico|determino)\b", norm(d.text)) for d in by.get("decisao", []))
+    decision_texts = [norm(d.text) for d in by.get("decisao", [])]
+    authorizes_new_pas = any(
+        ("autorizo" in t or "autoriza" in t)
+        and ("abertura de processo administrativo sancionador" in t or "instauracao de processo administrativo sancionador" in t)
+        for t in decision_texts
+    )
+    final_sanction = any(
+        any(k in t for k in ["aplico a sancao", "aplica-se a sancao", "multa", "impedimento de licitar", "declaracao de inidoneidade"])
+        and any(k in t for k in ["processo administrativo sancionador", "processo administrativo de penalizacao", "penalidade"])
+        for t in decision_texts
+    )
 
     if by.get("recurso"):
         return StageResult(key="recurso",label="Fase recursal",confidence=.95,rationale="Recurso administrativo localizado.",next_action="Analisar o recurso e conferir os efeitos da decisão recorrida.",suggested_draft="decisao_recurso")
-    if by.get("decisao") and has_final_decision:
-        return StageResult(key="julgamento",label="Julgamento identificado",confidence=.94,rationale="Decisão administrativa com comando decisório localizada.",next_action="Dar ciência da decisão, controlar eventual prazo recursal e registrar a providência final cabível.",suggested_draft="notificacao_decisao")
+    if authorizes_new_pas and not final_sanction:
+        return StageResult(
+            key="instauracao_sancionadora_autorizada",
+            label="Instauração sancionadora autorizada",
+            confidence=.97,
+            rationale="Foi localizada decisão no processo de origem que autoriza a abertura de processo administrativo sancionador separado; isso não equivale a julgamento de penalidade.",
+            next_action="Autuar/instaurar o processo sancionador, delimitar fatos e documentos de origem e então assegurar o contraditório conforme a norma aplicável.",
+            suggested_draft="despacho_instauracao",
+        )
+    if by.get("decisao") and final_sanction:
+        return StageResult(key="julgamento",label="Julgamento sancionador identificado",confidence=.96,rationale="Decisão sancionadora com comando de aplicação de penalidade localizada.",next_action="Dar ciência da decisão, controlar eventual prazo recursal e registrar a sanção quando cabível.",suggested_draft="notificacao_decisao")
     if by.get("relatorio_conclusivo"):
         return StageResult(key="relatorio_conclusivo",label="Relatório conclusivo elaborado",confidence=.95,rationale="Relatório conclusivo da comissão localizado.",next_action="Encaminhar os autos à autoridade competente para julgamento.",suggested_draft="decisao")
     if by.get("defesa") and (by.get("parecer_tecnico") or by.get("parecer_juridico") or by.get("relatorio_tecnico")):
