@@ -3972,3 +3972,386 @@ if _start!=-1 and _end!=-1:
     HTML=HTML[:_start]+_layer2_js+HTML[_end:]
 
 HTML=HTML.replace("VERSÃO 6.4 · NAVEGAÇÃO EM CAMADAS","VERSÃO 6.5 · TELAS INTERNAS")
+
+
+# --- Auditoria específica por módulo v6.6 ---
+# Corrige a matriz, cronologia, estrutura e rastreabilidade para que cada módulo
+# mostre apenas perguntas e evidências próprias do procedimento selecionado.
+
+MODULE_AUDIT = {
+    "fiscalizacao":[
+        ("Há instrumento contratual?",[r"\bcontrato\b",r"\binstrumento contratual\b"]),
+        ("Há designação de fiscal ou gestor?",[r"designad[oa].{0,80}fiscal",r"\bfiscal do contrato\b",r"\bgestor do contrato\b"]),
+        ("Há relatório de execução/fiscalização?",[r"relatorio.{0,80}(?:execucao|fiscalizacao)",r"\bfiscalizacao registra\b"]),
+        ("Há entrega, medição ou recebimento?",[r"\bentrega\b",r"\bmedicao\b",r"\brecebimento\b"]),
+        ("Há ocorrência ou comunicação à contratada?",[r"\bnotificacao\b",r"\bocorrencia\b",r"\bcomunicacao\b"]),
+        ("Há providência ou regularização registrada?",[r"\bprovidencia\b",r"\bregulariza",r"\bcorrecao\b"])
+    ],
+    "reequilibrio":[
+        ("Há pedido formal de reequilíbrio?",[r"pedido.{0,80}reequilibr",r"\breequilibrio economico"]),
+        ("Há contrato ou instrumento vinculado?",[r"\bcontrato\b",r"\binstrumento contratual\b"]),
+        ("Há planilha, orçamento ou cotações?",[r"\bplanilha\b",r"\borcamento\b",r"\bcotac"]),
+        ("Há fato superveniente ou justificativa econômica?",[r"\bfato superveniente\b",r"\bdesequilibr",r"\baumento extraordinario\b"]),
+        ("Há análise técnica ou jurídica?",[r"\bnota tecnica\b",r"\bparecer juridico\b",r"\banalise tecnica\b"]),
+        ("Há decisão sobre o pedido?",[r"\bdecisao administrativa\b",r"\bdecide\b",r"\bdeferir\b",r"\bindefere"])
+    ],
+    "rescisao":[
+        ("Há contrato ou instrumento a extinguir?",[r"\bcontrato\b",r"\binstrumento contratual\b"]),
+        ("A motivação da rescisão/extinção está registrada?",[r"\brescis",r"\bextinc",r"\bmotiva"]),
+        ("Houve notificação ou ciência da contratada?",[r"\bnotificacao\b",r"\bciencia\b"]),
+        ("Há manifestação ou defesa da contratada?",[r"\bdefesa\b",r"\bmanifestacao da contratada\b"]),
+        ("Há parecer jurídico?",[r"\bparecer juridico\b"]),
+        ("Há decisão de rescisão/extinção?",[r"decisao.{0,80}(?:rescis|extinc)",r"\bdecide.{0,120}(?:rescis|extinc)"])
+    ],
+    "disciplinar":[
+        ("Há portaria ou ato de instauração?",[r"\bportaria de instaur",r"\bato de instaur",r"\bprocesso administrativo disciplinar\b"]),
+        ("Há citação ou notificação do servidor?",[r"\bcitacao\b",r"\bnotificacao.{0,80}servidor\b"]),
+        ("Há instrução e produção de provas?",[r"\binstrucao\b",r"\bproducao de provas\b",r"\bdepoimento\b"]),
+        ("Há defesa administrativa?",[r"\bdefesa administrativa\b",r"\bdefesa escrita\b"]),
+        ("Há relatório da comissão?",[r"\brelatorio da comissao\b",r"\brelatorio conclusivo\b"]),
+        ("Há julgamento ou decisão?",[r"\bdecisao de julgamento\b",r"\bjulgamento\b",r"\bdecide\b"])
+    ],
+    "sindicancia":[
+        ("Há ato de instauração da sindicância?",[r"\bsindicancia administrativa\b",r"\bato de instauracao\b",r"\binstauracao da sindicancia\b"]),
+        ("O fato investigado está descrito?",[r"\bfato ocorrido\b",r"\bfato investigado\b",r"\bdescricao do fato\b",r"\bdescreve o fato\b"]),
+        ("Há diligências ou depoimentos?",[r"\bdiligencia\b",r"\bdepoimento\b"]),
+        ("Há documentos ou provas reunidas?",[r"\bprovas\b",r"\bdocumentos\b"]),
+        ("Há relatório conclusivo?",[r"\brelatorio conclusivo\b",r"\brelatorio final\b"]),
+        ("Há decisão ou encaminhamento?",[r"\bdecisao\b",r"\bencaminha\b",r"\barquivamento\b"])
+    ],
+    "lai":[
+        ("Há pedido/protocolo de acesso à informação?",[r"pedido.{0,80}acesso.{0,80}informacao",r"\bprotocolo\b"]),
+        ("O órgão responsável está identificado?",[r"\bouvidoria\b",r"\borgao responsavel\b",r"\bunidade responsavel\b"]),
+        ("Há controle de prazo de resposta?",[r"\bprazo\b",r"\bdata limite\b"]),
+        ("Há resposta ao requerente?",[r"\bresposta ao pedido\b",r"\borgao apresenta resposta\b"]),
+        ("Há recurso?",[r"\brecurso\b"]),
+        ("Há decisão do recurso ou resposta final?",[r"\bdecisao do recurso\b",r"\bdecide o recurso\b",r"\bresposta final\b"])
+    ],
+    "prestacao":[
+        ("Há convênio ou instrumento equivalente?",[r"\bconvenio\b",r"\btermo de fomento\b",r"\btermo de colaboracao\b"]),
+        ("Há plano de trabalho?",[r"\bplano de trabalho\b"]),
+        ("Há comprovação da execução do objeto?",[r"\bexecucao do objeto\b",r"\brelatorio de execucao\b"]),
+        ("Há prestação de contas e comprovantes?",[r"\bprestacao de contas\b",r"\bnotas fiscais\b",r"\bcomprovantes de pagamento\b"]),
+        ("Há análise técnica/financeira?",[r"\banalise tecnica\b",r"\banalise financeira\b"]),
+        ("Há decisão de aprovação/rejeição?",[r"\bdecisao de aprovacao\b",r"\baprovacao da prestacao\b",r"\brejeicao\b"])
+    ],
+    "licitacoes":[
+        ("Há edital ou aviso do certame?",[r"\bedital\b",r"\baviso de licitacao\b"]),
+        ("Há termo de referência?",[r"\btermo de referencia\b"]),
+        ("Há propostas e habilitação?",[r"\bpropostas\b",r"\bhabilitacao\b"]),
+        ("Há ata da sessão?",[r"\bata da sessao\b",r"\bsessao publica\b"]),
+        ("Há parecer jurídico?",[r"\bparecer juridico\b"]),
+        ("Há adjudicação e/ou homologação?",[r"\badjudic",r"\bhomolog"])
+    ],
+    "cobranca":[
+        ("A origem do débito está demonstrada?",[r"\borigem do debito\b",r"\bfato gerador do debito\b"]),
+        ("Há memória de cálculo?",[r"\bmemoria de calculo\b"]),
+        ("Houve notificação de cobrança?",[r"\bnotificacao de cobranca\b"]),
+        ("Há comprovação de ciência?",[r"\bcomprovante de ciencia\b",r"\bconfirmacao de ciencia\b"]),
+        ("Há manifestação do interessado?",[r"\bmanifestacao do interessado\b",r"\bcontesta\b"]),
+        ("Há decisão/providência sobre a cobrança?",[r"\bdecisao administrativa\b",r"\bmant[eé]m a cobranca\b",r"\bretificar parcialmente\b"])
+    ],
+    "servidores":[
+        ("Há requerimento do servidor?",[r"\brequerimento\b",r"\bservidor.{0,80}requer\b"]),
+        ("Há documentos funcionais?",[r"\bdocumentos funcionais\b",r"\bficha funcional\b",r"\bregistros de exercicio\b"]),
+        ("Há manifestação do RH?",[r"\brecursos humanos\b",r"\bsetor de rh\b"]),
+        ("Há parecer técnico/jurídico?",[r"\bparecer juridico\b",r"\bparecer tecnico\b"]),
+        ("Há ciência do interessado?",[r"\bciencia da interessada\b",r"\bciencia do interessado\b"]),
+        ("Há decisão sobre o requerimento?",[r"\bdecisao administrativa\b",r"\bdecide o requerimento\b"])
+    ],
+    "tributario":[
+        ("Há lançamento ou auto tributário?",[r"\blancamento tributario\b",r"\bauto\b.{0,80}\btribut"]),
+        ("Há ciência do contribuinte?",[r"\bciencia do contribuinte\b",r"\bcomprovante de ciencia\b"]),
+        ("Há impugnação?",[r"\bimpugnacao\b"]),
+        ("Há instrução e provas?",[r"\binstrucao e provas\b",r"\bprova documental\b",r"\bmemoria de calculo\b"]),
+        ("Há decisão de primeira instância?",[r"\bdecisao de primeira instancia\b",r"\bdecide a impugnacao\b"]),
+        ("Há recurso administrativo?",[r"\brecurso administrativo\b"])
+    ],
+    "geral":[
+        ("O processo/protocolo está identificado?",[r"\bprocesso administrativo\b",r"\bprotocolo\b"]),
+        ("Há pedido ou documento de origem?",[r"\bpedido\b",r"\brequerimento\b",r"\bdocumento de origem\b"]),
+        ("Há manifestação do interessado?",[r"\bmanifestacao\b",r"\binteressado\b"]),
+        ("Há análise técnica ou parecer?",[r"\banalise tecnica\b",r"\bparecer\b",r"\binformacao tecnica\b"]),
+        ("Há prazo/ciência registrado?",[r"\bprazo\b",r"\bciencia\b"]),
+        ("Há decisão ou encaminhamento?",[r"\bdecisao\b",r"\bdecide\b",r"\bencaminha\b"])
+    ]
+}
+
+def _module_pattern_hits(pages, patterns):
+    hits=[]
+    compiled=[re.compile(p,re.I) for p in patterns]
+    for p in pages:
+        z=norm(p.get("text") or "")
+        if any(rx.search(z) for rx in compiled):
+            hits.append(p["page"])
+    return sorted(set(hits))
+
+def _module_evidence_excerpt(pages, hit_pages, patterns):
+    compiled=[re.compile(p,re.I) for p in patterns]
+    for p in pages:
+        if p["page"] not in hit_pages:
+            continue
+        raw=re.sub(r"\s+"," ",p.get("text") or "").strip()
+        for sent in re.split(r"(?<=[.!?;:])\s+",raw):
+            z=norm(sent)
+            if any(rx.search(z) for rx in compiled) and len(sent)>=25:
+                return clip(sent,300)
+        return clip(raw,300)
+    return ""
+
+_old_module_overlay_v66 = _module_overlay
+def _module_overlay(pages,a,module):
+    module=module if module in MODULES else "geral"
+    if module=="penalizacao":
+        a=_old_module_overlay_v66(pages,a,module)
+        a["module_matrix"]=[
+            {"question":"Há contrato ou instrumento equivalente?","answer":"Sim" if a.get("has",{}).get("contrato") else "Não identificado","ok":bool(a.get("has",{}).get("contrato")),"pages":_pages_for_type(a,"contrato")},
+            {"question":"Houve notificação/intimação?","answer":"Sim" if (a.get("has",{}).get("notificacao") or a.get("has",{}).get("intimacao")) else "Não identificado","ok":bool(a.get("has",{}).get("notificacao") or a.get("has",{}).get("intimacao")),"pages":sorted(set(_pages_for_type(a,"notificacao")+_pages_for_type(a,"intimacao")))},
+            {"question":"Há defesa administrativa?","answer":"Sim" if a.get("has",{}).get("defesa") else "Não identificado","ok":bool(a.get("has",{}).get("defesa")),"pages":_pages_for_type(a,"defesa")},
+            {"question":"Há decisão?","answer":"Sim" if a.get("has",{}).get("decisao") else "Não identificado","ok":bool(a.get("has",{}).get("decisao")),"pages":_pages_for_type(a,"decisao")},
+            {"question":"Quantidade total?","answer":str(a.get("quantity",{}).get("value","Não identificada com segurança")),"ok":"nao identificado" not in norm(str(a.get("quantity",{}).get("value",""))),"pages":[a.get("quantity",{}).get("source",{}).get("page")] if a.get("quantity",{}).get("source") else []}
+        ]
+        return a
+
+    info=MODULES[module]
+    rules=MODULE_AUDIT.get(module,MODULE_AUDIT["geral"])
+    matrix=[]; timeline=[]; evidence=[]
+    for question,patterns in rules:
+        pgs=_module_pattern_hits(pages,patterns)
+        label=question
+        if label.startswith("Há "): label=label[3:]
+        elif label.startswith("Houve "): label=label[6:]
+        elif label.startswith("O "): label=label[2:]
+        elif label.startswith("A "): label=label[2:]
+        label=label.rstrip("?")
+        ex=_module_evidence_excerpt(pages,pgs,patterns) if pgs else ""
+        row={"question":question,"answer":"Localizado" if pgs else "Não identificado","ok":bool(pgs),"pages":pgs[:8],"label":label,"excerpt":ex}
+        matrix.append(row)
+        if pgs:
+            timeline.append({"label":label,"pages":pgs[:4]})
+            evidence.append({"label":label,"page":pgs[0],"text":ex})
+
+    a["module_key"]=module
+    a["module_label"]=info["label"]
+    a["module_desc"]=info["desc"]
+    a["module_matrix"]=matrix
+    a["module_timeline"]=timeline
+    a["module_evidence"]=evidence
+    a["process_checklist"]=[{"label":x["label"],"ok":x["ok"],"pages":x["pages"]} for x in matrix]
+    a["module_summary"]=[
+        {"label":x["label"],"ok":x["ok"],"value":"Localizado" if x["ok"] else "Conferir"}
+        for x in matrix[:4]
+    ]
+
+    missing=[x for x in matrix if not x["ok"]]
+    present=[x for x in matrix if x["ok"]]
+    a["review_flags"]=[{"level":"media","text":"Não identificado com segurança: "+x["label"]+"."} for x in missing[:5]]
+    if missing:
+        a["next_action"]={
+            "stage":"Instrução do módulo "+info["short"],
+            "action":"Conferir ou localizar: "+missing[0]["label"]+".",
+            "why":"Foram localizados "+str(len(present))+" de "+str(len(matrix))+" controles essenciais previstos para este tipo de processo."
+        }
+    else:
+        a["next_action"]={
+            "stage":"Controles essenciais localizados",
+            "action":"Revisar a coerência entre os documentos, os fatos e a conclusão/encaminhamento antes de finalizar o processo.",
+            "why":"Todos os controles básicos do módulo "+info["short"]+" foram localizados automaticamente."
+        }
+
+    a["traceability"]=[
+        {"claim":x["label"],"status":"Evidência localizada","source":pages[x["page"]-1]["file"] if x["page"] and x["page"]<=len(pages) else "Processo","pages":[x["page"]]}
+        for x in evidence
+    ]
+    a["metrics"]["checklist_ok"]=len(present)
+    a["metrics"]["checklist_total"]=len(matrix)
+    a["metrics"]["pieces"]=len(present)
+    a["conclusion"]="Modo "+info["label"]+": foram localizados "+str(len(present))+" de "+str(len(matrix))+" controles essenciais. A análise abaixo utiliza somente critérios próprios deste módulo."
+    return a
+
+def _module_process_number(pages,module):
+    joined="\n".join(p.get("text") or "" for p in pages)
+    pats={
+        "sindicancia":[r"Sindic[aâ]ncia Administrativa\s*n[ºo.]?\s*([0-9.\-\/]+)"],
+        "disciplinar":[r"Processo Administrativo Disciplinar\s*n[ºo.]?\s*([0-9.\-\/]+)"],
+        "tributario":[r"Processo Tribut[aá]rio\s*n[ºo.]?\s*([0-9.\-\/]+)"],
+        "fiscalizacao":[r"Processo de Fiscaliza[cç][aã]o Contratual\s*n[ºo.]?\s*([0-9.\-\/]+)"],
+        "reequilibrio":[r"Processo de Reequil[ií]brio\s*n[ºo.]?\s*([0-9.\-\/]+)"],
+        "rescisao":[r"Processo de Extin[cç][aã]o Contratual\s*n[ºo.]?\s*([0-9.\-\/]+)"],
+        "cobranca":[r"Processo de Cobran[cç]a Administrativa\s*n[ºo.]?\s*([0-9.\-\/]+)"],
+        "servidores":[r"Processo Funcional\s*n[ºo.]?\s*([0-9.\-\/]+)"],
+        "prestacao":[r"Processo de Presta[cç][aã]o de Contas\s*n[ºo.]?\s*([0-9.\-\/]+)"],
+        "licitacoes":[r"Processo Licitat[oó]rio\s*n[ºo.]?\s*([0-9.\-\/]+)"],
+        "lai":[r"Pedido de Acesso [àa] Informa[cç][aã]o\s*n[ºo.]?\s*([0-9.\-\/]+)"],
+        "geral":[r"Processo Administrativo\s*n[ºo.]?\s*([0-9.\-\/]+)"]
+    }
+    return _first_match(joined,pats.get(module,[r"Processo\s*n[ºo.]?\s*([0-9.\-\/]+)"]),default="[NÚMERO DO PROCESSO — CONFERIR]")
+
+_old_generic_document_draft_v66 = _generic_document_draft
+def _generic_document_draft(item,kind):
+    module=item.get("module","penalizacao")
+    if module=="penalizacao":
+        return _old_generic_document_draft_v66(item,kind)
+
+    pages=item["pages"]
+    a=_module_overlay(pages,analyze_pages(pages),module)
+    info=MODULES.get(module,MODULES["geral"])
+    proc=_module_process_number(pages,module)
+    ev=a.get("module_evidence",[])
+    fact_text=" ".join(x["text"] for x in ev[:4] if x.get("text")) or "[SÍNTESE DOS ELEMENTOS LOCALIZADOS — CONFERIR AUTOS]"
+    missing=[x["label"] for x in a.get("module_matrix",[]) if not x["ok"]]
+
+    titles={
+        "despacho":"MINUTA — DESPACHO",
+        "notificacao":"MINUTA — NOTIFICAÇÃO",
+        "intimacao":"MINUTA — INTIMAÇÃO",
+        "diligencia":"MINUTA — DESPACHO DE DILIGÊNCIA",
+        "relatorio":"MINUTA — RELATÓRIO CONCLUSIVO",
+        "decisao":"MINUTA — DECISÃO ADMINISTRATIVA"
+    }
+    if kind not in titles:
+        raise HTTPException(400,"Tipo de minuta não suportado.")
+
+    lines=[
+        titles[kind],"",
+        "Módulo: "+info["label"],
+        "Processo: nº "+proc,""
+    ]
+    if kind=="diligencia":
+        lines += [
+            "Considerando os elementos constantes dos autos e a necessidade de completar a instrução, determino a realização das seguintes diligências:","",
+            "1. "+(missing[0] if missing else "[INDICAR DILIGÊNCIA NECESSÁRIA]")+";",
+            "2. [INDICAR RESPONSÁVEL/UNIDADE];",
+            "3. [INDICAR PRAZO E FORMA DE CUMPRIMENTO].","",
+            "Elementos já localizados: "+fact_text
+        ]
+    elif kind=="relatorio":
+        lines += [
+            "I — SÍNTESE DO PROCESSO","",fact_text,"",
+            "II — CONTROLES DO MÓDULO",""
+        ]
+        for row in a.get("module_matrix",[]):
+            lines.append("- "+row["label"]+": "+("localizado" if row["ok"] else "não identificado com segurança"))
+        lines += ["","III — ANÁLISE","[CONFRONTAR OS DOCUMENTOS, AS MANIFESTAÇÕES E AS PROVAS PERTINENTES AO MÓDULO.]","",
+                  "IV — CONCLUSÃO","[INSERIR CONCLUSÃO APÓS REVISÃO HUMANA INTEGRAL DOS AUTOS]."]
+    elif kind=="decisao":
+        lines += [
+            "Vistos e examinados os autos.","",
+            "Considero os seguintes elementos extraídos para conferência: "+fact_text,"",
+            "DECIDO:","[A AUTORIDADE COMPETENTE DEVERÁ PREENCHER A CONCLUSÃO E AS PROVIDÊNCIAS APÓS REVISÃO INTEGRAL DOS AUTOS]."
+        ]
+    elif kind=="notificacao":
+        lines += [
+            "Fica o interessado NOTIFICADO acerca dos fatos e documentos relacionados ao processo acima indicado.","",
+            "Síntese para conferência: "+fact_text,"",
+            "[INDICAR OBJETO DA NOTIFICAÇÃO, PRAZO, CANAL DE RESPOSTA E FUNDAMENTO APLICÁVEL]."
+        ]
+    elif kind=="intimacao":
+        lines += [
+            "Fica o interessado INTIMADO para manifestação no processo acima indicado.","",
+            "Síntese para conferência: "+fact_text,"",
+            "[INDICAR PRAZO, OBJETO DA MANIFESTAÇÃO E CANAL OFICIAL]."
+        ]
+    else:
+        lines += [
+            "Considerando os documentos e elementos constantes dos autos: "+fact_text,"",
+            "DETERMINO:","[INSERIR PROVIDÊNCIA ADMINISTRATIVA COMPATÍVEL COM O MÓDULO "+info["label"].upper()+", APÓS REVISÃO HUMANA]."
+        ]
+
+    lines += ["","[LOCAL], [DATA].","","[RESPONSÁVEL/AUTORIDADE]","",
+              "MINUTA ASSISTIDA — REVISÃO HUMANA OBRIGATÓRIA."]
+    return {"draft":"\n".join(lines),"sources":["Módulo "+info["label"]+" · "+str(len(pages))+" página(s) analisadas"]}
+
+# UI: substitui visualmente as seções genéricas por conteúdo do módulo escolhido.
+_module_result_js = r"""
+function acharSectionPorTitulo(titulo){
+  var sections=document.querySelectorAll("#result .section");
+  for(var i=0;i<sections.length;i++){
+    var h2=sections[i].querySelector("h2");
+    if(h2 && h2.textContent.trim()===titulo)return sections[i];
+  }
+  return null;
+}
+function ajustarResultadoModulo(a){
+  if(!a||a.module_key==="penalizacao")return;
+
+  var timeline=acharSectionPorTitulo("Linha do tempo do processo");
+  if(timeline){
+    var html='<div class="kicker">Cronologia do módulo</div><h2>Linha do tempo do processo</h2>';
+    if(a.module_timeline&&a.module_timeline.length){
+      html+='<div class="timeline">';
+      for(var i=0;i<a.module_timeline.length;i++){
+        var t=a.module_timeline[i];
+        html+='<div class="timeline-step"><div class="tp">p. '+esc((t.pages||[]).join(", "))+'</div><b>'+esc(t.label)+'</b></div>';
+      }
+      html+='</div>';
+    }else html+='<div class="empty">Nenhum marco específico deste módulo foi localizado com segurança.</div>';
+    timeline.innerHTML=html;
+  }
+
+  var matrix=acharSectionPorTitulo("Matriz de evidências");
+  if(matrix){
+    var mh='<div class="kicker">Auditabilidade · '+esc(a.module_label)+'</div><h2>Matriz de evidências do módulo</h2><table class="matrix"><thead><tr><th>Questão</th><th>Resposta</th><th>Fonte</th><th>Status</th></tr></thead><tbody>';
+    for(var j=0;j<(a.module_matrix||[]).length;j++){
+      var r=a.module_matrix[j],src=(r.pages&&r.pages.length)?("p. "+r.pages.join(", ")):"—";
+      mh+='<tr><td>'+esc(r.question)+'</td><td>'+esc(r.answer)+'</td><td>'+esc(src)+'</td><td class="'+(r.ok?'matrix-ok':'matrix-limit')+'">'+(r.ok?'Confirmado':'Conferir')+'</td></tr>';
+    }
+    mh+='</tbody></table>';
+    matrix.innerHTML=mh;
+  }
+
+  var structure=acharSectionPorTitulo("Estrutura do processo");
+  if(structure){
+    var sh='<div class="kicker">Elementos essenciais · '+esc(a.module_label)+'</div><h2>Estrutura esperada do processo</h2><div class="piece-grid">';
+    for(var k=0;k<(a.module_matrix||[]).length;k++){
+      var m=a.module_matrix[k];
+      sh+='<article class="piece"><div class="piece-top"><div class="piece-icon">'+(m.ok?'✓':'!')+'</div><div class="piece-name">'+esc(m.label)+'</div>'+(m.pages&&m.pages.length?pageChip(m.pages.join(", ")):"")+'</div><div class="source">'+(m.ok?'Evidência localizada':'Conferência necessária')+'</div></article>';
+    }
+    sh+='</div>';
+    structure.innerHTML=sh;
+  }
+
+  var manifests=acharSectionPorTitulo("Elementos apresentados pelo interessado");
+  if(manifests){
+    manifests.querySelector(".kicker").textContent="Evidências do módulo";
+    manifests.querySelector("h2").textContent="Elementos localizados nos autos";
+    var head=manifests.querySelector(".kicker").outerHTML+manifests.querySelector("h2").outerHTML;
+    var body="";
+    if(!a.module_evidence||!a.module_evidence.length)body='<div class="empty">Nenhuma evidência específica do módulo foi localizada.</div>';
+    else{
+      for(var e=0;e<a.module_evidence.length;e++){
+        var ev=a.module_evidence[e];
+        body+='<div class="finding"><div class="finding-num">'+(e+1)+'</div><div><div class="finding-text"><b>'+esc(ev.label)+':</b> '+esc(ev.text||"Evidência localizada.")+'</div><div class="finding-foot">'+pageChip(ev.page)+'</div></div></div>';
+      }
+    }
+    manifests.innerHTML=head+body;
+  }
+
+  var confront=acharSectionPorTitulo("Pontos a confrontar");
+  if(confront){
+    confront.querySelector(".kicker").textContent="Conferência do módulo";
+    confront.querySelector("h2").textContent="Pontos para conferência";
+    var ch=confront.querySelector(".kicker").outerHTML+confront.querySelector("h2").outerHTML;
+    var missing=(a.module_matrix||[]).filter(function(x){return !x.ok});
+    if(!missing.length)ch+='<div class="empty">Todos os controles essenciais deste módulo foram localizados. Faça a revisão de coerência antes da conclusão.</div>';
+    else for(var q=0;q<missing.length;q++)ch+='<div class="warning">Conferir: '+esc(missing[q].label)+'</div>';
+    confront.innerHTML=ch;
+  }
+
+  var review=acharSectionPorTitulo("Pontos antes da assinatura");
+  if(review){
+    var kic=review.querySelector(".kicker");if(kic)kic.textContent="Revisão do processo";
+    var h=review.querySelector("h2");if(h)h.textContent="Pontos antes da conclusão";
+  }
+}
+"""
+HTML=HTML.replace("</script>",_module_result_js+"\n</script>",1)
+
+# Chama a adaptação logo após renderizar a análise.
+HTML=HTML.replace(
+    'document.getElementById("result").innerHTML=h;\n  document.getElementById("result").scrollIntoView({behavior:"smooth",block:"start"});',
+    'document.getElementById("result").innerHTML=h;\n  ajustarResultadoModulo(a);\n  document.getElementById("result").scrollIntoView({behavior:"smooth",block:"start"});',
+    1
+)
+
+HTML=HTML.replace("VERSÃO 6.5 · TELAS INTERNAS","VERSÃO 6.6 · MÓDULOS ESPECIALIZADOS")
