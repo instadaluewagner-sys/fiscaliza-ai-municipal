@@ -176,9 +176,28 @@ def _collect_cnpj_candidates(documents: list[Document], company: str | None):
             for m in rx.finditer(text):
                 value = _format_cnpj(m.group(1))
                 key = re.sub(r"\D", "", value)
+                before = text[max(0,m.start()-240):m.start()]
                 context = text[max(0,m.start()-320):min(len(text),m.end()+220)]
                 z = norm(context)
-                paired = bool(company_tokens) and any(norm(token) in z for token in company_tokens)
+                z_before = norm(before)
+
+                company_positions = [
+                    z_before.rfind(norm(token))
+                    for token in company_tokens
+                    if norm(token) in z_before
+                ]
+                company_pos = max(company_positions) if company_positions else -1
+                government_positions = [
+                    z_before.rfind(marker)
+                    for marker in ["municipio", "prefeitura", "contratante", "procuradoria"]
+                    if marker in z_before
+                ]
+                government_pos = max(government_positions) if government_positions else -1
+
+                # O CNPJ é associado ao fornecedor quando o nome do fornecedor é
+                # a entidade mais próxima ANTES do número. Isso evita atribuir ao
+                # contratado o CNPJ do Município em contratos com as duas partes.
+                paired = company_pos >= 0 and company_pos > government_pos
                 explicit_supplier = paired and any(
                     marker in z
                     for marker in [
@@ -901,7 +920,7 @@ def build_evidence(documents: list[Document], stage: StageResult | None = None):
         ("relatorio_tecnico","parecer_tecnico","oficio","notificacao","decisao"),
         [
             r"n[aã]o\s+(?:houve|ocorreu)\s+(?:a\s+)?entrega",
-            r"n[aã]o\s+(?:realizou|realizaram|efetuou|efetuaram)\s+(?:a[s]?\s+)?entrega",
+            r"n[aã]o\s+(?:realizou|realizaram|efetuou|efetuaram)\s+(?:(?:a[s]?|nenhuma|qualquer)\s+)?entrega",
             r"n[aã]o\s+entreg(?:ou|aram)",
             r"aus[eê]ncia\s+de\s+entrega",
             r"inexecu[cç][aã]o(?:\s+total|\s+parcial)?",
