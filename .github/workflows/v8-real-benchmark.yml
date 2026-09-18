@@ -36,7 +36,7 @@ jobs:
           PYTHONPATH=. python v8/benchmarks/runner.py \
             .benchmark-data/asseste.pdf \
             v8/benchmarks/francisco-beltrao-asseste-15566-2025.json \
-            | tee .benchmark-data/result.json
+            --output .benchmark-data/result.json
 
       - name: Benchmark summary
         run: |
@@ -53,6 +53,9 @@ jobs:
               f.write(f"- Recall documental: **{(d['document_recall'] or 0)*100:.1f}%**\n")
               f.write(f"- Precisão documental: **{(d['document_precision'] or 0)*100:.1f}%**\n")
               f.write(f"- Falsos positivos: **{d['false_positive_count']}**\n")
+              f.write(f"- IoU médio das fronteiras: **{(d['boundary_mean_iou'] or 0)*100:.1f}%**\n")
+              f.write(f"- Fronteiras exatas: **{d['exact_boundary_count']}/{d['expected_document_total']}**\n")
+              f.write(f"- Alertas de integridade: **{len(d.get('integrity_warnings', []))}**\n")
               f.write(f"- Estágio esperado: {d['expected_stage']}\n")
               f.write(f"- Estágio detectado: {d['actual_stage']}\n")
               f.write(f"- Estágio correto: **{'sim' if d['stage_match'] else 'não'}**\n")
