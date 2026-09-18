@@ -51,9 +51,32 @@ def test_atos_do_processo_de_origem_nao_preenchem_fases_do_futuro_pas():
 
     rows={x.key:x for x in result.checklist}
     assert rows["autorizacao_pas"].status=="located"
-    assert rows["notificacao"].status=="not_found"
+    assert rows["notificacao"].status=="not_applicable"
     assert rows["defesa"].status=="not_applicable"
     assert rows["decisao"].status=="not_applicable"
 
     facts=[x.fact for x in result.evidence]
     assert any("processo de origem" in x.lower() for x in facts)
+
+
+def test_pendencias_nao_contam_itens_nao_aplicaveis():
+    docs=[
+        doc(1,"decisao","DESPACHO Nº 693/2025. AUTORIZO A ABERTURA DE PROCESSO ADMINISTRATIVO SANCIONADOR para apuração das penalidades cabíveis.",1)
+    ]
+    result=analyze_penalizacao(docs)
+    assert result.stage.key=="instauracao_sancionadora_autorizada"
+    assert all(x.key not in {"notificacao","defesa","relatorio_conclusivo","decisao","recurso"} for x in result.pending_items)
+    assert any(x.kind=="next_step" for x in result.pending_items)
+
+
+def test_relatorio_ausente_vira_pendencia_real_quando_instrucao_pos_defesa():
+    docs=[
+        doc(1,"notificacao","NOTIFICAÇÃO DE INSTAURAÇÃO DO PROCESSO ADMINISTRATIVO DE PENALIZAÇÃO.",1),
+        doc(2,"defesa","DEFESA ADMINISTRATIVA. A empresa apresenta suas razões.",2),
+        doc(3,"parecer_juridico","PARECER JURÍDICO. Análise posterior à defesa.",3),
+    ]
+    result=analyze_penalizacao(docs)
+    assert result.stage.key=="instrucao_pos_defesa"
+    pending={x.key:x for x in result.pending_items}
+    assert pending["relatorio_conclusivo"].kind=="missing"
+    assert pending["relatorio_conclusivo"].severity=="high"
