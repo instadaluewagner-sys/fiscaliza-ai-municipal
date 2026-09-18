@@ -323,3 +323,20 @@ CNPJ: 82.253.642/0001-67
     p=analyze_penalizacao(segment_documents(pages)).profile
     assert p.cnpj=="82.253.642/0001-67"
     assert "77.816.510/0001-66" not in p.conflicts.get("cnpj",[])
+
+
+def test_perfil_reconhece_numero_de_processo_administrativo_sancionador():
+    pages=[
+        page(1, """
+DECISÃO ADMINISTRATIVA
+Processo Administrativo Sancionador nº 07/2025
+Interessada: CLEVER FERREIRA COSTA – CNPJ 28.259.514/0001-85
+DECIDO: Aplicar à empresa as penalidades cabíveis.
+""")
+    ]
+    p=analyze_penalizacao(segment_documents(pages)).profile
+    assert p.process_number=="07/2025"
+    assert p.origin_process is None
+    assert p.company=="CLEVER FERREIRA COSTA"
+    assert p.cnpj=="28.259.514/0001-85"
+    assert p.sources["process_number"].page==1
