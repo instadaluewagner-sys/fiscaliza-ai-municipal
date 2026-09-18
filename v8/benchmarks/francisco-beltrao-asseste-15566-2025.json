@@ -82,15 +82,18 @@
   ],
   "critical_facts": [
     {
+      "key": "non_delivery",
       "fact": "não houve entrega do objeto",
       "support_page": 35
     },
     {
+      "key": "defense_deadline",
       "fact": "a empresa foi intimada a apresentar defesa em 5 dias úteis",
       "support_page": 50
     },
     {
-      "fact": "a decisão final deste PDF não aplica sanção; autoriza a abertura de processo sancionador separado",
+      "key": "origin_pas_authorization",
+      "fact": "a decisão do processo de origem autoriza abertura de processo administrativo sancionador separado",
       "support_page": 60
     }
   ],
@@ -107,5 +110,10 @@
     "pregao": "90025/2025",
     "contrato": "308/2025",
     "quantity": null
+  },
+  "profile_conflicts": {
+    "cnpj": [
+      "82.253.642/0001-57"
+    ]
   }
 }
