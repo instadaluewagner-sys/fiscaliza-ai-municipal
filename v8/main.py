@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from v8.modules.penalizacao import analyze_penalizacao
 from v8.services.document_segmenter import segment_documents
+from v8.services.drafts import generate_draft
 from v8.services.pdf_reader import extract_pages
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -152,6 +153,16 @@ def read_document(analysis_id: str, document_id: str):
             else None
         ),
     }
+
+
+@app.get("/api/v8/draft/{analysis_id}")
+def read_stage_draft(analysis_id: str, kind: str | None = None):
+    item = get_session(analysis_id)
+    try:
+        draft = generate_draft(item["analysis"], kind)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return draft.model_dump()
 
 
 @app.delete("/api/v8/analysis/{analysis_id}")
