@@ -23,7 +23,7 @@ Para: Envolvidos internos acompanhando
 Data: 09/09/2025 às 16:46:29
 PARECER TÉCNICO – ANÁLISE DO PEDIDO DE REEQUILÍBRIO ECONÔMICO-FINANCEIRO
 Contrato n.º 308/2025 – Pregão Eletrônico n.º 90025/2025 Empresa: ASSESTE COMÉRCIO DE EXTINTORES LTDA
-A empresa não realizou as entregas.
+Além disso, é relevante observar que, até o presente momento, a empresa ASSESTE não realizou nenhuma entrega referente aos itens contratados.
 """),
         p(36, """
 1Doc: Protocolo 7- 15.566/2025 36/67
@@ -124,3 +124,8 @@ de eventuais responsabilidades, assegurando-se o contraditório e a ampla defesa
 
     facts=[e.fact.lower() for e in result.evidence]
     assert any("processo de origem" in fact for fact in facts)
+
+    by_key={e.key:e for e in result.evidence}
+    assert "non_delivery" in by_key
+    assert by_key["non_delivery"].page==34
+    assert "nenhuma entrega" in by_key["non_delivery"].excerpt.lower()
