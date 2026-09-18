@@ -118,6 +118,17 @@ async function deleteCurrentAnalysis(resetUi=true){
   }
 }
 
+function downloadAuditReport(format){
+  if(!currentAnalysisId)return;
+  const ext=format==="json"?"json":"pdf";
+  const a=document.createElement("a");
+  a.href="/api/v8/report/"+encodeURIComponent(currentAnalysisId)+"."+ext;
+  a.download="";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 async function openDocument(documentId,page){
   if(!currentAnalysisId)return;
   try{
@@ -248,7 +259,7 @@ function renderAnalysis(a,meta){
   out.innerHTML=
     '<div class="summary-head"><div><small>Análise V8</small><h2>'+profileValue(p.process_number||p.origin_process)+'</h2>'+
     '<div class="process-meta"><span class="chip">'+esc(meta.pages||0)+' páginas</span><span class="chip">'+esc(docs.length)+' peças segmentadas</span><span class="chip">'+esc(meta.ocr_pages||0)+' OCR</span></div></div>'+
-    '<div class="summary-actions"><span class="stage-badge">'+esc(stage.label||"Estágio não definido")+'</span><button class="session-end" onclick="deleteCurrentAnalysis(true)">Encerrar sessão</button></div></div>'+
+    '<div class="summary-actions"><span class="stage-badge">'+esc(stage.label||"Estágio não definido")+'</span><div class="summary-buttons"><button class="secondary-btn" onclick="downloadAuditReport(\'pdf\')">Relatório PDF</button><button class="secondary-btn" onclick="downloadAuditReport(\'json\')">Exportar JSON</button><button class="session-end" onclick="deleteCurrentAnalysis(true)">Encerrar sessão</button></div></div></div>'+
     qualityHtml+
     '<div class="stage-card"><small>Leitura processual</small><strong>'+esc(stage.rationale||"")+'</strong><p>'+esc(stage.next_action||"")+'</p>'+
     '<div class="stage-sources"><b>Base documental da fase</b><div>'+stageSourcesHtml(stage)+'</div></div>'+
