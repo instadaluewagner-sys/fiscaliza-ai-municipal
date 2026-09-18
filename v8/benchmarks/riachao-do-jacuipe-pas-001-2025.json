@@ -15,14 +15,13 @@
     {
       "type": "decisao",
       "title": "DECISÃO ADMINISTRATIVA",
-      "page_start": 1,
+      "page_start": 2,
       "page_end": 3,
       "content_pages": [
-        1,
         2,
         3
       ],
-      "notes": "Publicação oficial de três páginas; a capa inicia a decisão, o comando decisório está na página 2 e a ciência/prazo continua na página 3."
+      "notes": "A página 1 é a capa do Diário Oficial; a peça decisória autônoma começa na página 2 e continua na página 3."
     }
   ],
   "critical_facts": [
