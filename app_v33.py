@@ -1108,3 +1108,193 @@ if _anchor in HTML:
     HTML = HTML.replace(_anchor, _insert, 1)
 
 HTML = HTML.replace("VERSÃO 3.6 · DEMONSTRAÇÃO GUIADA","VERSÃO 3.7 · DEMONSTRAÇÃO AUDITÁVEL")
+
+
+# --- Gerador de minuta de notificação v3.8 ---
+class NotificationReq(BaseModel):
+    analysis_id: str
+
+def _first_match(text, patterns, default="[NÃO IDENTIFICADO AUTOMATICAMENTE]"):
+    for pat in patterns:
+        m = re.search(pat, text, flags=re.I)
+        if m:
+            return re.sub(r"\s+"," ",m.group(1)).strip(" .;:-")
+    return default
+
+def _metadata_from_pages(pages):
+    text = "\n".join(p["text"] or "" for p in pages)
+    process_no = _first_match(text, [
+        r"Processo Administrativo(?: de Penaliza[cç][aã]o)?\s*(?:n[ºo.]?|número)?\s*[:\-]?\s*([0-9][0-9.\-\/]+)",
+        r"Processo\s*(?:n[ºo.]?|número)?\s*[:\-]?\s*([0-9][0-9.\-\/]+)"
+    ])
+    ata = _first_match(text, [
+        r"Ata de Registro de Pre[cç]os\s*(?:n[ºo.]?|número)?\s*[:\-]?\s*([0-9][0-9.\-\/]+)"
+    ])
+    pregao = _first_match(text, [
+        r"Preg[aã]o Eletr[oô]nico\s*(?:n[ºo.]?|número)?\s*[:\-]?\s*([0-9][0-9.\-\/]+)"
+    ])
+    empenho = _first_match(text, [
+        r"Nota de Empenho(?: Ordin[aá]rio)?\s*(?:n[ºo.]?|número)?\s*[:\-]?\s*([0-9][0-9.\-\/]+)"
+    ])
+    cnpj = _first_match(text, [
+        r"CNPJ\s*(?:sob\s*o\s*)?(?:n[ºo.]?)?\s*[:\-]?\s*([0-9]{2}\.?[0-9]{3}\.?[0-9]{3}\/?[0-9]{4}-?[0-9]{2})"
+    ])
+    company = _first_match(text, [
+        r"(?:EMPRESA|Empresa|CONTRATADA|Contratada)\s*[:\-]\s*([^\n]{4,150})",
+        r"empresa\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9][^\n,;]{4,120}(?:LTDA|S\.?A\.?|EIRELI|ME|EPP))"
+    ])
+    return {"processo":process_no,"ata":ata,"pregao":pregao,"empenho":empenho,"empresa":company,"cnpj":cnpj}
+
+def _legal_refs(pages):
+    refs=[]
+    patterns=[
+        r"(Lei(?: Federal)?\s*n[ºo.]?\s*[\d.\/-]+[^.\n]{0,180}(?:art\.?|artigo)\s*\d+[^.\n]{0,120})",
+        r"(Decreto(?: Municipal)?\s*n[ºo.]?\s*[\d.\/-]+[^.\n]{0,180}(?:art\.?|artigo)\s*\d+[^.\n]{0,120})",
+        r"((?:art\.?|artigo)\s*\d+[^.\n]{0,120}Lei(?: Federal)?\s*n[ºo.]?\s*[\d.\/-]+)"
+    ]
+    for p in pages:
+        raw=re.sub(r"\s+"," ",p["text"] or "")
+        for pat in patterns:
+            for m in re.finditer(pat, raw, flags=re.I):
+                val=clip(m.group(1),260)
+                key=norm(val)
+                if key and all(norm(x["text"])!=key for x in refs):
+                    refs.append({"page":p["page"],"text":val})
+                    if len(refs)>=6:return refs
+    return refs
+
+def _draft_notification(item):
+    pages=item["pages"]; a=item["analysis"]; md=_metadata_from_pages(pages)
+    facts=[{"page":s["page"],"text":clip(s["text"],420)} for s in (a.get("contra") or [])[:5]]
+    if not facts:
+        for p in pages[:6]:
+            txt=clip(p["text"],360)
+            if txt:facts.append({"page":p["page"],"text":txt})
+            if len(facts)>=4:break
+    defenses=[{"page":s["page"],"text":clip(s["text"],420)} for s in (a.get("defense") or [])[:4]]
+    legal=_legal_refs(pages)
+
+    header=[
+        "MINUTA — NOTIFICAÇÃO DE INSTAURAÇÃO DE PROCESSO ADMINISTRATIVO DE PENALIZAÇÃO","",
+        "Processo Administrativo de Penalização: nº "+md["processo"],
+        "Ata de Registro de Preços: nº "+md["ata"],
+        "Pregão Eletrônico: nº "+md["pregao"],
+        "Nota de Empenho: nº "+md["empenho"],
+        "Empresa: "+md["empresa"],
+        "CNPJ: "+md["cnpj"],"",
+        "Assunto: Notificação de instauração de Processo Administrativo de Penalização e abertura de prazo para apresentação de defesa.",""
+    ]
+    body=[
+        "[ÓRGÃO/ENTIDADE], por intermédio de [COMISSÃO/UNIDADE COMPETENTE], no uso das atribuições previstas em [NORMA DE COMPETÊNCIA], NOTIFICA E INTIMA a empresa "+md["empresa"]+", inscrita no CNPJ sob o nº "+md["cnpj"]+", acerca da instauração do Processo Administrativo de Penalização nº "+md["processo"]+", destinado à apuração dos fatos descritos nesta minuta.","",
+        "A presente notificação possui caráter processual e não representa imputação definitiva de responsabilidade ou aplicação antecipada de penalidade. Sua finalidade é dar ciência dos fatos apurados e assegurar o exercício do contraditório e da ampla defesa.","",
+        "1. DOS FATOS APURADOS",""
+    ]
+    if facts:
+        for i,x in enumerate(facts,1): body.append(str(i)+". "+x["text"])
+    else: body.append("[INSERIR SÍNTESE OBJETIVA DOS FATOS APURADOS]")
+    body += ["","2. DOS ELEMENTOS APRESENTADOS PELA EMPRESA",""]
+    if defenses:
+        for i,x in enumerate(defenses,1): body.append(str(i)+". "+x["text"])
+    else: body.append("Até o momento, não foram identificados automaticamente elementos de defesa suficientes para síntese. Conferir os autos.")
+    body += ["","3. DO ENQUADRAMENTO JURÍDICO PRELIMINAR",""]
+    if legal:
+        for i,x in enumerate(legal,1): body.append(str(i)+". "+x["text"])
+    else: body.append("[INSERIR E CONFERIR FUNDAMENTAÇÃO LEGAL E REGULAMENTAR APLICÁVEL]")
+    body += [
+        "",
+        "O enquadramento jurídico indicado nesta minuta é preliminar e deverá ser conferido pela autoridade competente. Poderá ser mantido, alterado ou afastado após a análise da defesa e das provas produzidas durante a instrução, não representando decisão antecipada quanto à responsabilidade da empresa.","",
+        "4. DO CONTRADITÓRIO, DA AMPLA DEFESA E DAS PROVAS","",
+        "Fica a empresa NOTIFICADA E INTIMADA para apresentar defesa escrita e especificar as provas que pretenda produzir no prazo de [PRAZO EM DIAS ÚTEIS], contado na forma prevista em [NORMA APLICÁVEL].","",
+        "A empresa poderá apresentar os documentos, esclarecimentos e provas que entender pertinentes à elucidação dos fatos, especialmente aqueles relacionados ao cumprimento da obrigação, às justificativas apresentadas e às circunstâncias que possam ter impedido ou dificultado a execução contratual.","",
+        "A defesa e os respectivos documentos deverão ser encaminhados para [CANAL/ENDEREÇO ELETRÔNICO OFICIAL].","",
+        "No campo destinado ao assunto deverá constar: DEFESA – PROCESSO ADMINISTRATIVO Nº "+md["processo"]+" – "+md["empresa"]+".","",
+        "5. DISPOSIÇÕES FINAIS","",
+        "A ausência de apresentação de defesa no prazo concedido implicará o regular prosseguimento do processo, observadas as consequências previstas na legislação e na regulamentação aplicáveis.","",
+        "Concluída a instrução, os autos seguirão para relatório e julgamento pela autoridade competente, mediante decisão motivada.","",
+        "[MUNICÍPIO/UF], [DATA].","","[NOME DA AUTORIDADE/RESPONSÁVEL]","[CARGO/FUNÇÃO]","",
+        "MINUTA AUTOMÁTICA — REVISÃO HUMANA OBRIGATÓRIA ANTES DE EXPEDIÇÃO."
+    ]
+    sources=[]
+    for x in facts:sources.append("Fato · p. "+str(x["page"]))
+    for x in defenses:sources.append("Elemento da empresa · p. "+str(x["page"]))
+    for x in legal:sources.append("Fundamento jurídico · p. "+str(x["page"]))
+    return {"draft":"\n".join(header+body),"metadata":md,"sources":sources}
+
+@app.post("/api/notification-draft")
+def notification_draft(req: NotificationReq):
+    item=ANALYSES.get(req.analysis_id)
+    if not item:
+        raise HTTPException(409,"A análise desta sessão não está mais disponível. Analise o processo novamente.")
+    return _draft_notification(item)
+
+HTML = HTML.replace(
+    "@media(max-width:1050px)",
+    """.draft-box{display:none;margin-top:16px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+.draft-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--line)}
+.draft-toolbar strong{font-size:12px;color:var(--navy)}
+.draft-toolbar span{font-size:10px;color:var(--muted)}
+.draft-actions{display:flex;gap:8px}
+.draft-actions button{padding:8px 11px;font-size:11px}
+.draft-text{width:100%;min-height:620px;border:0;outline:0;resize:vertical;padding:18px 20px;font-family:Georgia,"Times New Roman",serif;font-size:13px;line-height:1.65;color:#202a36;background:#fff}
+.draft-sources{padding:12px 16px;border-top:1px solid var(--line);background:#fbfcfe}
+@media(max-width:1050px)"""
+)
+
+_notification_panel = """  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="kicker">Minuta assistida</div>
+        <h2 class="title">Notificação de instauração e abertura de prazo para defesa</h2>
+        <p class="desc">Gera uma minuta editável a partir das evidências encontradas. Campos não identificados permanecem entre colchetes e exigem conferência humana.</p>
+      </div>
+      <button class="btn btn-primary" onclick="gerarNotificacao()">Gerar minuta</button>
+    </div>
+    <div class="warning">A função não aplica penalidade e não substitui a análise jurídica. A minuta deve ser revisada antes de qualquer expedição.</div>
+    <div id="draftBox" class="draft-box">
+      <div class="draft-toolbar">
+        <div><strong>Minuta para revisão</strong><br><span>Texto editável · baseado no processo analisado e em campos de conferência.</span></div>
+        <div class="draft-actions">
+          <button class="btn btn-blue" onclick="copiarMinuta()">Copiar texto</button>
+          <button class="btn btn-primary" onclick="baixarMinuta()">Baixar .txt</button>
+        </div>
+      </div>
+      <textarea id="draftText" class="draft-text"></textarea>
+      <div id="draftSources" class="draft-sources"></div>
+    </div>
+  </section>
+
+"""
+_report_marker = """  <section class="panel">
+    <div class="footer-actions">
+      <div><div class="kicker">Documentação da análise</div><h2 class="title">Relatório para revisão humana</h2>"""
+if _report_marker in HTML:
+    HTML = HTML.replace(_report_marker, _notification_panel + _report_marker, 1)
+
+_js_marker = "function relatorio(){"
+_js = """async function gerarNotificacao(){
+  analysisId=analysisId||localStorage.getItem("fiscaliza_analysis_id");
+  if(!analysisId){alert("Analise um processo primeiro.");return}
+  var box=document.getElementById("draftBox"),ta=document.getElementById("draftText"),src=document.getElementById("draftSources");
+  box.style.display="block";ta.value="Gerando minuta a partir das evidências do processo…";src.innerHTML="";
+  var r=await fetch("/api/notification-draft",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({analysis_id:analysisId})});
+  var d=await r.json();
+  if(!r.ok){ta.value=d.detail||"Não foi possível gerar a minuta.";return}
+  ta.value=d.draft;
+  src.innerHTML='<div class="kicker">Evidências utilizadas</div>'+(d.sources||[]).map(function(x){return '<span class="source-card">'+esc(x)+'</span>'}).join("");
+  box.scrollIntoView({behavior:"smooth",block:"start"});
+}
+async function copiarMinuta(){
+  var ta=document.getElementById("draftText");
+  if(!ta.value)return;
+  try{await navigator.clipboard.writeText(ta.value)}catch(e){ta.select();document.execCommand("copy")}
+}
+function baixarMinuta(){
+  var ta=document.getElementById("draftText");if(!ta.value)return;
+  var blob=new Blob([ta.value],{type:"text/plain;charset=utf-8"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="minuta-notificacao-penalizacao.txt";a.click();URL.revokeObjectURL(a.href);
+}
+"""
+if _js_marker in HTML:
+    HTML = HTML.replace(_js_marker, _js + _js_marker, 1)
+
+HTML = HTML.replace("VERSÃO 3.7 · DEMONSTRAÇÃO AUDITÁVEL","VERSÃO 3.8 · MINUTA ASSISTIDA")
