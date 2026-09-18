@@ -1,0 +1,65 @@
+name: V8 real benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [v8-rebuild]
+    paths:
+      - "v8/services/**"
+      - "v8/modules/**"
+      - "v8/core/**"
+      - "v8/benchmarks/**"
+      - ".github/workflows/v8-real-benchmark.yml"
+
+jobs:
+  asseste:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r v8/requirements.txt
+
+      - name: Download public ASSESTE process
+        run: |
+          mkdir -p .benchmark-data
+          curl --fail --location --retry 3 \
+            "https://franciscobeltrao.pr.gov.br/wp-content/uploads/2025/03/TERMO-DE-RESCISAO-CONT.-308-ASSESTE-COMERCIO-DE-EXTINTORES-LTDA-UNILATERAL-Protocolo-15.566.2025.pdf" \
+            --output .benchmark-data/asseste.pdf
+
+      - name: Evaluate real PDF
+        run: |
+          PYTHONPATH=. python v8/benchmarks/runner.py \
+            .benchmark-data/asseste.pdf \
+            v8/benchmarks/francisco-beltrao-asseste-15566-2025.json \
+            | tee .benchmark-data/result.json
+
+      - name: Benchmark summary
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path('.benchmark-data/result.json')
+          d=json.loads(p.read_text(encoding='utf-8'))
+          with open(Path(os.environ['GITHUB_STEP_SUMMARY']), 'a', encoding='utf-8') as f:
+              f.write('# Fiscaliza.AI V8 — benchmark real\n\n')
+              f.write(f"- Caso: {d['case_id']}\n")
+              f.write(f"- Páginas: **{d['pages']}**\n")
+              f.write(f"- Peças segmentadas: **{d['documents_detected']}**\n")
+              f.write(f"- Recall documental: **{(d['document_recall'] or 0)*100:.1f}%**\n")
+              f.write(f"- Precisão documental: **{(d['document_precision'] or 0)*100:.1f}%**\n")
+              f.write(f"- Falsos positivos: **{d['false_positive_count']}**\n")
+              f.write(f"- Estágio esperado: {d['expected_stage']}\n")
+              f.write(f"- Estágio detectado: {d['actual_stage']}\n")
+              f.write(f"- Estágio correto: **{'sim' if d['stage_match'] else 'não'}**\n")
+              f.write(f"- Minuta sugerida: {d['suggested_draft']}\n")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v8-asseste-benchmark
+          path: .benchmark-data/result.json
