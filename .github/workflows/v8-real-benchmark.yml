@@ -29,6 +29,11 @@ jobs:
             url: "https://diario.indap.org.br/publicacoes/680b9aca94a24/anexo/52373"
             benchmark: v8/benchmarks/riachao-do-jacuipe-pas-001-2025.json
             referer: "https://diario.indap.org.br/"
+          - case: Matupá · decisão final PAR
+            slug: matupa-par
+            url: "https://www.matupa.mt.gov.br/fotos_downloads/6724.pdf"
+            benchmark: v8/benchmarks/matupa-par-001-2026.json
+            referer: "https://www.matupa.mt.gov.br/"
 
     steps:
       - uses: actions/checkout@v4
