@@ -141,3 +141,45 @@ Quantidade total: 500 kits de higiene bucal.
     result=analyze_penalizacao(docs)
     assert result.profile.quantity is not None
     assert result.profile.quantity.startswith("500 kits")
+
+
+def test_rotulo_notificacao_isolado_no_corpo_nao_cria_documento():
+    pages=[
+        page(1, """
+PEDIDO DE REEQUILÍBRIO ECONÔMICO-FINANCEIRO
+Contrato nº 308/2025
+Resposta à
+Notificação
+Extrajudicial recebida anteriormente.
+A empresa apresenta pedido de revisão dos valores.
+""")
+    ]
+    docs=segment_documents(pages)
+    assert len(docs)==1
+    assert docs[0].type=="pedido_reequilibrio"
+
+
+def test_pagina_n_de_total_preserva_parecer_mesmo_com_contrato_citado():
+    pages=[
+        page(1, """
+MUNICÍPIO
+PARECER JURÍDICO Nº 100/2026
+Página 1 de 3
+Análise jurídica do caso.
+"""),
+        page(2, """
+MUNICÍPIO
+Página 2 de 3
+CONTRATO ADMINISTRATIVO Nº 140/2026
+A cláusula contratual é transcrita apenas para análise.
+"""),
+        page(3, """
+MUNICÍPIO
+Página 3 de 3
+Conclusão do parecer.
+"""),
+    ]
+    docs=segment_documents(pages)
+    assert len(docs)==1
+    assert docs[0].type=="parecer_juridico"
+    assert docs[0].pages==[1,2,3]
