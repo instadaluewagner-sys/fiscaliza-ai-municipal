@@ -2,6 +2,7 @@ import re
 import unicodedata
 from v8.core.models import AnalysisResult, ChecklistItem, Document, PendingItem, ProcessProfile, StageResult
 from v8.services.evidence import evidence_from_document
+from v8.services.timeline import build_timeline
 
 def norm(value: str) -> str:
     value = unicodedata.normalize("NFKD", value or "")
@@ -433,6 +434,7 @@ def analyze_penalizacao(documents: list[Document]) -> AnalysisResult:
         documents=documents,
         checklist=checklist,
         evidence=build_evidence(documents, stage),
+        timeline=build_timeline(documents),
         stage=stage,
         pending_items=build_pending_items(checklist, stage),
         warnings=[],
