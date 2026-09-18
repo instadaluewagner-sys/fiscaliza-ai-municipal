@@ -45,3 +45,33 @@ Assunto: início imediato das entregas.
     assert ev.page==35
     assert ev.document_id=="DOC-001"
     assert "nenhuma entrega" in ev.excerpt.lower()
+
+
+def test_decisao_final_multilinha_aponta_pagina_substantiva():
+    pages=[
+        {"file":"par.pdf","page":1,"ocr":False,"text":"""
+DECISÃO FINAL
+Autos do Processo Administrativo de Apuração de Responsabilidade n.º 001/2026.
+Processada: EMPRESA MODELO LTDA, CNPJ n.º 12.345.678/0001-95.
+"""},
+        {"file":"par.pdf","page":2,"ocr":False,"text":"""
+Após regular instrução, a empresa apresentou defesa e posteriormente recurso administrativo.
+"""},
+        {"file":"par.pdf","page":3,"ocr":False,"text":"""
+A autoridade analisa a proporcionalidade das penalidades aplicadas.
+"""},
+        {"file":"par.pdf","page":4,"ocr":False,"text":"""
+III. DECISÃO FINAL
+Diante do exposto, determina e decide:
+Ratificar integralmente as penalidades aplicadas à empresa.
+I. MULTA, nos termos da Lei nº 14.133/2021,
+aplica-se à contratada
+a penalidade de multa de 30%.
+"""},
+    ]
+    result=analyze_penalizacao(segment_documents(pages))
+    assert result.stage.key=="julgamento"
+    ev=next(e for e in result.evidence if e.key=="final_decision")
+    assert ev.page==4
+    assert result.stage.sources
+    assert result.stage.sources[0].page==4
