@@ -6055,3 +6055,101 @@ document.addEventListener("DOMContentLoaded",function(){
 HTML=HTML.replace("</script>",_premium_js+"\n</script>",1)
 
 HTML=HTML.replace("VERSÃO 7.1 · NOVO PROCESSO DIRETO","VERSÃO 7.2 · ACABAMENTO COMERCIAL")
+
+
+# --- Quantidade contextualizada v7.3 ---
+# Regra: nunca exibir número isolado quando os autos trazem a unidade/objeto.
+# Ex.: "500 kits de higiene bucal", e não apenas "500".
+
+def _clean_quantity_object(text):
+    s=re.sub(r"\s+"," ",str(text or "")).strip(" .,:;-")
+    if not s:return ""
+    # Interrompe quando começa outra informação típica do documento.
+    s=re.split(
+        r"\b(?:ao valor|no valor|valor unit[aá]rio|valor total|marca|prazo|contrato|ata de registro|preg[aã]o|nota de empenho|local de entrega|conforme|referente|vinculad[oa])\b",
+        s,maxsplit=1,flags=re.I
+    )[0].strip(" .,:;-")
+    # Limita para não transformar o card em parágrafo.
+    words=s.split()
+    if len(words)>9:s=" ".join(words[:9])
+    return s
+
+def _quantity_context(pages):
+    ordered=sorted(pages,key=lambda p:(0 if strong_type(p)=="contrato" else 1,p["page"]))
+    patterns=[
+        # "fornecimento de 500 kits de higiene bucal"
+        re.compile(r"(?:fornecimento|aquisi[cç][aã]o)\s+(?:de\s+)?(\d{1,7})\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9ºª./\-]*(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9ºª./\-]*){0,8})",re.I),
+        # "500 kits de higiene bucal"
+        re.compile(r"\b(\d{1,7})\s+((?:kits?|unidades?|itens?|caixas?|pacotes?|frascos?|servi[cç]os?|equipamentos?|aparelhos?|pe[cç]as?|metros?|litros?|quilos?|kg)\b(?:\s+(?:de|do|da|dos|das)\s+[A-Za-zÀ-ÿ0-9ºª./\-]+(?:\s+[A-Za-zÀ-ÿ0-9ºª./\-]+){0,6})?)",re.I),
+        # "quantidade total: 500 kits"
+        re.compile(r"(?:quantidade total|quantidade contratada|quantidade prevista|quantidade)\s*[:\-]?\s*(\d{1,7})\s*([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9ºª./\-]*(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9ºª./\-]*){0,7})?",re.I)
+    ]
+    for p in ordered:
+        raw=re.sub(r"\s+"," ",p.get("text") or "")
+        z=norm(raw)
+        for rx in patterns:
+            for m in rx.finditer(raw):
+                try:value=int(m.group(1))
+                except Exception:continue
+                if not (1<=value<=10000000):continue
+                ctx=norm(raw[max(0,m.start()-130):min(len(raw),m.end()+190)])
+                if any(b in ctx for b in ["por viagem","metade da quantidade","50% da quantidade","estimativa de transporte","restantes"]):
+                    continue
+                obj=_clean_quantity_object(m.group(2) if m.lastindex and m.lastindex>=2 else "")
+                # Evita capturar palavras que não são unidade/objeto.
+                if obj and norm(obj).split()[0] in ["ao","no","na","com","para","conforme","referente"]:
+                    obj=""
+                display=(str(value)+" "+obj).strip() if obj else str(value)
+                refs=_page_doc_refs(pages,p.get("file"),[p.get("page")]) if "_page_doc_refs" in globals() else []
+                source={"file":p["file"],"page":p["page"]}
+                if refs:
+                    source["document_id"]=refs[0].get("document_id")
+                    source["source_document_id"]=refs[0].get("source_document_id")
+                return {
+                    "value":str(value),
+                    "unit_object":obj,
+                    "display":display,
+                    "source":source,
+                    "context":clip(raw[max(0,m.start()-90):min(len(raw),m.end()+140)],300)
+                }
+    return {"value":"Não identificado com segurança","unit_object":"","display":"Não identificado com segurança","source":None,"context":""}
+
+def total_quantity(pages):
+    return _quantity_context(pages)
+
+_old_module_overlay_v73=_module_overlay
+def _module_overlay(pages,a,module):
+    a=_old_module_overlay_v73(pages,a,module)
+    q=a.get("quantity") or {}
+    qdisplay=q.get("display") or q.get("value") or "Não identificado com segurança"
+    if module=="penalizacao":
+        # Resumo: substitui o valor numérico isolado pela descrição contextual.
+        for sm in a.get("module_summary",[]) or []:
+            if norm(sm.get("label",""))=="quantidade total":
+                sm["value"]=qdisplay
+                sm["ok"]="nao identificado" not in norm(qdisplay)
+        # Matriz: mesma regra, preservando fonte/página.
+        for row in a.get("module_matrix",[]) or []:
+            if "quantidade" in norm(row.get("question","")):
+                row["answer"]=qdisplay
+                row["ok"]="nao identificado" not in norm(qdisplay)
+                if q.get("source"):
+                    row["pages"]=[q["source"].get("page")]
+        # Rastreabilidade: evita "Quantidade total: 500".
+        for tr in a.get("traceability",[]) or []:
+            if norm(tr.get("claim","")).startswith("quantidade total"):
+                tr["claim"]="Quantidade total: "+qdisplay
+    return a
+
+_old_enrich_doc_refs_v73=_enrich_doc_refs
+def _enrich_doc_refs(a,pages):
+    a=_old_enrich_doc_refs_v73(a,pages)
+    q=a.get("quantity") or {}
+    if q.get("source"):
+        refs=_page_doc_refs(pages,q["source"].get("file"),[q["source"].get("page")])
+        if refs:
+            q["source"]["document_id"]=refs[0].get("document_id")
+            q["source"]["source_document_id"]=refs[0].get("source_document_id")
+    return a
+
+HTML=HTML.replace("VERSÃO 7.2 · ACABAMENTO COMERCIAL","VERSÃO 7.3 · DADOS CONTEXTUALIZADOS")
