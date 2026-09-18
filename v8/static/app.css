@@ -85,6 +85,12 @@ header p,.note,.panel p{color:var(--muted)}
 }
 
 
+.stage-sources{margin-top:9px;padding:8px 9px;border:1px solid #dce6eb;border-radius:8px;background:#fbfcfd}
+.stage-sources>b{display:block;color:#6a7f91;font-size:7.8px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.stage-sources>div{display:flex;gap:5px;flex-wrap:wrap}
+.stage-source{border:0;background:#eef8f6;color:#087b70;border-radius:999px;padding:4px 7px;font-size:7.8px;font-weight:850;cursor:pointer}
+.stage-source:hover{background:#e0f2ee}
+.stage-source-empty{color:#81909c;font-size:8px}
 .stage-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
 .secondary-btn{background:#eef4f7;color:var(--navy);border:1px solid #d8e3ea}
 .secondary-btn:hover{background:#e6eff4}
