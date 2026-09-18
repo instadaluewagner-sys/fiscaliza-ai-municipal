@@ -59,3 +59,12 @@ class AnalysisResult(BaseModel):
     evidence: list[Evidence]
     stage: StageResult
     warnings: list[str] = Field(default_factory=list)
+
+
+class DraftResult(BaseModel):
+    kind: str
+    title: str
+    stage_key: str
+    text: str
+    source_document_ids: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
