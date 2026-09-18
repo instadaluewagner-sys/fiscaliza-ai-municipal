@@ -4355,3 +4355,330 @@ HTML=HTML.replace(
 )
 
 HTML=HTML.replace("VERSÃO 6.5 · TELAS INTERNAS","VERSÃO 6.6 · MÓDULOS ESPECIALIZADOS")
+
+
+# --- Rastreabilidade por ID do documento v6.7 ---
+# Toda evidência passa a apontar: ID interno do documento + identificador de origem (quando houver) + página.
+
+def _document_marker(text):
+    raw=text or ""
+    lines=[re.sub(r"\s+"," ",x).strip() for x in raw.splitlines() if x.strip()]
+    keywords=[
+        "NOTIFICAÇÃO","NOTIFICACAO","INTIMAÇÃO","INTIMACAO","CONTRATO","PARECER",
+        "RELATÓRIO","RELATORIO","OFÍCIO","OFICIO","DESPACHO","PORTARIA","ATA ",
+        "NOTA DE EMPENHO","EMPENHO","ORDEM DE FORNECIMENTO","ORDEM DE SERVIÇO",
+        "TERMO DE RECEBIMENTO","TERMO DE DILIGÊNCIA","TERMO DE DEPOIMENTO",
+        "DECISÃO","DECISAO","DEFESA ADMINISTRATIVA","MANIFESTAÇÃO DA CONTRATADA",
+        "MANIFESTACAO DA CONTRATADA","PEDIDO DE REEQUILÍBRIO","PEDIDO DE ACESSO",
+        "PROCESSO ADMINISTRATIVO","PROCESSO TRIBUTÁRIO","PROCESSO TRIBUTARIO",
+        "PROCESSO LICITATÓRIO","PROCESSO LICITATORIO","SINDICÂNCIA ADMINISTRATIVA",
+        "SINDICANCIA ADMINISTRATIVA","AUTO / LANÇAMENTO","AUTO / LANCAMENTO"
+    ]
+    for line in lines[:10]:
+        up=line.upper()
+        if any(k in up for k in keywords):
+            # Evita usar frases narrativas extensas como identificador.
+            if len(line)<=150:
+                return line
+
+    # Identificador explícito do sistema de origem.
+    pats=[
+        r"(?:ID do documento|Documento ID|ID Documento)\s*[:#\-]?\s*([A-Z0-9._\/-]+)",
+        r"1Doc:\s*(Protocolo\s*(?:\d+\s*-\s*)?[\d.]+\/\d{4})",
+        r"\b(Protocolo\s*(?:\d+\s*-\s*)?[\d.]+\/\d{4})\b"
+    ]
+    flat=re.sub(r"\s+"," ",raw)
+    for pat in pats:
+        m=re.search(pat,flat,flags=re.I)
+        if m:
+            return re.sub(r"\s+"," ",m.group(1)).strip()
+    return None
+
+def _assign_document_ids(pages):
+    file_order=[]
+    for p in pages:
+        if p["file"] not in file_order:file_order.append(p["file"])
+    for fi,filename in enumerate(file_order,1):
+        rows=[p for p in pages if p["file"]==filename]
+        counter=0;current_id=None;current_marker=None
+        for p in rows:
+            marker=_document_marker(p.get("text") or "")
+            if marker:
+                mk=norm(marker)
+                if current_id is None or mk!=norm(current_marker or ""):
+                    counter+=1
+                    current_id="ARQ%d-DOC%03d"%(fi,counter)
+                    current_marker=marker
+            elif current_id is None:
+                counter+=1
+                current_id="ARQ%d-DOC%03d"%(fi,counter)
+                current_marker=None
+            p["document_id"]=current_id
+            p["source_document_id"]=current_marker
+    return pages
+
+def _page_doc_refs(pages,file=None,page_numbers=None):
+    page_numbers=set(page_numbers or [])
+    refs=[];seen=set()
+    for p in pages:
+        if file is not None and p.get("file")!=file:continue
+        if page_numbers and p.get("page") not in page_numbers:continue
+        did=p.get("document_id") or "ID-NÃO-IDENTIFICADO"
+        key=(p.get("file"),did)
+        if key in seen:continue
+        seen.add(key)
+        refs.append({
+            "document_id":did,
+            "source_document_id":p.get("source_document_id"),
+            "file":p.get("file"),
+            "page":p.get("page")
+        })
+    return refs
+
+def _enrich_doc_refs(a,pages):
+    for x in a.get("pieces",[]):
+        x["documents"]=_page_doc_refs(pages,x.get("file"),x.get("pages",[]))
+    for x in a.get("mentions",[]):
+        x["documents"]=_page_doc_refs(pages,x.get("file"),x.get("pages",[]))
+    for key in ["defense","contra","no_delivery","final_sanction"]:
+        for x in a.get(key,[]) or []:
+            refs=_page_doc_refs(pages,x.get("file"),[x.get("page")])
+            if refs:
+                x["document_id"]=refs[0]["document_id"]
+                x["source_document_id"]=refs[0]["source_document_id"]
+    q=a.get("quantity",{}).get("source")
+    if q:
+        refs=_page_doc_refs(pages,q.get("file"),[q.get("page")])
+        if refs:
+            q["document_id"]=refs[0]["document_id"]
+            q["source_document_id"]=refs[0]["source_document_id"]
+
+    for x in a.get("module_matrix",[]) or []:
+        x["documents"]=_page_doc_refs(pages,None,x.get("pages",[]))
+    for x in a.get("module_timeline",[]) or []:
+        x["documents"]=_page_doc_refs(pages,None,x.get("pages",[]))
+    for x in a.get("module_evidence",[]) or []:
+        refs=_page_doc_refs(pages,None,[x.get("page")])
+        if refs:
+            x["document_id"]=refs[0]["document_id"]
+            x["source_document_id"]=refs[0]["source_document_id"]
+    for x in a.get("process_checklist",[]) or []:
+        x["documents"]=_page_doc_refs(pages,None,x.get("pages",[]))
+    for x in a.get("traceability",[]) or []:
+        x["documents"]=_page_doc_refs(pages,x.get("source"),x.get("pages",[]))
+        if not x["documents"]:
+            x["documents"]=_page_doc_refs(pages,None,x.get("pages",[]))
+    return a
+
+async def analyze_v67(files:List[UploadFile]=File(...), module:str="penalizacao"):
+    pages=[];ocr=0;names=[]
+    for f in files:
+        if not f.filename.lower().endswith(".pdf"):continue
+        pp,oo=extract_pdf(await f.read(),f.filename)
+        pages.extend(pp);ocr+=oo;names.append(f.filename)
+    if not pages:raise HTTPException(400,"Envie pelo menos um PDF.")
+    _assign_document_ids(pages)
+    a=analyze_pages(pages)
+    a=_module_overlay(pages,a,module)
+    a=_enrich_doc_refs(a,pages)
+    aid=uuid.uuid4().hex
+    ANALYSES[aid]={"pages":pages,"analysis":a,"created":datetime.utcnow().isoformat(),"module":module}
+    return {"analysis_id":aid,"files":names,"pages":len(pages),"ocr_pages":ocr,"module":module,"analysis":a}
+
+app.router.routes=[
+    r for r in app.router.routes
+    if not (getattr(r,"path",None)=="/api/analyze" and "POST" in getattr(r,"methods",set()))
+]
+app.add_api_route("/api/analyze",analyze_v67,methods=["POST"])
+
+_old_answer_question_v67=answer_question
+def _source_with_doc_id(source,pages):
+    # Localiza a primeira página citada e acrescenta o ID do documento à referência.
+    m=re.search(r"(?:p\.|página|paginas?|páginas?)\s*\.?\s*(\d+)",source or "",flags=re.I)
+    if not m:return source
+    pg=int(m.group(1))
+    refs=_page_doc_refs(pages,None,[pg])
+    if not refs:return source
+    r=refs[0]
+    prefix="ID "+r["document_id"]
+    if r.get("source_document_id"):
+        prefix+=" · "+r["source_document_id"]
+    if prefix.lower() in (source or "").lower():return source
+    return prefix+" · "+source
+
+def answer_question(q,a,pages):
+    res=_old_answer_question_v67(q,a,pages)
+    res["sources"]=[_source_with_doc_id(s,pages) for s in (res.get("sources") or [])]
+    return res
+
+def report_v67(analysis_id):
+    item=ANALYSES.get(analysis_id)
+    if not item:raise HTTPException(404,"Análise não encontrada.")
+    a=item["analysis"];buf=io.BytesIO();c=canvas.Canvas(buf,pagesize=A4);y=810
+    c.setFont("Helvetica-Bold",15);c.drawString(40,y,"Fiscaliza.AI Municipal — Relatório rastreável");y-=26
+    c.setFont("Helvetica",9)
+    lines=[a.get("conclusion",""),"","Evidências e documentos:"]
+    if a.get("module_matrix"):
+        for x in a["module_matrix"]:
+            refs=[]
+            for d in x.get("documents",[]):
+                rr=d["document_id"]
+                if d.get("source_document_id"):rr+=" ("+d["source_document_id"]+")"
+                refs.append(rr)
+            ref=", ".join(refs) if refs else "ID não identificado"
+            pgs=fmt_pages(x.get("pages",[])) or "—"
+            lines.append("- "+x.get("label",x.get("question","Evidência"))+": "+("confirmado" if x.get("ok") else "conferir")+" | "+ref+" | p. "+pgs)
+    else:
+        for x in a.get("pieces",[]):
+            refs=[]
+            for d in x.get("documents",[]):
+                rr=d["document_id"]
+                if d.get("source_document_id"):rr+=" ("+d["source_document_id"]+")"
+                refs.append(rr)
+            lines.append("- "+x["label"]+": "+(", ".join(refs) if refs else "ID não identificado")+" | p. "+fmt_pages(x["pages"]))
+    lines+=["","Pendências e limites:"]+["- "+p for p in a.get("pending",[])]
+    for line in lines:
+        chunks=[line[i:i+105] for i in range(0,max(1,len(line)),105)] or [""]
+        for chunk in chunks:
+            if y<50:c.showPage();y=810;c.setFont("Helvetica",9)
+            c.drawString(40,y,chunk);y-=13
+    c.save();buf.seek(0)
+    return StreamingResponse(buf,media_type="application/pdf",headers={"Content-Disposition":"attachment; filename=fiscaliza-relatorio-rastreavel.pdf"})
+
+app.router.routes=[
+    r for r in app.router.routes
+    if not (getattr(r,"path",None)=="/api/report/{analysis_id}" and "GET" in getattr(r,"methods",set()))
+]
+app.add_api_route("/api/report/{analysis_id}",report_v67,methods=["GET"])
+app.version="6.7"
+
+_docid_css = """
+.doc-id-chip{display:inline-flex;align-items:center;background:#eef4f8;border:1px solid #d2dde7;border-radius:999px;padding:3px 7px;margin-right:5px;font-size:8px;font-weight:850;color:var(--navy)}
+.doc-origin{font-size:8px;color:var(--muted);margin-left:4px}
+.ref-stack{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+"""
+HTML=HTML.replace("</style>",_docid_css+"</style>",1)
+
+_docid_js = r"""
+function documentRefHtml(docs,pages){
+  docs=docs||[];pages=pages||[];
+  var h='<span class="ref-stack">';
+  if(docs.length){
+    for(var i=0;i<docs.length;i++){
+      var d=docs[i];
+      h+='<span class="doc-id-chip" title="'+esc(d.source_document_id||"ID interno de rastreabilidade")+'">ID '+esc(d.document_id)+'</span>';
+      if(d.source_document_id)h+='<span class="doc-origin">'+esc(d.source_document_id)+'</span>';
+    }
+  }else h+='<span class="doc-id-chip">ID não identificado</span>';
+  if(pages.length)h+=pageChip(pages.join(", "));
+  h+='</span>';
+  return h;
+}
+function docForSingle(x){
+  if(!x)return "";
+  var docs=[];
+  if(x.document_id)docs=[{document_id:x.document_id,source_document_id:x.source_document_id||null}];
+  return documentRefHtml(docs,x.page?[x.page]:[]);
+}
+
+// Sobrescreve a adaptação visual: ID do documento acompanha todas as páginas.
+function ajustarResultadoModulo(a){
+  if(!a)return;
+
+  var timeline=acharSectionPorTitulo("Linha do tempo do processo");
+  if(timeline){
+    var th='<div class="kicker">Cronologia dos autos · '+esc(a.module_label||"Processo")+'</div><h2>Linha do tempo do processo</h2><div class="timeline">';
+    var items=[];
+    if(a.module_key==="penalizacao"){
+      items=(a.pieces||[]).map(function(x){return {label:x.label,pages:x.pages,documents:x.documents||[]}}).sort(function(x,y){return (x.pages[0]||9999)-(y.pages[0]||9999)});
+    }else items=a.module_timeline||[];
+    if(items.length){
+      for(var i=0;i<items.length;i++){
+        var t=items[i];
+        th+='<div class="timeline-step"><div class="tp">'+documentRefHtml(t.documents||[],t.pages||[])+'</div><b>'+esc(t.label)+'</b></div>';
+      }
+      th+='</div>';
+    }else th='<div class="kicker">Cronologia dos autos</div><h2>Linha do tempo do processo</h2><div class="empty">Nenhum marco específico foi localizado com segurança.</div>';
+    timeline.innerHTML=th;
+  }
+
+  var matrix=acharSectionPorTitulo("Matriz de evidências")||acharSectionPorTitulo("Matriz de evidências do módulo");
+  if(matrix&&a.module_matrix){
+    var mh='<div class="kicker">Auditabilidade · '+esc(a.module_label||"Processo")+'</div><h2>Matriz de evidências do módulo</h2><table class="matrix"><thead><tr><th>Questão</th><th>Resposta</th><th>Documento / página</th><th>Status</th></tr></thead><tbody>';
+    for(var j=0;j<a.module_matrix.length;j++){
+      var r=a.module_matrix[j];
+      mh+='<tr><td>'+esc(r.question)+'</td><td>'+esc(r.answer)+'</td><td>'+documentRefHtml(r.documents||[],r.pages||[])+'</td><td class="'+(r.ok?'matrix-ok':'matrix-limit')+'">'+(r.ok?'Confirmado':'Conferir')+'</td></tr>';
+    }
+    mh+='</tbody></table>';
+    matrix.innerHTML=mh;
+  }
+
+  var structure=acharSectionPorTitulo("Estrutura do processo")||acharSectionPorTitulo("Estrutura esperada do processo");
+  if(structure){
+    var sh='<div class="kicker">Elementos essenciais · '+esc(a.module_label||"Processo")+'</div><h2>Estrutura do processo</h2><div class="piece-grid">';
+    if(a.module_key==="penalizacao"){
+      for(var k=0;k<(a.pieces||[]).length;k++){
+        var p=a.pieces[k];
+        sh+='<article class="piece"><div class="piece-top"><div class="piece-icon">✓</div><div class="piece-name">'+esc(p.label)+'</div></div><div class="source">'+documentRefHtml(p.documents||[],p.pages||[])+'</div></article>';
+      }
+    }else{
+      for(var m=0;m<(a.module_matrix||[]).length;m++){
+        var mr=a.module_matrix[m];
+        sh+='<article class="piece"><div class="piece-top"><div class="piece-icon">'+(mr.ok?'✓':'!')+'</div><div class="piece-name">'+esc(mr.label)+'</div></div><div class="source">'+documentRefHtml(mr.documents||[],mr.pages||[])+'</div></article>';
+      }
+    }
+    sh+='</div>';
+    structure.innerHTML=sh;
+  }
+
+  // Acrescenta ID do documento aos achados textuais já renderizados.
+  var cols=document.querySelectorAll("#result .finding");
+  var combined=(a.defense||[]).concat(a.contra||[]);
+  for(var z=0;z<cols.length&&z<combined.length;z++){
+    var foot=cols[z].querySelector(".finding-foot");
+    if(foot && !foot.querySelector(".doc-id-chip")){
+      foot.insertAdjacentHTML("afterbegin",docForSingle(combined[z]));
+    }
+  }
+
+  if(a.module_key!=="penalizacao"){
+    var manifests=acharSectionPorTitulo("Elementos apresentados pelo interessado")||acharSectionPorTitulo("Elementos localizados nos autos");
+    if(manifests){
+      var body='<div class="kicker">Evidências do módulo</div><h2>Elementos localizados nos autos</h2>';
+      if(!a.module_evidence||!a.module_evidence.length)body+='<div class="empty">Nenhuma evidência específica do módulo foi localizada.</div>';
+      else for(var e=0;e<a.module_evidence.length;e++){
+        var ev=a.module_evidence[e];
+        body+='<div class="finding"><div class="finding-num">'+(e+1)+'</div><div><div class="finding-text"><b>'+esc(ev.label)+':</b> '+esc(ev.text||"Evidência localizada.")+'</div><div class="finding-foot">'+docForSingle(ev)+'</div></div></div>';
+      }
+      manifests.innerHTML=body;
+    }
+    var confront=acharSectionPorTitulo("Pontos a confrontar")||acharSectionPorTitulo("Pontos para conferência");
+    if(confront){
+      var ch='<div class="kicker">Conferência do módulo</div><h2>Pontos para conferência</h2>';
+      var missing=(a.module_matrix||[]).filter(function(x){return !x.ok});
+      if(!missing.length)ch+='<div class="empty">Todos os controles essenciais deste módulo foram localizados. Faça a revisão de coerência antes da conclusão.</div>';
+      else for(var q=0;q<missing.length;q++)ch+='<div class="warning">Conferir: '+esc(missing[q].label)+'</div>';
+      confront.innerHTML=ch;
+    }
+  }
+
+  var trace=acharSectionPorTitulo("Rastreabilidade da conclusão");
+  if(trace){
+    var rh='<div class="kicker">Como chegou aqui</div><h2>Rastreabilidade da conclusão</h2>';
+    for(var rix=0;rix<(a.traceability||[]).length;rix++){
+      var tv=a.traceability[rix];
+      rh+='<div class="trace-row"><b>'+esc(tv.claim)+'</b><span>'+esc(tv.status)+'</span><span>'+documentRefHtml(tv.documents||[],tv.pages||[])+'</span></div>';
+    }
+    trace.innerHTML=rh;
+  }
+
+  var review=acharSectionPorTitulo("Pontos antes da assinatura");
+  if(review&&a.module_key!=="penalizacao"){
+    var kk=review.querySelector(".kicker");if(kk)kk.textContent="Revisão do processo";
+    var hh=review.querySelector("h2");if(hh)hh.textContent="Pontos antes da conclusão";
+  }
+}
+"""
+HTML=HTML.replace("</script>",_docid_js+"\n</script>",1)
+
+HTML=HTML.replace("VERSÃO 6.6 · MÓDULOS ESPECIALIZADOS","VERSÃO 6.7 · ID DO DOCUMENTO + PÁGINA")
