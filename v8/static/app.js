@@ -76,6 +76,57 @@ async function openDocument(documentId,page){
   }
 }
 
+
+async function loadCompatibleDraft(){
+  if(!currentAnalysisId)return;
+  let target=document.getElementById("stageDraft");
+  if(!target){
+    target=document.createElement("div");
+    target.id="stageDraft";
+    const stage=document.querySelector(".stage-card");
+    if(stage)stage.insertAdjacentElement("afterend",target);
+  }
+  target.innerHTML='<div class="draft-panel"><div class="loading">Gerando minuta compatível com o estágio…</div></div>';
+  try{
+    const r=await fetch("/api/v8/draft/"+encodeURIComponent(currentAnalysisId));
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.detail||"Minuta indisponível");
+    const sources=(d.source_document_ids||[]).map(function(id){
+      return '<button class="draft-source" onclick="openDocument(\''+esc(id)+'\')">'+esc(id)+'</button>';
+    }).join("");
+    const warnings=(d.warnings||[]).map(function(w){return '<div class="draft-warning">• '+esc(w)+'</div>';}).join("");
+    target.innerHTML=
+      '<div class="draft-panel">'+
+        '<div class="draft-head"><div><small>Minuta compatível com a fase atual</small><strong>'+esc(d.title)+'</strong></div>'+
+        '<div class="draft-tools"><button class="secondary-btn" onclick="copyDraft()">Copiar</button><button class="secondary-btn" onclick="downloadDraft()">Baixar .txt</button></div></div>'+
+        '<pre id="draftText" class="draft-text">'+esc(d.text)+'</pre>'+
+        '<div class="draft-foot"><b>Fontes utilizadas como referência</b><div class="draft-sources">'+(sources||'<span class="neutral">Sem fonte destacada</span>')+'</div>'+warnings+'</div>'+
+      '</div>';
+  }catch(err){
+    target.innerHTML='<div class="error">'+esc(err.message)+'</div>';
+  }
+}
+async function copyDraft(){
+  const el=document.getElementById("draftText");
+  if(!el)return;
+  const text=el.textContent||"";
+  try{await navigator.clipboard.writeText(text)}
+  catch(e){
+    const ta=document.createElement("textarea");
+    ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();
+  }
+}
+function downloadDraft(){
+  const el=document.getElementById("draftText");
+  if(!el)return;
+  const blob=new Blob([el.textContent||""],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="fiscaliza-v8-minuta.txt";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 function renderAnalysis(a,meta){
   currentAnalysis=a;
   const p=a.profile||{};
@@ -109,7 +160,9 @@ function renderAnalysis(a,meta){
     '<div class="process-meta"><span class="chip">'+esc(meta.pages||0)+' páginas</span><span class="chip">'+esc(docs.length)+' peças segmentadas</span><span class="chip">'+esc(meta.ocr_pages||0)+' OCR</span></div></div>'+
     '<span class="stage-badge">'+esc(stage.label||"Estágio não definido")+'</span></div>'+
     '<div class="stage-card"><small>Leitura processual</small><strong>'+esc(stage.rationale||"")+'</strong><p>'+esc(stage.next_action||"")+'</p>'+
-    '<div class="next-grid"><div class="next-box"><b>Próximo ato</b><span>'+esc(stage.next_action||"—")+'</span></div><div class="next-box"><b>Minuta compatível</b><span>'+esc(stage.suggested_draft||"—")+'</span></div></div></div>'+
+    '<div class="next-grid"><div class="next-box"><b>Próximo ato</b><span>'+esc(stage.next_action||"—")+'</span></div><div class="next-box"><b>Minuta compatível</b><span>'+esc(stage.suggested_draft||"—")+'</span></div></div>'+
+    '<div class="stage-actions"><button onclick="loadCompatibleDraft()">Gerar minuta compatível</button></div></div>'+
+    '<div id="stageDraft"></div>'+
     '<div class="section-title"><h3>Perfil extraído</h3><span>Somente quando há suporte documental</span></div>'+
     '<div class="check-grid">'+
       '<div class="check-card"><small>Empresa</small><b class="neutral">'+profileValue(p.company)+'</b></div>'+
