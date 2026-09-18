@@ -31,16 +31,187 @@ def _iter_doc_pages(doc: Document):
         yield doc.page_start, doc.text
 
 
+def _source_weight(doc_type: str) -> int:
+    return {
+        "contrato": 12,
+        "ata_registro_precos": 11,
+        "empenho": 11,
+        "ordem_fornecimento": 10,
+        "termo_referencia": 10,
+        "notificacao": 10,
+        "decisao": 9,
+        "defesa": 8,
+        "parecer_juridico": 8,
+        "parecer_tecnico": 7,
+        "relatorio_tecnico": 7,
+        "oficio": 6,
+        "pregao": 10,
+        "edital": 9,
+        "movimentacao_1doc": 2,
+        "unclassified": 1,
+    }.get(doc_type, 4)
+
+
+def _page_ref(doc: Document, page: int) -> PageRef:
+    return PageRef(file=doc.file, page=page, document_id=doc.id)
+
+
+def _candidate_key(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", norm(value))
+
+
+def _clean_company(value: str) -> str | None:
+    value = re.sub(r"\s+", " ", value or "").strip(" \t\n:;,.–—-")
+    value = re.split(
+        r"(?i)\b(?:CNPJ|CPF|Objeto|Contrato|Preg[aã]o|Ata\s+de\s+Registro|Assinado\s+por|Representante|Endere[cç]o|Telefone|E-?mail)\b",
+        value,
+        maxsplit=1,
+    )[0].strip(" \t\n:;,.–—-")
+    if len(value) < 4:
+        return None
+    bad = norm(value)
+    if any(x in bad for x in [
+        "assinado por",
+        "verificacao das assinaturas",
+        "verificação das assinaturas",
+        "pessoa:",
+        "responsavel:",
+        "responsável:",
+    ]):
+        return None
+    if re.fullmatch(r"[\d ./-]+", value):
+        return None
+    return value[:140]
+
+
+def _collect_company_candidates(documents: list[Document]):
+    candidates: dict[str, dict] = {}
+    field_rx = re.compile(
+        r"(?im)^\s*(INTERESSAD[AO]|CONTRATAD[AO]|NOTIFICAD[AO]|EMPRESA)\s*[:\-]\s*([^\n]{3,180})"
+    )
+    paired_rx = re.compile(
+        r"(?i)\b([A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9][A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9 .&'/-]{3,120}?"
+        r"(?:LTDA\.?|EIRELI|S/?A\.?|ME|EPP))\s*,?\s*(?:inscrit[ao]\s+no\s+)?CNPJ\b"
+    )
+    label_bonus = {
+        "interessada": 8, "interessado": 8,
+        "contratada": 8, "contratado": 8,
+        "notificada": 8, "notificado": 8,
+        "empresa": 5,
+    }
+
+    def add(value: str, doc: Document, page: int, bonus: int):
+        cleaned = _clean_company(value)
+        if not cleaned:
+            return
+        key = _candidate_key(cleaned)
+        if not key:
+            return
+        score = _source_weight(doc.type) + bonus
+        if re.search(r"(?i)\b(?:LTDA|EIRELI|S/?A|ME|EPP)\b", cleaned):
+            score += 4
+        item = candidates.setdefault(key, {
+            "value": cleaned,
+            "score": 0,
+            "sources": [],
+            "doc_ids": set(),
+        })
+        item["score"] += score
+        item["sources"].append(_page_ref(doc, page))
+        item["doc_ids"].add(doc.id)
+
+    for doc in documents:
+        for page, text in _iter_doc_pages(doc):
+            for m in field_rx.finditer(text):
+                add(m.group(2), doc, page, label_bonus.get(norm(m.group(1)), 4))
+            for m in paired_rx.finditer(text):
+                add(m.group(1), doc, page, 10)
+
+    for item in candidates.values():
+        item["score"] += 3 * len(item["doc_ids"])
+    return candidates
+
+
+def _select_candidate(candidates: dict[str, dict]):
+    if not candidates:
+        return None, None, [], []
+    ranked = sorted(candidates.values(), key=lambda x: (x["score"], len(x["doc_ids"])), reverse=True)
+    best = ranked[0]
+    conflicts = [x["value"] for x in ranked[1:] if _candidate_key(x["value"]) != _candidate_key(best["value"])]
+    conflict_sources = [x["sources"][0] for x in ranked[1:] if x["sources"]]
+    return best["value"], best["sources"][0], conflicts, conflict_sources
+
+
+def _format_cnpj(value: str) -> str:
+    digits = re.sub(r"\D", "", value or "")
+    if len(digits) != 14:
+        return value.strip()
+    return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:]}"
+
+
+def _valid_cnpj(value: str) -> bool:
+    digits = [int(x) for x in re.sub(r"\D", "", value or "")]
+    if len(digits) != 14 or len(set(digits)) == 1:
+        return False
+
+    def digit(base, weights):
+        remainder = sum(n * w for n, w in zip(base, weights)) % 11
+        return 0 if remainder < 2 else 11 - remainder
+
+    d1 = digit(digits[:12], [5,4,3,2,9,8,7,6,5,4,3,2])
+    d2 = digit(digits[:12] + [d1], [6,5,4,3,2,9,8,7,6,5,4,3,2])
+    return digits[12] == d1 and digits[13] == d2
+
+
+def _collect_cnpj_candidates(documents: list[Document], company: str | None):
+    candidates: dict[str, dict] = {}
+    rx = re.compile(r"\b(\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2})\b")
+    company_tokens = [
+        token for token in re.findall(r"[A-Za-zÀ-ÿ0-9]+", company or "")
+        if len(token) >= 5 and norm(token) not in {"comercio","empresa","ltda","eireli"}
+    ][:3]
+
+    for doc in documents:
+        for page, text in _iter_doc_pages(doc):
+            for m in rx.finditer(text):
+                value = _format_cnpj(m.group(1))
+                key = re.sub(r"\D", "", value)
+                context = text[max(0,m.start()-260):min(len(text),m.end()+180)]
+                z = norm(context)
+                score = _source_weight(doc.type)
+                if _valid_cnpj(value):
+                    score += 20
+                else:
+                    score -= 12
+                if "inscrita no cnpj" in z or "inscrito no cnpj" in z:
+                    score += 8
+                if any(marker in z for marker in ["contratada", "interessada", "notificado", "notificada"]):
+                    score += 5
+                if company_tokens and any(norm(token) in z for token in company_tokens):
+                    score += 7
+
+                item = candidates.setdefault(key, {
+                    "value": value,
+                    "score": 0,
+                    "sources": [],
+                    "doc_ids": set(),
+                })
+                item["score"] += score
+                item["sources"].append(_page_ref(doc, page))
+                item["doc_ids"].add(doc.id)
+
+    for item in candidates.values():
+        item["score"] += 3 * len(item["doc_ids"])
+    return candidates
+
+
 def _find_sourced(
     documents: list[Document],
     patterns: list[str],
     preferred_types: tuple[str, ...] | None = None,
     fallback_all: bool = True,
 ):
-    preferred = [
-        d for d in documents
-        if not preferred_types or d.type in preferred_types
-    ]
+    preferred = [d for d in documents if not preferred_types or d.type in preferred_types]
     ordered = preferred[:]
     if fallback_all:
         ordered += [d for d in documents if d not in preferred]
@@ -52,11 +223,7 @@ def _find_sourced(
                 if m:
                     value = re.sub(r"\s+", " ", m.group(1)).strip(" \t\n:;,.–—-")
                     if value:
-                        return value, PageRef(
-                            file=doc.file,
-                            page=page,
-                            document_id=doc.id,
-                        )
+                        return value, _page_ref(doc, page)
     return None, None
 
 
@@ -76,13 +243,11 @@ def _find_all_identifiers(
                 if value and value not in values:
                     values.append(value)
                     if first_source is None:
-                        first_source = PageRef(file=doc.file, page=page, document_id=doc.id)
+                        first_source = _page_ref(doc, page)
     return values, first_source
 
 
 def _safe_quantity_sourced(documents: list[Document]):
-    # Prioridade semântica: primeiro procuramos declaração explícita de quantidade
-    # total/contratada em TODAS as peças seguras; só depois usamos inferência pelo objeto.
     safe_types = ("contrato","ata_registro_precos","empenho","ordem_fornecimento","termo_referencia")
     safe_docs = [d for d in documents if d.type in safe_types]
     patterns = [
@@ -96,16 +261,18 @@ def _safe_quantity_sourced(documents: list[Document]):
                 if m:
                     value = re.sub(r"\s+", " ", m.group(1)).strip(" \t\n:;,.–—-")
                     if value:
-                        return value, PageRef(file=doc.file, page=page, document_id=doc.id)
+                        return value, _page_ref(doc, page)
     return None, None
 
 
 def build_profile(documents: list[Document]) -> ProcessProfile:
     sources: dict[str, PageRef] = {}
+    conflicts: dict[str, list[str]] = {}
+    conflict_sources: dict[str, list[PageRef]] = {}
 
     process_number, src = _find_sourced(
         documents,
-        [r"Processo Administrativo de Penaliza[cç][aã]o\s*(?:n[ºo.]?)?\s*[:.-]?\s*([0-9./-]+)"],
+        [r"Processo Administrativo de Penaliza[cç][aã]o\s*(?:n\s*[º°o.]*)?\s*[:.-]?\s*(\d{1,8}(?:[-.]\d+)?/\d{4})"],
     )
     if src:
         sources["process_number"] = src
@@ -113,40 +280,34 @@ def build_profile(documents: list[Document]) -> ProcessProfile:
     origin_process, src = _find_sourced(
         documents,
         [
-            r"(?:Processo|Protocolo)\s+(?:de\s+origem\s+)?(?:n[ºo.]?)?\s*[:.-]?\s*([0-9][0-9./-]{2,})",
-            r"\bPROCESSO\s+N[ºO.]?\s*[:.-]\s*([0-9][0-9./-]{2,})",
+            r"(?:Processo|Protocolo)\s+(?:de\s+origem\s+)?(?:n\s*[º°o.]*)?\s*[:.-]?\s*(\d[\d.-]*/\d{4})",
+            r"\bPROCESSO\s+N\s*[º°O.]*\s*[:.-]\s*(\d[\d.-]*/\d{4})",
         ],
     )
     if src:
         sources["origin_process"] = src
 
-    preferred_contractual = (
-        "contrato","ata_registro_precos","empenho","ordem_fornecimento",
-        "termo_referencia","notificacao","decisao","defesa"
-    )
-
-    company, src = _find_sourced(
-        documents,
-        [
-            r"(?:Empresa|Contratada|Interessada)\s*[:.-]\s*([^\n]{3,120})",
-            r"\bempresa\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9][A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9 .&-]{4,100}(?:LTDA|S/A|EIRELI))\b",
-        ],
-        preferred_types=preferred_contractual,
-    )
+    company_candidates = _collect_company_candidates(documents)
+    company, src, company_conflicts, company_conflict_sources = _select_candidate(company_candidates)
     if src:
         sources["company"] = src
+    if company_conflicts:
+        conflicts["company"] = company_conflicts
+        conflict_sources["company"] = company_conflict_sources
 
-    cnpj, src = _find_sourced(
-        documents,
-        [r"\bCNPJ(?:/MF)?\s*[:.-]?\s*([0-9./-]{14,20})"],
-        preferred_types=preferred_contractual,
-    )
+    cnpj_candidates = _collect_cnpj_candidates(documents, company)
+    cnpj, src, cnpj_conflicts, cnpj_conflict_sources = _select_candidate(cnpj_candidates)
     if src:
         sources["cnpj"] = src
+    if cnpj_conflicts:
+        conflicts["cnpj"] = cnpj_conflicts
+        conflict_sources["cnpj"] = cnpj_conflict_sources
+
+    id_pattern = r"(\d{1,8}/\d{4})"
 
     pregao, src = _find_sourced(
         documents,
-        [r"\bPreg[aã]o(?:\s+Eletr[oô]nico)?\s*(?:n[ºo.]?|n[uú]mero)?\s*[:.-]?\s*([0-9./-]+)"],
+        [r"\bPreg[aã]o(?:\s+Eletr[oô]nico)?\s*(?:n\s*[º°o.]*|n[uú]mero)?\s*[:.-]?\s*" + id_pattern],
         preferred_types=("pregao","edital","contrato","ata_registro_precos","notificacao","decisao"),
     )
     if src:
@@ -154,7 +315,7 @@ def build_profile(documents: list[Document]) -> ProcessProfile:
 
     ata, src = _find_sourced(
         documents,
-        [r"\bAta\s+de\s+Registro\s+de\s+Pre[cç]os\s*(?:n[ºo.]?|n[uú]mero)?\s*[:.-]?\s*([0-9./-]+)"],
+        [r"\bAta\s+de\s+Registro\s+de\s+Pre[cç]os\s*(?:n\s*[º°o.]*|n[uú]mero)?\s*[:.-]?\s*" + id_pattern],
         preferred_types=("ata_registro_precos","contrato","ordem_fornecimento","notificacao"),
     )
     if src:
@@ -163,7 +324,7 @@ def build_profile(documents: list[Document]) -> ProcessProfile:
     contrato, src = _find_sourced(
         documents,
         [
-            r"\bContrato(?:\s+Administrativo|\s+de\s+Fornecimento(?:\s+de\s+Mercadorias)?)?\s*(?:n[ºo.]?|n[uú]mero)?\s*[:.-]?\s*([0-9./-]+)"
+            r"\bContrato(?:\s+Administrativo|\s+de\s+Fornecimento(?:\s+de\s+Mercadorias)?)?\s*(?:n\s*[º°o.]*|n[uú]mero)?\s*[:.-]?\s*" + id_pattern
         ],
         preferred_types=("contrato","notificacao","decisao","parecer_juridico","defesa"),
     )
@@ -172,7 +333,7 @@ def build_profile(documents: list[Document]) -> ProcessProfile:
 
     empenhos, src = _find_all_identifiers(
         documents,
-        r"\b(?:Nota\s+de\s+Empenho|Empenho)\s*(?:n[ºo.]?|n[uú]mero)?\s*[:.-]?\s*([0-9./-]+)",
+        r"\b(?:Nota\s+de\s+Empenho|Empenho)\s*(?:n\s*[º°o.]*|n[uú]mero)?\s*[:.-]?\s*" + id_pattern,
         preferred_types=("empenho","contrato","ordem_fornecimento","relatorio_tecnico","notificacao"),
     )
     if src:
@@ -205,6 +366,8 @@ def build_profile(documents: list[Document]) -> ProcessProfile:
         object_description=object_description,
         quantity=quantity,
         sources=sources,
+        conflicts=conflicts,
+        conflict_sources=conflict_sources,
     )
 
 def item(key: str, label: str, status: str, reason: str, docs=None) -> ChecklistItem:
