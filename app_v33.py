@@ -2553,3 +2553,189 @@ HTML = HTML.replace(
     "Usa um modelo institucional fixo e preenche apenas dados validados nos autos. Informações sem evidência suficiente permanecem entre colchetes para conferência humana."
 )
 HTML = HTML.replace("VERSÃO 4.2 · MINUTA INSTITUCIONAL LIMPA","VERSÃO 5.0 · MODELO FIXO VALIDADO")
+
+
+# --- Processo modelo completo v5.1 ---
+# Caso fictício "golden set" para demonstrar e testar o ciclo inteiro:
+# contratação -> cobrança -> justificativa -> apuração -> notificação -> defesa -> análise -> decisão.
+
+@app.get("/api/demo-pdf")
+def demo_pdf():
+    pages = [
+        (
+            "PROTOCOLO DE ORIGEM Nº 1-9000/2026",
+            "DOCUMENTO FICTÍCIO PARA DEMONSTRAÇÃO. Município Demonstração/RO. Interessado: Secretaria Municipal de Saúde. "
+            "Assunto: aquisição de kits de higiene bucal e apuração de possível inexecução contratual. "
+            "Este processo modelo foi criado exclusivamente para testes do Fiscaliza.AI Municipal."
+        ),
+        (
+            "NOTA DE EMPENHO Nº 1450/2026",
+            "Emitida em 10 de abril de 2026. Pedido nº 02148/2026. Ata de Registro de Preços nº 083/2026. "
+            "Pregão Eletrônico nº 071/2026. Contratada: EMPRESA MODELO DEMONSTRAÇÃO LTDA, CNPJ 00.000.000/0000-00. "
+            "Objeto: fornecimento de 500 kits de higiene bucal, marca DEMO, ao valor unitário de R$ 4,30, total de R$ 2.150,00. "
+            "Prazo de entrega: 30 dias após o recebimento da Nota de Empenho."
+        ),
+        (
+            "CONTRATO ADMINISTRATIVO Nº 140/2026",
+            "CONTRATANTE: Município Demonstração/RO. CONTRATADA: EMPRESA MODELO DEMONSTRAÇÃO LTDA, CNPJ 00.000.000/0000-00. "
+            "Objeto: fornecimento de 500 kits de higiene bucal, vinculado ao Pregão Eletrônico nº 071/2026 e à Ata de Registro de Preços nº 083/2026. "
+            "CLÁUSULA QUARTA - PRAZO: entrega integral em até 30 dias após a ciência da Nota de Empenho. "
+            "CLÁUSULA DÉCIMA SEGUNDA - SANÇÕES: aplicam-se as regras da Lei Federal nº 14.133/2021 e do Decreto Municipal Demonstrativo nº 405/2023."
+        ),
+        (
+            "ORDEM DE FORNECIMENTO Nº 02148/2026",
+            "Em 11 de abril de 2026, fica autorizada a entrega de 500 kits de higiene bucal referentes ao Contrato nº 140/2026, "
+            "Nota de Empenho nº 1450/2026, Ata de Registro de Preços nº 083/2026 e Pregão Eletrônico nº 071/2026. "
+            "Local de entrega: Almoxarifado Central. Prazo: 30 dias."
+        ),
+        (
+            "COMPROVANTE DE ENVIO E CIÊNCIA",
+            "Em 11 de abril de 2026, a Nota de Empenho nº 1450/2026 e a Ordem de Fornecimento nº 02148/2026 foram encaminhadas "
+            "ao endereço eletrônico cadastrado pela empresa. A contratada confirmou ciência em 12 de abril de 2026. "
+            "Considerando o prazo de 30 dias, o término previsto para entrega ocorreu em 12 de maio de 2026."
+        ),
+        (
+            "NOTIFICAÇÃO EXTRAJUDICIAL Nº 01/ALMOXARIFADO/2026",
+            "Em 18 de maio de 2026, diante da ausência de entrega dos 500 kits, fica a EMPRESA MODELO DEMONSTRAÇÃO LTDA NOTIFICADA "
+            "para regularizar a obrigação ou apresentar justificativa no prazo de 5 dias úteis. "
+            "Esta cobrança administrativa antecede o processo sancionador e não corresponde ao prazo de defesa do processo de penalização."
+        ),
+        (
+            "MANIFESTAÇÃO DA EMPRESA - PEDIDO DE CANCELAMENTO",
+            "Em 20 de maio de 2026, a EMPRESA MODELO DEMONSTRAÇÃO LTDA informou que seu fabricante interrompeu temporariamente "
+            "a produção do creme dental utilizado nos kits. A empresa alegou impossibilidade de cumprir a obrigação nas condições originais, "
+            "afirmou ter buscado produto substituto equivalente e requereu cancelamento da Nota de Empenho nº 1450/2026 sem aplicação de penalidade. "
+            "Juntou declaração do fabricante e três cotações de fornecedores alternativos."
+        ),
+        (
+            "RELATÓRIO TÉCNICO Nº 009/2026",
+            "A fiscalização registra que, até 28 de maio de 2026, não houve entrega total nem parcial dos 500 kits contratados. "
+            "A justificativa da empresa foi recebida, porém as cotações juntadas não demonstram, por si sós, impossibilidade absoluta de cumprimento. "
+            "A necessidade dos kits permanece ativa para atendimento da rede municipal. Recomenda-se remessa à Comissão de Penalização para apuração."
+        ),
+        (
+            "OFÍCIO Nº 65/SAÚDE/2026",
+            "Em 30 de maio de 2026, a Secretaria Municipal de Saúde confirma a não entrega dos materiais e informa que a justificativa apresentada "
+            "é relevante para a apuração, mas não permite concluir automaticamente pelo afastamento da responsabilidade. "
+            "A unidade solicita análise sobre eventual inexecução total e encaminha os autos à Comissão Permanente de Penalização."
+        ),
+        (
+            "PARECER JURÍDICO PRELIMINAR Nº 012/2026",
+            "A Lei Federal nº 14.133/2021, em seu art. 155, prevê responsabilização administrativa por infrações praticadas pelo licitante ou contratado. "
+            "O art. 156 disciplina as sanções administrativas e seus critérios. O art. 158 assegura processo de responsabilização com contraditório e ampla defesa "
+            "nas hipóteses legalmente previstas. O Decreto Municipal Demonstrativo nº 405/2023 regulamenta o procedimento local. "
+            "Recomenda-se instauração de processo administrativo de penalização, sem antecipação de juízo definitivo."
+        ),
+        (
+            "DECISÃO ADMINISTRATIVA - INSTAURAÇÃO",
+            "Processo Administrativo de Penalização nº 2-0001/2026. "
+            "Considerando o Protocolo de origem nº 1-9000/2026, o Relatório Técnico nº 009/2026 e o Parecer Jurídico Preliminar nº 012/2026, "
+            "DETERMINO a instauração do Processo Administrativo de Penalização nº 2-0001/2026 para apurar possível inexecução total relacionada "
+            "ao Contrato nº 140/2026, à Nota de Empenho nº 1450/2026, à Ata de Registro de Preços nº 083/2026 e ao Pregão Eletrônico nº 071/2026. "
+            "A Comissão deverá assegurar contraditório, ampla defesa e produção de provas."
+        ),
+        (
+            "ATO DE INSTAURAÇÃO E REGRAS DE DEFESA",
+            "Processo Administrativo de Penalização nº 2-0001/2026. "
+            "Nos termos do art. 158 da Lei Federal nº 14.133/2021 e do art. 18 do Decreto Municipal Demonstrativo nº 405/2023, "
+            "a empresa será NOTIFICADA E INTIMADA para apresentar defesa escrita e especificar as provas que pretenda produzir no prazo de "
+            "15 (quinze) dias úteis, contado do primeiro dia útil seguinte à publicação da notificação. "
+            "A defesa e os respectivos documentos deverão ser encaminhados exclusivamente para comissaopenalizacao@municipiodemonstracao.gov.br."
+        ),
+        (
+            "NOTIFICAÇÃO EXTRAJUDICIAL Nº 16/COMISSÃO DE PENALIZAÇÃO/2026",
+            "Processo Administrativo de Penalização nº 2-0001/2026. Ata de Registro de Preços nº 083/2026. Pregão Eletrônico nº 071/2026. "
+            "Nota de Empenho nº 1450/2026. Empresa: EMPRESA MODELO DEMONSTRAÇÃO LTDA. CNPJ: 00.000.000/0000-00. "
+            "NOTIFICA E INTIMA a empresa acerca da instauração do processo destinado à apuração de possível inexecução total. "
+            "A presente notificação não representa imputação definitiva ou aplicação antecipada de penalidade. "
+            "A defesa escrita e as provas deverão ser apresentadas em 15 (quinze) dias úteis e encaminhadas exclusivamente para "
+            "comissaopenalizacao@municipiodemonstracao.gov.br."
+        ),
+        (
+            "DEFESA ADMINISTRATIVA",
+            "A EMPRESA MODELO DEMONSTRAÇÃO LTDA apresenta DEFESA ADMINISTRATIVA no Processo Administrativo de Penalização nº 2-0001/2026. "
+            "Alega fato superveniente relacionado à interrupção temporária da produção pelo fabricante, sustenta ter buscado produtos equivalentes, "
+            "afirma ausência de má-fé e requer o afastamento da penalidade. Subsidiariamente, requer que eventual sanção observe proporcionalidade "
+            "e considere sua cooperação, a comunicação à Administração e a ausência de antecedentes."
+        ),
+        (
+            "DA DEFESA - DOCUMENTOS E PEDIDOS",
+            "A contratada junta declaração do fabricante, três cotações alternativas e registros de e-mail enviados à Administração. "
+            "Requer produção de prova documental complementar e, se necessário, diligência junto ao fabricante. "
+            "Pede o reconhecimento de justificativa suficiente para afastar a responsabilização ou, subsidiariamente, a aplicação da medida menos gravosa cabível."
+        ),
+        (
+            "RELATÓRIO TÉCNICO APÓS DEFESA Nº 014/2026",
+            "A fiscalização confirma que não houve entrega dos 500 kits. Os documentos juntados demonstram dificuldade de fornecimento pelo fabricante original, "
+            "mas não comprovam impossibilidade absoluta de aquisição de produto equivalente durante todo o período contratual. "
+            "Registra-se, contudo, que a empresa comunicou a dificuldade antes da instauração do processo sancionador e apresentou documentos de suporte."
+        ),
+        (
+            "PARECER JURÍDICO FINAL Nº 019/2026",
+            "A defesa foi apresentada tempestivamente. Devem ser considerados o art. 155 e os critérios do art. 156 da Lei Federal nº 14.133/2021, "
+            "bem como as circunstâncias atenuantes e os elementos probatórios juntados. O processo observou o art. 158 da Lei nº 14.133/2021 quanto ao contraditório "
+            "e à ampla defesa. Recomenda-se decisão motivada, com enfrentamento dos argumentos relevantes e dosimetria individualizada."
+        ),
+        (
+            "DECISÃO ADMINISTRATIVA FINAL",
+            "Processo Administrativo de Penalização nº 2-0001/2026. Após análise da defesa, dos documentos e dos pareceres, "
+            "DECIDO reconhecer a ocorrência de inexecução total da obrigação, mas considero as circunstâncias atenuantes demonstradas. "
+            "APLICO, para fins exclusivamente deste caso fictício de demonstração, a sanção de advertência. "
+            "A decisão é motivada, encerra a fase de julgamento administrativo em primeira instância e informa que eventual recurso observará a legislação aplicável."
+        )
+    ]
+
+    buf=io.BytesIO()
+    cnv=canvas.Canvas(buf,pagesize=A4)
+    for idx,(title,body) in enumerate(pages,start=1):
+        cnv.setFont("Helvetica-Bold",14)
+        cnv.drawString(52,790,title)
+        cnv.setFont("Helvetica",10)
+        _demo_wrap(cnv,body)
+        cnv.setFont("Helvetica-Bold",8)
+        cnv.drawString(52,35,"FISCALIZA.AI - PROCESSO MODELO FICTÍCIO")
+        cnv.setFont("Helvetica",8)
+        cnv.drawRightString(545,35,"Página %d de %d" % (idx,len(pages)))
+        cnv.showPage()
+    cnv.save();buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition":"inline; filename=Processo-Modelo-Completo-FiscalizaAI.pdf"}
+    )
+
+# Análise distingue instauração de sanção final quando ambas existem.
+_previous_analyze_pages = analyze_pages
+def analyze_pages(pages):
+    a=_previous_analyze_pages(pages)
+    final_sanction=snippets(
+        pages,
+        [r"\baplico\b.{0,160}\bsanc",r"\bdecido\b.{0,220}\baplicar\b",r"\bsancao de advertencia\b",
+         r"\bsancao de multa\b",r"\bimpedimento de licitar\b",r"\bdeclaracao de inidoneidade\b"],
+        4
+    )
+    a["final_sanction"]=final_sanction
+    if final_sanction and a["has"].get("decisao"):
+        a["conclusion"]="Foram localizadas peças de contraditório, instrução e decisão final. A ferramenta organiza as evidências e indica as fontes; a revisão humana permanece obrigatória."
+        # A instauração anterior deixa de aparecer como única cautela quando há julgamento final.
+        a["pending"]=[p for p in a.get("pending",[]) if "não presuma sanção final" not in p.lower()]
+    return a
+
+# Atualiza a apresentação do caso demonstrativo.
+HTML = HTML.replace(
+    "Carregue um processo inteiramente fictício de entrega parcial. O sistema executa a mesma análise usada para qualquer PDF enviado.",
+    "Carregue um processo modelo inteiramente fictício, com contratação, cobrança, justificativa, instauração, notificação, defesa, pareceres e decisão final. O sistema executa a mesma análise usada para qualquer PDF enviado."
+)
+HTML = HTML.replace(
+    "<span>11 páginas</span><span>dados fictícios</span><span>sem cadastro</span>",
+    "<span>18 páginas</span><span>ciclo completo</span><span>dados fictícios</span>"
+)
+HTML = HTML.replace(
+    ">Testar demonstração →</button>",
+    ">Testar processo modelo →</button>"
+)
+HTML = HTML.replace(
+    'st.textContent="Demonstração fictícia carregada · "+d.pages+" páginas · análise real executada"',
+    'st.textContent="Processo modelo carregado · "+d.pages+" páginas · análise real executada"'
+)
+HTML = HTML.replace("VERSÃO 5.0 · MODELO FIXO VALIDADO","VERSÃO 5.1 · PROCESSO MODELO COMPLETO")
