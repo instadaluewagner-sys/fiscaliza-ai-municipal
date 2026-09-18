@@ -84,6 +84,9 @@ function formatIsoDate(value){
 function pendingKindLabel(kind){
   return {missing:"Pendência",review:"Conferência",next_step:"Próximo passo"}[kind]||kind;
 }
+function evidenceCategoryLabel(category){
+  return {fact:"Fato",procedural:"Processual",defense:"Defesa",legal:"Jurídico",decision:"Decisão"}[category]||"Evidência";
+}
 
 async function openDocument(documentId,page){
   if(!currentAnalysisId)return;
@@ -179,8 +182,8 @@ function renderAnalysis(a,meta){
   const evidenceHtml=evidence.length?evidence.map(function(e,i){
     return '<div class="evidence-row" tabindex="0" role="button" onclick="openDocument(\''+esc(e.document_id)+'\','+Number(e.page)+')" onkeydown="if(event.key===\'Enter\')this.click()">'+
       '<span class="evidence-num">'+(i+1)+'</span>'+
-      '<div><b>'+esc(e.fact)+'</b><p>'+esc(e.excerpt)+'</p></div>'+
-      '<span class="evidence-source">'+esc(e.document_id)+' · p. '+esc(e.page)+'</span>'+
+      '<div><span class="evidence-kind">'+esc(evidenceCategoryLabel(e.category))+'</span><b>'+esc(e.fact)+'</b><p>'+esc(e.excerpt)+'</p></div>'+
+      '<div class="evidence-meta"><span class="evidence-source">'+esc(e.document_id)+' · p. '+esc(e.page)+'</span><span>'+Math.round((e.confidence||0)*100)+'%</span></div>'+
     '</div>';
   }).join(""):'<div class="check-card"><small>Evidências</small><b class="neutral">Nenhuma evidência prioritária extraída nesta versão.</b></div>';
 
