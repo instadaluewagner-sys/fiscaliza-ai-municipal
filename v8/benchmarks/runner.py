@@ -1,11 +1,40 @@
 import argparse
 import json
 from pathlib import Path
+import re
+import unicodedata
 
 from v8.modules.penalizacao import analyze_penalizacao
 from v8.services.document_segmenter import segment_documents
 from v8.services.pdf_reader import extract_pages
 
+
+def norm_text(value) -> str:
+    if value is None:
+        return ""
+    s = unicodedata.normalize("NFKD", str(value))
+    s = "".join(ch for ch in s if not unicodedata.combining(ch))
+    s = re.sub(r"\s+", " ", s).strip().lower()
+    return s
+
+
+def profile_match(actual, expected) -> bool:
+    if expected is None:
+        return actual in (None, "", [], {})
+    if isinstance(expected, list):
+        actual_values = actual or []
+        normalized_actual = {norm_text(y) for y in actual_values}
+        return all(norm_text(x) in normalized_actual for x in expected)
+
+    a = norm_text(actual)
+    e = norm_text(expected)
+    if not a:
+        return False
+
+    identifier_like = bool(re.fullmatch(r"[0-9./-]+", e))
+    if identifier_like:
+        return a == e
+    return e in a or a in e
 
 def expected_pages(exp: dict) -> set[int]:
     if exp.get("content_pages"):
@@ -97,6 +126,22 @@ def evaluate(pdf_path: Path, benchmark_path: Path) -> dict:
     expected_stage = benchmark.get("expected_stage")
     stage_ok = analysis.stage.key == expected_stage if expected_stage else None
 
+    profile_expected = benchmark.get("profile_expectations", {})
+    profile_actual = analysis.profile.model_dump(exclude={"sources"})
+    profile_checks = {}
+    for key, expected in profile_expected.items():
+        actual = profile_actual.get(key)
+        profile_checks[key] = {
+            "expected": expected,
+            "actual": actual,
+            "matched": profile_match(actual, expected),
+        }
+    profile_accuracy = (
+        sum(1 for x in profile_checks.values() if x["matched"]) / len(profile_checks)
+        if profile_checks
+        else None
+    )
+
     return {
         "case_id": benchmark.get("case_id"),
         "pages": len(pages),
@@ -115,6 +160,12 @@ def evaluate(pdf_path: Path, benchmark_path: Path) -> dict:
         "stage_match": stage_ok,
         "suggested_draft": analysis.stage.suggested_draft,
         "integrity_warnings": analysis.warnings,
+        "profile_accuracy": profile_accuracy,
+        "profile_checks": profile_checks,
+        "profile_sources": {
+            key: value.model_dump()
+            for key, value in analysis.profile.sources.items()
+        },
         "documents": doc_results,
     }
 
@@ -145,6 +196,12 @@ def main():
         default=None,
         help="Retorna código 4 se o IoU médio de fronteiras ficar abaixo deste limite.",
     )
+    parser.add_argument(
+        "--fail-below-profile",
+        type=float,
+        default=None,
+        help="Retorna código 5 se a precisão do perfil ficar abaixo deste limite.",
+    )
     args = parser.parse_args()
 
     result = evaluate(Path(args.pdf), Path(args.benchmark))
@@ -163,6 +220,9 @@ def main():
     if args.fail_below_boundary is not None and result["boundary_mean_iou"] is not None:
         if result["boundary_mean_iou"] < args.fail_below_boundary:
             raise SystemExit(4)
+    if args.fail_below_profile is not None and result["profile_accuracy"] is not None:
+        if result["profile_accuracy"] < args.fail_below_profile:
+            raise SystemExit(5)
 
 
 if __name__ == "__main__":
