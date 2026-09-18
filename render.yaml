@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: fiscaliza-ai-municipal
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: OCR_LANG
+        value: por+eng
