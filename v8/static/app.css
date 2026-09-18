@@ -151,3 +151,8 @@ header p,.note,.panel p{color:var(--muted)}
 .profile-conflict>strong{display:block;color:#9a6900;font-size:7.8px;text-transform:uppercase;letter-spacing:.05em}
 .profile-conflict>span{display:flex;align-items:center;gap:5px;flex-wrap:wrap;color:#765d2d;font-size:8px;margin-top:4px}
 .profile-conflict button{border:0;background:#fff4dc;color:#8a5e00;border-radius:999px;padding:3px 5px;font-size:7.5px;font-weight:800}
+
+
+.summary-buttons{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.summary-buttons button{padding:6px 9px;font-size:8.5px}
+@media(max-width:760px){.summary-actions{align-items:flex-start}.summary-buttons{justify-content:flex-start}}
