@@ -563,9 +563,9 @@ def build_checklist(documents: list[Document], stage: StageResult | None = None)
         ),
         item(
             "decisao",
-            "Decisão sancionadora",
+            "Decisão final do PAS",
             "located" if by.get("decisao") else "not_found",
-            "Decisão localizada." if by.get("decisao") else "Decisão sancionadora não localizada.",
+            "Peça classificada como decisão localizada." if by.get("decisao") else "Decisão final do PAS não localizada.",
             by.get("decisao"),
         ),
         item(
@@ -600,7 +600,7 @@ def build_checklist(documents: list[Document], stage: StageResult | None = None)
             "parecer_tecnico":"Análise técnica sancionadora depende da instauração e da instrução.",
             "parecer_juridico":"Manifestação jurídica sancionadora depende do rito e da fase.",
             "relatorio_conclusivo":"Relatório conclusivo pertence a etapa futura.",
-            "decisao":"Decisão sancionadora pertence a etapa futura.",
+            "decisao":"Decisão final do PAS pertence a etapa futura.",
             "recurso":"Fase recursal ainda não iniciada.",
         }.items():
             set_state(key, "not_applicable", reason, clear_sources=True)
@@ -639,7 +639,7 @@ def build_checklist(documents: list[Document], stage: StageResult | None = None)
         set_state("recurso","not_applicable","Fase recursal depende da decisão.",True)
 
     elif stage.key == "julgamento":
-        set_state("recurso","inconclusive","Decisão sancionadora localizada; conferir ciência, prazo e eventual recurso.",False)
+        set_state("recurso","inconclusive","Decisão final do PAS localizada; conferir ciência, prazo e eventual recurso.",False)
 
     if stage.key == "instauracao_sancionadora_autorizada":
         # O PDF analisado é o processo de origem. Atos nele existentes podem pertencer
