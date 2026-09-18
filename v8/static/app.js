@@ -53,6 +53,14 @@ function typeLabel(type){
   return labels[type]||type;
 }
 function profileValue(v){return v?esc(v):"Não identificado com segurança";}
+function profileSourceHtml(p,key){
+  const src=(p.sources||{})[key];
+  if(!src||!src.document_id)return '<span class="profile-source missing">Sem fonte segura</span>';
+  return '<button class="profile-source" onclick="openDocument(\''+esc(src.document_id)+'\','+Number(src.page)+')">'+esc(src.document_id)+' · p. '+esc(src.page)+'</button>';
+}
+function profileCard(p,label,key,value){
+  return '<div class="profile-card"><small>'+esc(label)+'</small><b>'+profileValue(value)+'</b>'+profileSourceHtml(p,key)+'</div>';
+}
 
 function formatIsoDate(value){
   if(!value)return "Data não identificada";
@@ -190,12 +198,18 @@ function renderAnalysis(a,meta){
     '<div id="stageDraft"></div>'+
     '<div class="section-title"><h3>Pendências e próximo passo</h3><span>Ausência ≠ não aplicabilidade</span></div><div class="pending-list">'+pendingHtml+'</div>'+
     '<div class="section-title"><h3>Cronologia essencial</h3><span>Clique para abrir a fonte</span></div><div class="timeline-list">'+timelineHtml+'</div>'+
-    '<div class="section-title"><h3>Perfil extraído</h3><span>Somente quando há suporte documental</span></div>'+
-    '<div class="check-grid">'+
-      '<div class="check-card"><small>Empresa</small><b class="neutral">'+profileValue(p.company)+'</b></div>'+
-      '<div class="check-card"><small>CNPJ</small><b class="neutral">'+profileValue(p.cnpj)+'</b></div>'+
-      '<div class="check-card"><small>Objeto</small><b class="neutral">'+profileValue(p.object_description)+'</b></div>'+
-      '<div class="check-card"><small>Quantidade</small><b class="neutral">'+profileValue(p.quantity)+'</b></div>'+
+    '<div class="section-title"><h3>Identificação e contratação</h3><span>Cada dado aponta para DOC-ID + página</span></div>'+
+    '<div class="profile-grid">'+
+      profileCard(p,"Processo de penalização","process_number",p.process_number)+
+      profileCard(p,"Processo / protocolo de origem","origin_process",p.origin_process)+
+      profileCard(p,"Pregão","pregao",p.pregao)+
+      profileCard(p,"Ata de Registro de Preços","ata",p.ata)+
+      profileCard(p,"Contrato","contrato",p.contrato)+
+      profileCard(p,"Nota(s) de Empenho","empenhos",(p.empenhos||[]).join(", "))+ 
+      profileCard(p,"Empresa / interessada","company",p.company)+
+      profileCard(p,"CNPJ","cnpj",p.cnpj)+
+      profileCard(p,"Objeto","object_description",p.object_description)+
+      profileCard(p,"Quantidade","quantity",p.quantity)+
     '</div>'+
     '<div class="section-title"><h3>Documentos autônomos</h3><span>Clique para abrir a fonte</span></div><div class="doc-list">'+docsHtml+'</div>'+
     '<div class="section-title"><h3>Evidências prioritárias</h3><span>DOC-ID + página exata</span></div><div class="evidence-list">'+evidenceHtml+'</div>'+
