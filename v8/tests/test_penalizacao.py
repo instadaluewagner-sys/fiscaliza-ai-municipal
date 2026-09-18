@@ -13,7 +13,7 @@ def test_decisao_final_nao_sugere_notificacao_de_instauracao():
         doc(2,"notificacao","NOTIFICAÇÃO EXTRAJUDICIAL. Apresente defesa.",2),
         doc(3,"defesa","DEFESA ADMINISTRATIVA. A empresa requer improcedência.",3),
         doc(4,"relatorio_conclusivo","RELATÓRIO CONCLUSIVO DA COMISSÃO",4),
-        doc(5,"decisao","DECISÃO ADMINISTRATIVA FINAL. DECIDO pela aplicação da medida cabível.",5),
+        doc(5,"decisao","PROCESSO ADMINISTRATIVO DE PENALIZAÇÃO. DECISÃO ADMINISTRATIVA FINAL. DECIDO e APLICO A SANÇÃO de multa à empresa.",5),
     ]
     result=analyze_penalizacao(docs)
     assert result.stage.key=="julgamento"
