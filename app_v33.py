@@ -6153,3 +6153,211 @@ def _enrich_doc_refs(a,pages):
     return a
 
 HTML=HTML.replace("VERSÃO 7.2 · ACABAMENTO COMERCIAL","VERSÃO 7.3 · DADOS CONTEXTUALIZADOS")
+
+
+# --- Penalização: dossiê documental profissional v7.4 ---
+def _first_hit_pages(pages, patterns, limit=8):
+    hits=[]
+    regs=[re.compile(p,re.I) for p in patterns]
+    for p in pages:
+        z=norm(p.get("text") or "")
+        if any(rx.search(z) for rx in regs):
+            hits.append(p["page"])
+    return sorted(set(hits))[:limit]
+
+def _penalty_metadata_v74(pages):
+    md=_validated_metadata(pages)
+    return {
+        "penalizacao":_clean_profile_value(md.get("penalizacao")) or "Não identificado",
+        "origem":_clean_profile_value(md.get("origem")) or "Não identificado",
+        "pregao":_clean_profile_value(md.get("pregao")) or "Não identificado",
+        "ata":_clean_profile_value(md.get("ata")) or "Não identificada",
+        "contrato":_clean_profile_value(md.get("contrato")) or "Não identificado",
+        "empenho":_clean_profile_value(md.get("empenho")) or "Não identificado",
+        "empresa":_clean_profile_value(md.get("empresa")) or "Não identificada",
+        "cnpj":_clean_profile_value(md.get("cnpj")) or "Não identificado"
+    }
+
+def _penalty_dossier_v74(pages,a):
+    # Itens recorrentes na instrução dos processos de penalização:
+    # identificação da contratação, execução/fato, contraditório, instrução e desfecho.
+    specs=[
+        ("Identificação da contratação",[
+            ("Processo de penalização",[r"processo administrativo de penaliza",r"\bpap\b.{0,40}\d"]),
+            ("Processo originário / vinculado",[r"processo.{0,30}(?:originario|origem|vinculado)",r"protocolo.{0,30}\d"]),
+            ("Pregão / processo licitatório",[r"pregao(?: eletronico)?",r"processo licitatorio"]),
+            ("Ata de Registro de Preços",[r"ata de registro de precos",r"\barp\b"]),
+            ("Contrato ou instrumento equivalente",[r"\bcontrato(?: administrativo)?\b",r"instrumento contratual"]),
+            ("Nota de Empenho / Pedido",[r"nota de empenho",r"\bempenho\b",r"\bpedido\b.{0,50}\bfornecimento\b"]),
+            ("Ordem / Autorização de fornecimento",[r"ordem de fornecimento",r"autorizacao de fornecimento"]),
+            ("Edital / Termo de Referência",[r"\bedital\b",r"termo de referencia"])
+        ]),
+        ("Execução e fato apurado",[
+            ("Ofício / comunicação da unidade demandante",[r"\boficio\b",r"secretaria.{0,80}(?:informa|encaminha|relata)"]),
+            ("Relatório do fiscal / gestor",[r"relatorio.{0,50}(?:fiscal|tecnico|execucao)",r"manifestacao.{0,40}(?:fiscal|gestor|tecnica)"]),
+            ("Entrega / recebimento / instalação",[r"\bentrega\b",r"\brecebimento\b",r"\binstalacao\b"]),
+            ("Nota fiscal / documento de execução",[r"nota fiscal",r"\bdanfe\b",r"documento de execucao"]),
+            ("Prorrogação / reajuste / reequilíbrio",[r"\bprorrog",r"\breajust",r"\breequilibr"])
+        ]),
+        ("Contraditório e prova",[
+            ("Notificação / intimação",[r"\bnotificacao\b",r"\bintimacao\b"]),
+            ("Comprovante de envio / publicação / ciência",[r"comprovante.{0,50}(?:envio|ciencia|recebimento)",r"\bpublicacao\b",r"\bvisualizacao\b",r"confirmacao de ciencia"]),
+            ("Defesa / manifestação da empresa",[r"defesa administrativa",r"razoes de defesa",r"manifestacao da contratada",r"apresenta.{0,50}defesa"]),
+            ("Documentos e provas da defesa",[r"documentos.{0,40}(?:defesa|empresa)",r"\bprovas\b",r"orcamento",r"declaracao.{0,80}(?:fabricante|fornecedor)"]),
+            ("Diligência / prova complementar",[r"\bdiligencia\b",r"prova complementar",r"informacao complementar"])
+        ]),
+        ("Instrução e decisão",[
+            ("Parecer técnico",[r"parecer tecnico",r"relatorio tecnico",r"manifestacao tecnica"]),
+            ("Parecer jurídico / PGM",[r"parecer juridico",r"\bpgm\b",r"procuradoria.{0,50}parecer"]),
+            ("Relatório conclusivo da comissão",[r"relatorio conclusivo",r"relatorio da comissao"]),
+            ("Decisão administrativa",[r"decisao administrativa",r"\bdecido\b",r"\bjulgamento\b"]),
+            ("Sanção / dosimetria, se cabível",[r"\bsancao\b",r"\bpenalidade\b",r"\bdosimetria\b",r"impedimento de licitar",r"inidoneidade"]),
+            ("Recurso / publicação / registro final",[r"recurso administrativo",r"\bpublicacao\b.{0,80}(?:decisao|sancao)",r"registro.{0,40}(?:sancao|penalidade)"])
+        ])
+    ]
+    groups=[]
+    for group,items in specs:
+        rows=[]
+        for label,patterns in items:
+            pgs=_first_hit_pages(pages,patterns)
+            rows.append({
+                "label":label,
+                "ok":bool(pgs),
+                "pages":pgs,
+                "documents":[]
+            })
+        groups.append({"group":group,"rows":rows})
+    return groups
+
+_old_module_overlay_v74=_module_overlay
+def _module_overlay(pages,a,module):
+    a=_old_module_overlay_v74(pages,a,module)
+    if module=="penalizacao":
+        a["penalty_metadata"]=_penalty_metadata_v74(pages)
+        a["penalty_dossier"]=_penalty_dossier_v74(pages,a)
+        total=sum(len(g["rows"]) for g in a["penalty_dossier"])
+        ok=sum(1 for g in a["penalty_dossier"] for r in g["rows"] if r["ok"])
+        a["penalty_dossier_score"]={"ok":ok,"total":total}
+    return a
+
+_old_enrich_doc_refs_v74=_enrich_doc_refs
+def _enrich_doc_refs(a,pages):
+    a=_old_enrich_doc_refs_v74(a,pages)
+    for g in a.get("penalty_dossier",[]) or []:
+        for row in g.get("rows",[]):
+            row["documents"]=_page_doc_refs(pages,None,row.get("pages",[]))
+    return a
+
+_penalty_ui_css = """
+/* Penalização: visual de dossiê, mais próximo de software corporativo */
+.process-facts{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 14px
+}
+.process-fact{
+  min-height:70px;background:#fbfcfd;border:1px solid #dfe7ee;border-radius:9px;padding:10px 11px
+}
+.process-fact small{
+  display:block;color:#708296;font-size:8px;font-weight:850;text-transform:uppercase;letter-spacing:.055em;margin-bottom:5px
+}
+.process-fact strong{
+  display:block;color:#102f49;font-size:11px;line-height:1.35;overflow-wrap:anywhere
+}
+.dossier-shell{
+  background:#fff;border:1px solid #dbe4eb;border-radius:11px;overflow:hidden
+}
+.dossier-head{
+  display:flex;justify-content:space-between;gap:16px;align-items:center;padding:13px 15px;
+  border-bottom:1px solid #e1e8ee;background:#f8fafb
+}
+.dossier-head h3{margin:0;color:#102f49;font-size:13px}
+.dossier-head p{margin:3px 0 0;color:#748598;font-size:9px}
+.dossier-score{
+  white-space:nowrap;border:1px solid #c7dfdb;background:#eff9f7;color:#0b7b70;
+  border-radius:999px;padding:5px 8px;font-size:8.5px;font-weight:850
+}
+.dossier-group+.dossier-group{border-top:1px solid #e5ebf0}
+.dossier-group-title{
+  padding:8px 14px;background:#fbfcfd;color:#66798c;font-size:8.5px;font-weight:900;
+  text-transform:uppercase;letter-spacing:.075em
+}
+.dossier-row{
+  display:grid;grid-template-columns:26px minmax(210px,.95fr) minmax(0,1.55fr) 90px;
+  gap:10px;align-items:center;padding:9px 14px;border-top:1px solid #edf1f4;min-height:48px
+}
+.dossier-row:first-of-type{border-top:0}
+.dossier-state{
+  width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:10px;font-weight:900
+}
+.dossier-state.ok{background:#e8f7f2;color:#087a68}.dossier-state.miss{background:#fff6e8;color:#a46b00}
+.dossier-label{font-size:10.5px;font-weight:800;color:#17334b}
+.dossier-source{font-size:9px;color:#687b8d;min-width:0}
+.dossier-source .ref-stack{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.dossier-status{justify-self:end;font-size:8.5px;font-weight:850}
+.dossier-status.ok{color:#087a68}.dossier-status.miss{color:#a46b00}
+.docs-intro{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:11px
+}
+.docs-intro h2{margin:0!important}.docs-intro p{margin:4px 0 0;color:#6f8193;font-size:9.5px;max-width:760px}
+@media(max-width:980px){
+  .process-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dossier-row{grid-template-columns:26px 1fr 90px}.dossier-source{grid-column:2/-1}
+}
+@media(max-width:620px){
+  .process-facts{grid-template-columns:1fr}
+  .dossier-row{grid-template-columns:26px 1fr}.dossier-status{grid-column:2;justify-self:start}.dossier-source{grid-column:2}
+}
+"""
+HTML=HTML.replace("</style>",_penalty_ui_css+"</style>",1)
+
+_penalty_ui_js = r"""
+function penaltyMetadataFacts(a){
+  var m=a.penalty_metadata||{},q=a.quantity||{};
+  var qv=q.display||q.value||"Não identificado";
+  var facts=[
+    ["Processo de penalização",m.penalizacao],
+    ["Processo originário",m.origem],
+    ["Pregão",m.pregao],
+    ["Ata de Registro de Preços",m.ata],
+    ["Contrato",m.contrato],
+    ["Nota de Empenho",m.empenho],
+    ["Empresa",m.empresa],
+    ["CNPJ",m.cnpj],
+    ["Quantidade / objeto",qv]
+  ];
+  return '<div class="process-facts">'+facts.map(function(x){
+    return '<div class="process-fact"><small>'+esc(x[0])+'</small><strong>'+esc(x[1]||"Não identificado")+'</strong></div>';
+  }).join("")+'</div>';
+}
+function penaltyDossierHtml(a){
+  var groups=a.penalty_dossier||[],score=a.penalty_dossier_score||{ok:0,total:0};
+  var h='<div class="dossier-shell"><div class="dossier-head"><div><h3>Checklist documental do processo</h3><p>Documentos e elementos recorrentes na instrução. “Não identificado” não significa necessariamente ausência; indica necessidade de conferência.</p></div><span class="dossier-score">'+esc(score.ok)+' de '+esc(score.total)+' localizados</span></div>';
+  groups.forEach(function(g){
+    h+='<div class="dossier-group"><div class="dossier-group-title">'+esc(g.group)+'</div>';
+    (g.rows||[]).forEach(function(r){
+      h+='<div class="dossier-row">'+
+        '<span class="dossier-state '+(r.ok?'ok':'miss')+'">'+(r.ok?'✓':'!')+'</span>'+
+        '<div class="dossier-label">'+esc(r.label)+'</div>'+
+        '<div class="dossier-source">'+(r.ok?documentRefHtml(r.documents||[],r.pages||[]):'<span>Sem evidência segura na leitura automática</span>')+'</div>'+
+        '<div class="dossier-status '+(r.ok?'ok':'miss')+'">'+(r.ok?'Localizado':'Conferir')+'</div>'+
+      '</div>';
+    });
+    h+='</div>';
+  });
+  return h+'</div>';
+}
+
+var _oldAjustarResultadoModuloV74=ajustarResultadoModulo;
+ajustarResultadoModulo=function(a){
+  _oldAjustarResultadoModuloV74(a);
+  if(!a||a.module_key!=="penalizacao")return;
+  var structure=acharSectionPorTitulo("Estrutura do processo")||acharSectionPorTitulo("Estrutura esperada do processo");
+  if(structure){
+    structure.innerHTML=
+      '<div class="docs-intro"><div><div class="kicker">Dossiê processual · Penalização contratual</div><h2>Documentos e elementos da instrução</h2><p>A tela reúne a identificação da contratação, fatos de execução, contraditório, provas, pareceres e atos de decisão com referência ao documento e à página.</p></div></div>'+
+      penaltyMetadataFacts(a)+penaltyDossierHtml(a);
+  }
+};
+"""
+HTML=HTML.replace("</script>",_penalty_ui_js+"\n</script>",1)
+
+HTML=HTML.replace("VERSÃO 7.3 · DADOS CONTEXTUALIZADOS","VERSÃO 7.4 · DOSSIÊ DE PENALIZAÇÃO")
