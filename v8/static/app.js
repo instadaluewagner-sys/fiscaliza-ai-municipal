@@ -133,9 +133,14 @@ async function loadCompatibleDraft(){
     const r=await fetch("/api/v8/draft/"+encodeURIComponent(currentAnalysisId));
     const d=await r.json();
     if(!r.ok)throw new Error(d.detail||"Minuta indisponível");
-    const sources=(d.source_document_ids||[]).map(function(id){
-      return '<button class="draft-source" onclick="openDocument(\''+esc(id)+'\')">'+esc(id)+'</button>';
-    }).join("");
+    const sourceRefs=(d.source_refs||[]);
+    const sources=sourceRefs.length
+      ? sourceRefs.map(function(src){
+          return '<button class="draft-source" onclick="openDocument(\''+esc(src.document_id)+'\','+Number(src.page)+')">'+esc(src.document_id)+' · p. '+esc(src.page)+'</button>';
+        }).join("")
+      : (d.source_document_ids||[]).map(function(id){
+          return '<button class="draft-source" onclick="openDocument(\''+esc(id)+'\')">'+esc(id)+'</button>';
+        }).join("");
     const warnings=(d.warnings||[]).map(function(w){return '<div class="draft-warning">• '+esc(w)+'</div>';}).join("");
     target.innerHTML=
       '<div class="draft-panel">'+
