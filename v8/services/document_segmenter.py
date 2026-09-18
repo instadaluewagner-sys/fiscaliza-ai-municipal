@@ -64,20 +64,31 @@ def _has_attachment(lines: list[str]) -> bool:
 def _find_strong_header(lines: list[str]):
     # Até 35 linhas: permite timbre/cabeçalho institucional antes do título,
     # mas não deixa menções do corpo decidirem o tipo da peça.
+    #
+    # Importante: não escolhemos simplesmente a primeira ocorrência. Em peças reais,
+    # uma linha de referência pode mencionar "Contrato nº..." antes do título
+    # "PEDIDO DE REEQUILÍBRIO...". O título mais forte deve prevalecer.
+    candidates = []
     for index, line in enumerate(lines[:35]):
         for doc_type, pattern, confidence in LINE_HEADER_RULES:
-            if re.search(pattern, line, flags=re.I):
-                # Página de protocolo que apenas registra "Defesa Administrativa"
-                # e anexa o PDF não é a própria defesa. O anexo começará na página seguinte.
-                if (
-                    doc_type in {"defesa", "recurso"}
-                    and _is_protocol_page(lines)
-                    and _has_attachment(lines)
-                    and not re.match(r"(?i)^\s*ASSUNTO\s*:", line)
-                ):
-                    continue
-                return doc_type, line[:220], confidence, index
-    return None
+            if not re.search(pattern, line, flags=re.I):
+                continue
+            # Página de protocolo que apenas registra "Defesa Administrativa"
+            # e anexa o PDF não é a própria defesa. O anexo começará na página seguinte.
+            if (
+                doc_type in {"defesa", "recurso"}
+                and _is_protocol_page(lines)
+                and _has_attachment(lines)
+                and not re.match(r"(?i)^\s*ASSUNTO\s*:", line)
+            ):
+                continue
+            candidates.append((confidence, -index, doc_type, line[:220], index))
+
+    if not candidates:
+        return None
+
+    confidence, _, doc_type, title, index = max(candidates, key=lambda x: (x[0], x[1]))
+    return doc_type, title, confidence, index
 
 def detect_header(text: str):
     lines = _clean_lines(text)
