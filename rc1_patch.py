@@ -167,6 +167,19 @@ _rc1_css = r"""
 
 _rc1_js = r"""
 <script id="rc1-final-fixes-js">
+// Corrige a classificacao da aba Documentos apos o titulo ter sido refinado na v7.4.
+var _grupoSecaoRC1=grupoSecao;
+grupoSecao=function(titulo){
+  var t=String(titulo||"").toLowerCase();
+  if(
+    t.indexOf("documentos e elementos da instrução")>=0 ||
+    t.indexOf("documentos e elementos da instrucao")>=0 ||
+    t.indexOf("dossiê processual")>=0 ||
+    t.indexOf("dossie processual")>=0
+  )return "documentos";
+  return _grupoSecaoRC1(titulo);
+};
+
 function ovDefaultDraftKind(a){
   var m=a.module_key||selectedModule;
   if(m==="penalizacao"){
