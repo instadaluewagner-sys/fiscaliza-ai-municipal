@@ -96,6 +96,28 @@ function stageSourcesHtml(stage){
   }).join("");
 }
 
+async function deleteCurrentAnalysis(resetUi=true){
+  const id=currentAnalysisId;
+  currentAnalysisId=null;
+  currentAnalysis=null;
+  if(id){
+    try{
+      await fetch("/api/v8/analysis/"+encodeURIComponent(id),{method:"DELETE"});
+    }catch(e){}
+  }
+  if(resetUi){
+    form.reset();
+    out.innerHTML="";
+    workspace.classList.add("hidden");
+    viewer.src="about:blank";
+    viewer.classList.add("hidden");
+    viewerEmpty.classList.remove("hidden");
+    viewerEmpty.textContent="Clique em um documento ou evidência para abrir o PDF exatamente na página citada.";
+    viewerTitle.textContent="Selecione uma peça";
+    viewerPage.textContent="—";
+  }
+}
+
 async function openDocument(documentId,page){
   if(!currentAnalysisId)return;
   try{
@@ -221,7 +243,7 @@ function renderAnalysis(a,meta){
   out.innerHTML=
     '<div class="summary-head"><div><small>Análise V8</small><h2>'+profileValue(p.process_number||p.origin_process)+'</h2>'+
     '<div class="process-meta"><span class="chip">'+esc(meta.pages||0)+' páginas</span><span class="chip">'+esc(docs.length)+' peças segmentadas</span><span class="chip">'+esc(meta.ocr_pages||0)+' OCR</span></div></div>'+
-    '<span class="stage-badge">'+esc(stage.label||"Estágio não definido")+'</span></div>'+
+    '<div class="summary-actions"><span class="stage-badge">'+esc(stage.label||"Estágio não definido")+'</span><button class="session-end" onclick="deleteCurrentAnalysis(true)">Encerrar sessão</button></div></div>'+
     '<div class="stage-card"><small>Leitura processual</small><strong>'+esc(stage.rationale||"")+'</strong><p>'+esc(stage.next_action||"")+'</p>'+
     '<div class="stage-sources"><b>Base documental da fase</b><div>'+stageSourcesHtml(stage)+'</div></div>'+
     '<div class="next-grid"><div class="next-box"><b>Próximo ato</b><span>'+esc(stage.next_action||"—")+'</span></div><div class="next-box"><b>Minuta compatível</b><span>'+esc(stage.suggested_draft||"—")+'</span></div></div>'+
@@ -251,6 +273,10 @@ form.addEventListener("submit",async function(e){
   e.preventDefault();
   const input=document.getElementById("files");
   if(!input.files.length)return;
+
+  if(currentAnalysisId){
+    await deleteCurrentAnalysis(false);
+  }
 
   const fd=new FormData();
   Array.from(input.files).forEach(function(f){fd.append("files",f)});
