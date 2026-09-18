@@ -60,6 +60,8 @@ header p,.note,.panel p{color:var(--muted)}
 .evidence-row b{display:block;color:#17334b;font-size:9.7px}
 .evidence-row p{font-size:8.9px!important;line-height:1.45!important;margin:2px 0 0!important;color:#607486!important}
 .evidence-source{font-size:8px;color:#6e8294;white-space:nowrap;text-align:right}
+.evidence-kind{display:inline-flex;margin-bottom:4px;padding:3px 6px;border-radius:999px;background:#f0f5f7;color:#5a7182;font-size:7px;font-weight:850;text-transform:uppercase;letter-spacing:.04em}
+.evidence-meta{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:6px;color:#7a8c9b;font-size:7.6px;white-space:nowrap}
 .check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 .check-card{border:1px solid #e1e8ed;border-radius:9px;padding:9px 10px;background:#fff}
 .check-card small{display:block;color:var(--muted);font-size:8px}
