@@ -5522,3 +5522,536 @@ ativarProcessoNoSistema=function(a){
 """
 HTML=HTML.replace("</script>",_new_process_js+"\n</script>",1)
 HTML=HTML.replace("VERSÃO 7.0 · EDIÇÃO COMERCIAL","VERSÃO 7.1 · NOVO PROCESSO DIRETO")
+
+
+# --- Acabamento comercial completo v7.2 ---
+# Mantém menu lateral + abas horizontais, conforme opção do produto.
+# Acrescenta perfil do processo, recentes da sessão e personalização institucional.
+
+def _clean_profile_value(value):
+    v=re.sub(r"\s+"," ",str(value or "")).strip(" \n\t:;-")
+    if not v or v.startswith("["):return ""
+    return v[:160]
+
+def _derive_interested(pages,module):
+    if module=="penalizacao":
+        try:
+            v=_validated_metadata(pages).get("empresa")
+            if v and not str(v).startswith("["):return _clean_profile_value(v)
+        except Exception:pass
+    flat="\n".join((p.get("text") or "")[:2500] for p in pages[:12])
+    patterns=[
+        r"(?:Interessad[oa]|Requerente|Contribuinte|Servidor(?:a)?|Contratada|Empresa)\s*[:\-]\s*([^\n]{3,140})",
+        r"CONTRATADA\s*:\s*([^\n]{3,140})"
+    ]
+    for pat in patterns:
+        m=re.search(pat,flat,flags=re.I)
+        if m:
+            v=re.split(r"\b(?:CNPJ|CPF|Objeto|Assunto|Processo)\b",m.group(1),maxsplit=1,flags=re.I)[0]
+            v=_clean_profile_value(v)
+            if v:return v
+    return ""
+
+def _derive_process_profile(pages,module,process_number="",interested="",unit=""):
+    number=_clean_profile_value(process_number)
+    if not number:
+        try:
+            if module=="penalizacao":
+                md=_validated_metadata(pages)
+                number=_clean_profile_value(md.get("penalizacao"))
+                if not number:number=_clean_profile_value(md.get("origem"))
+            else:
+                number=_clean_profile_value(_module_process_number(pages,module))
+        except Exception:pass
+    person=_clean_profile_value(interested) or _derive_interested(pages,module)
+    unit_value=_clean_profile_value(unit)
+    doc_ids=sorted(set(p.get("document_id") for p in pages if p.get("document_id")))
+    return {
+        "number":number or "Número não identificado",
+        "interested":person or "Interessado não identificado",
+        "unit":unit_value or "Unidade não informada",
+        "pages":len(pages),
+        "documents":len(doc_ids),
+        "module":module,
+        "module_label":MODULES.get(module,MODULES["geral"])["label"]
+    }
+
+async def analyze_v72(
+    files:List[UploadFile]=File(...),
+    module:str="penalizacao",
+    process_number:str="",
+    interested:str="",
+    unit:str=""
+):
+    pages=[];ocr=0;names=[]
+    for f in files:
+        if not f.filename.lower().endswith(".pdf"):continue
+        pp,oo=extract_pdf(await f.read(),f.filename)
+        pages.extend(pp);ocr+=oo;names.append(f.filename)
+    if not pages:raise HTTPException(400,"Envie pelo menos um PDF.")
+    _assign_document_ids(pages)
+    a=analyze_pages(pages)
+    a=_module_overlay(pages,a,module)
+    a=_enrich_doc_refs(a,pages)
+    profile=_derive_process_profile(pages,module,process_number,interested,unit)
+    a["process_profile"]=profile
+    aid=uuid.uuid4().hex
+    ANALYSES[aid]={
+        "pages":pages,"analysis":a,"created":datetime.utcnow().isoformat(),
+        "module":module,"profile":profile,"files":names
+    }
+    return {
+        "analysis_id":aid,"files":names,"pages":len(pages),"ocr_pages":ocr,
+        "module":module,"profile":profile,"analysis":a
+    }
+
+app.router.routes=[
+    r for r in app.router.routes
+    if not (getattr(r,"path",None)=="/api/analyze" and "POST" in getattr(r,"methods",set()))
+]
+app.add_api_route("/api/analyze",analyze_v72,methods=["POST"])
+
+@app.get("/api/analysis/{analysis_id}")
+def get_analysis_v72(analysis_id):
+    item=ANALYSES.get(analysis_id)
+    if not item:raise HTTPException(404,"A análise expirou ou foi excluída.")
+    return {
+        "analysis_id":analysis_id,
+        "analysis":item.get("analysis",{}),
+        "profile":item.get("profile",{}),
+        "module":item.get("module","geral"),
+        "files":item.get("files",[]),
+        "created":item.get("created")
+    }
+
+app.version="7.2"
+
+_premium_css = """
+/* HOME: menos landing page, mais produto */
+.home-commercial-hero{
+  min-height:0!important;padding:22px 24px!important;border-radius:16px!important;
+  grid-template-columns:minmax(0,1.55fr) minmax(300px,.45fr)!important;gap:18px!important
+}
+.home-commercial-hero h1{font-size:28px!important;line-height:1.12!important;margin-top:10px!important}
+.home-commercial-hero p{font-size:12.5px!important;line-height:1.52!important;margin-top:8px!important}
+.home-badge{font-size:9px!important;padding:5px 8px!important}
+.home-benefits{margin-top:13px!important;gap:6px!important}
+.home-benefits span{font-size:9.5px!important;padding:5px 8px!important}
+.home-side-card{padding:15px 16px!important;border-radius:13px!important}
+.home-side-card strong{font-size:18px!important}
+.home-side-card p{font-size:10.5px!important;margin-top:5px!important}
+.home-stats{margin-top:11px!important}
+.home-stat{padding:7px 8px!important}.home-stat b{font-size:15px!important}.home-stat span{font-size:8px!important}
+
+.module-panel.home-only{padding:18px 20px 20px!important;border-radius:16px!important}
+.module-toolbar{margin-bottom:12px!important}
+.module-toolbar-copy h2{font-size:19px!important}
+.module-toolbar-copy p{font-size:11px!important}
+.screen-home .module-card{min-height:112px!important;padding:14px!important}
+.screen-home .module-card.active{padding:14px!important}
+.screen-home .module-icon{
+  width:34px!important;height:34px!important;margin-bottom:8px!important;border-radius:9px!important;
+  font-size:10px!important;letter-spacing:.02em!important
+}
+.screen-home .module-name{font-size:12.5px!important}
+.screen-home .module-desc{font-size:10px!important;margin-top:3px!important;line-height:1.4!important}
+.screen-home .module-card:after{bottom:10px!important;right:12px!important;font-size:8.5px!important}
+.module-category{
+  position:absolute;top:13px;right:13px;border-radius:999px;padding:3px 6px;
+  background:#f2f6f8;color:#728496;font-size:7.5px;font-weight:850;letter-spacing:.04em;text-transform:uppercase
+}
+
+/* PROCESSOS RECENTES */
+.recent-panel{margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:15px;padding:17px 19px;box-shadow:0 6px 18px rgba(15,47,73,.045)}
+.recent-head{display:flex;justify-content:space-between;gap:18px;align-items:end;margin-bottom:10px}
+.recent-head h3{margin:0;color:var(--navy);font-size:15px}.recent-head p{margin:3px 0 0;color:var(--muted);font-size:9.5px}
+.recent-list{display:grid;gap:7px}
+.recent-row{
+  display:grid;grid-template-columns:minmax(180px,1.15fr) minmax(160px,1fr) 160px 130px auto;
+  gap:12px;align-items:center;padding:10px 11px;border:1px solid #e1e8ee;border-radius:10px;background:#fbfcfd
+}
+.recent-row:hover{border-color:#bccbd7;background:#fff}
+.recent-main b{display:block;color:var(--navy);font-size:11px}.recent-main span,.recent-cell{display:block;color:var(--muted);font-size:9px}
+.recent-status{display:inline-flex;align-items:center;gap:5px;color:var(--teal);font-size:9px;font-weight:850}
+.recent-status:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--teal)}
+.recent-open{border:0;background:#eef4f7;color:var(--navy);padding:7px 9px;border-radius:8px;font-size:9px;font-weight:850;cursor:pointer}
+.recent-open:hover{background:#e2edf2}
+.recent-empty{padding:12px;color:var(--muted);font-size:10px;border:1px dashed var(--line);border-radius:10px;text-align:center}
+
+/* ESTADO VAZIO */
+.system-main:not(.process-loaded) .module-dashboard{display:none!important}
+.system-empty{
+  padding:28px!important;min-height:190px;align-items:center!important;
+  border:1px solid var(--line)!important;background:#fff!important
+}
+.empty-launch{width:100%;text-align:center}
+.empty-launch .empty-icon{margin:0 auto 11px}
+.empty-launch h3{font-size:19px!important;margin:0!important}
+.empty-launch p{font-size:11px!important;max-width:620px!important;margin:6px auto 16px!important}
+.empty-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+
+/* PROCESSO ABERTO: cabeçalho e KPIs compactos */
+.workspace-head.process-open{padding:13px 16px!important}
+.workspace-head.process-open .workspace-title small{font-size:8.5px!important}
+.workspace-head.process-open .workspace-title strong{font-size:18px!important}
+.workspace-head.process-open .workspace-title span{font-size:10px!important}
+.process-context{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.process-context span{
+  border:1px solid var(--line);background:#f8fafc;color:#64778a;border-radius:999px;
+  padding:3px 7px;font-size:8px;font-weight:750
+}
+.process-context span.module{border-color:#c6e4df;background:#eff9f7;color:var(--teal)}
+.system-main.process-loaded .module-dashboard{display:block!important;margin-bottom:9px!important}
+.system-main.process-loaded .dashboard-top{display:none!important}
+.system-main.process-loaded .dashboard-metrics{grid-template-columns:repeat(4,1fr)!important;gap:7px!important}
+.system-main.process-loaded .dash-metric{
+  padding:9px 11px!important;border-radius:9px!important;min-height:62px;
+  display:grid;grid-template-columns:auto 1fr;column-gap:7px;align-content:center
+}
+.system-main.process-loaded .dash-metric small{font-size:8px!important;grid-column:1/-1}
+.system-main.process-loaded .dash-metric strong{font-size:18px!important;margin-top:0!important}
+.system-main.process-loaded .dash-metric strong.text{font-size:10.5px!important;white-space:normal!important;line-height:1.25}
+.system-main.process-loaded .dash-metric .mini{font-size:8px!important;align-self:center;margin:0!important}
+.process-tabs{margin-bottom:10px!important}
+
+/* NOVO PROCESSO COM METADADOS */
+.new-process-fields{
+  display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:9px;margin-bottom:11px
+}
+.np-field label{display:block;color:#65788b;font-size:8.5px;font-weight:850;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px 2px}
+.np-field input{
+  width:100%;border:1px solid var(--line);background:#fff;color:var(--ink);
+  border-radius:9px;padding:9px 10px;font-size:11px;outline:none
+}
+.np-field input:focus{border-color:#78afa8;box-shadow:0 0 0 3px rgba(11,143,130,.08)}
+
+/* CONFIGURAÇÃO INSTITUCIONAL */
+.top-actions{display:flex;align-items:center;gap:8px}
+.config-btn{
+  border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#dce7ee;
+  border-radius:999px;padding:7px 10px;font-size:9.5px;font-weight:750;cursor:pointer
+}
+.config-btn:hover{background:rgba(255,255,255,.10);color:#fff}
+.settings-overlay{
+  position:fixed;inset:0;background:rgba(5,20,33,.48);z-index:200;display:none;align-items:center;justify-content:center;padding:22px
+}
+.settings-overlay.open{display:flex}
+.settings-card{width:min(580px,100%);background:#fff;border-radius:16px;box-shadow:0 25px 70px rgba(8,28,43,.25);padding:22px}
+.settings-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:16px}
+.settings-head h3{margin:0;color:var(--navy);font-size:18px}.settings-head p{margin:4px 0 0;color:var(--muted);font-size:10px}
+.settings-close{border:0;background:#f0f4f7;border-radius:8px;width:30px;height:30px;cursor:pointer;color:var(--navy);font-weight:900}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.settings-grid .wide{grid-column:1/-1}
+.settings-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.settings-note{margin-top:10px;color:var(--muted);font-size:8.5px}
+
+@media(max-width:900px){
+  .home-commercial-hero{grid-template-columns:1fr!important}
+  .recent-row{grid-template-columns:1fr auto}.recent-cell.hide-mobile{display:none}
+  .new-process-fields{grid-template-columns:1fr}
+}
+"""
+HTML=HTML.replace("</style>",_premium_css+"</style>",1)
+
+# Envia os metadados opcionais preenchidos no Novo processo.
+HTML=HTML.replace(
+    'var r=await fetch("/api/analyze?module="+encodeURIComponent(selectedModule),{method:"POST",body:fd});var d=await r.json();',
+    '''var npNumber=(document.getElementById("newProcessNumber")||{}).value||"";
+    var npInterested=(document.getElementById("newProcessInterested")||{}).value||"";
+    var npUnit=(document.getElementById("newProcessUnit")||{}).value||"";
+    var analyzeUrl="/api/analyze?module="+encodeURIComponent(selectedModule)+"&process_number="+encodeURIComponent(npNumber)+"&interested="+encodeURIComponent(npInterested)+"&unit="+encodeURIComponent(npUnit);
+    var r=await fetch(analyzeUrl,{method:"POST",body:fd});var d=await r.json();''',
+    1
+)
+
+_premium_js = r"""
+var recentProcessCache={};
+
+var commercialModuleMeta={
+  penalizacao:{code:"PC",category:"Responsabilização"},
+  fiscalizacao:{code:"FC",category:"Gestão contratual"},
+  reequilibrio:{code:"RE",category:"Gestão contratual"},
+  rescisao:{code:"EX",category:"Gestão contratual"},
+  sindicancia:{code:"SI",category:"Apuração interna"},
+  disciplinar:{code:"PD",category:"Responsabilização interna"}
+};
+
+function carregarConfigInstitucional(){
+  var base={org:"Prefeitura Municipal",unit:"Unidade administrativa",responsible:"",email:""};
+  try{
+    var x=JSON.parse(localStorage.getItem("fiscaliza_org_config")||"{}");
+    Object.keys(x||{}).forEach(function(k){if(x[k])base[k]=x[k]});
+  }catch(e){}
+  return base;
+}
+function aplicarConfigInstitucional(){
+  var cfg=carregarConfigInstitucional();
+  var brandSub=document.querySelector(".brandtext span");
+  if(brandSub)brandSub.textContent=cfg.org+" · "+cfg.unit;
+}
+function abrirConfiguracoes(){
+  var cfg=carregarConfigInstitucional();
+  ["Org","Unit","Responsible","Email"].forEach(function(k){
+    var el=document.getElementById("cfg"+k);
+    if(el)el.value=cfg[k.charAt(0).toLowerCase()+k.slice(1)]||"";
+  });
+  var ov=document.getElementById("settingsOverlay");if(ov)ov.classList.add("open");
+}
+function fecharConfiguracoes(){var ov=document.getElementById("settingsOverlay");if(ov)ov.classList.remove("open")}
+function salvarConfiguracoes(){
+  var cfg={
+    org:(document.getElementById("cfgOrg").value||"").trim()||"Prefeitura Municipal",
+    unit:(document.getElementById("cfgUnit").value||"").trim()||"Unidade administrativa",
+    responsible:(document.getElementById("cfgResponsible").value||"").trim(),
+    email:(document.getElementById("cfgEmail").value||"").trim()
+  };
+  localStorage.setItem("fiscaliza_org_config",JSON.stringify(cfg));
+  aplicarConfigInstitucional();fecharConfiguracoes();
+}
+
+function instalarConfiguracoes(){
+  if(document.getElementById("settingsOverlay"))return;
+  var inner=document.querySelector(".topbar-inner");
+  if(inner){
+    var current=inner.querySelector(".live")||inner.querySelector(".topmeta");
+    var wrap=document.createElement("div");wrap.className="top-actions";
+    var btn=document.createElement("button");btn.className="config-btn";btn.textContent="⚙ Configurações";btn.onclick=abrirConfiguracoes;
+    if(current){current.parentNode.insertBefore(wrap,current);wrap.appendChild(btn);wrap.appendChild(current)}
+    else {wrap.appendChild(btn);inner.appendChild(wrap)}
+  }
+  var ov=document.createElement("div");ov.id="settingsOverlay";ov.className="settings-overlay";
+  ov.innerHTML='<div class="settings-card"><div class="settings-head"><div><h3>Configuração institucional</h3><p>Personalize a demonstração para o órgão. As preferências ficam apenas neste navegador.</p></div><button class="settings-close" onclick="fecharConfiguracoes()">×</button></div>'+
+  '<div class="settings-grid">'+
+  '<div class="np-field"><label>Órgão / Município</label><input id="cfgOrg" placeholder="Ex.: Prefeitura Municipal"></div>'+
+  '<div class="np-field"><label>Unidade</label><input id="cfgUnit" placeholder="Ex.: Comissão de Penalização"></div>'+
+  '<div class="np-field"><label>Responsável</label><input id="cfgResponsible" placeholder="Nome do responsável"></div>'+
+  '<div class="np-field"><label>E-mail institucional</label><input id="cfgEmail" placeholder="unidade@municipio.gov.br"></div>'+
+  '</div><div class="settings-note">Esta versão demonstrativa não grava essas configurações em banco de dados; elas ficam no armazenamento local do navegador.</div>'+
+  '<div class="settings-actions"><button class="btn btn-blue" onclick="fecharConfiguracoes()">Cancelar</button><button class="btn btn-primary" onclick="salvarConfiguracoes()">Salvar configuração</button></div></div>';
+  ov.addEventListener("click",function(e){if(e.target===ov)fecharConfiguracoes()});
+  document.body.appendChild(ov);
+  aplicarConfigInstitucional();
+}
+
+function deixarHomeMaisProduto(){
+  var hero=document.querySelector(".home-commercial-hero");
+  if(hero&&!hero.dataset.premium){
+    hero.dataset.premium="1";
+    var copy=hero.querySelector(".home-copy");
+    if(copy){
+      var h=copy.querySelector("h1");if(h)h.textContent="Inteligência processual com evidência rastreável.";
+      var p=copy.querySelector("p");if(p)p.textContent="Organize autos, acompanhe pendências e produza documentos assistidos em fluxos especializados para gestão contratual e responsabilização administrativa.";
+    }
+    var side=hero.querySelector(".home-side-card");
+    if(side){
+      side.innerHTML='<div><small>Fluxo de trabalho</small><strong>Do documento à decisão humana</strong><p>Leitura → classificação → evidência → revisão → documento assistido.</p></div>'+
+      '<div class="home-stats"><div class="home-stat"><b>6</b><span>fluxos</span></div><div class="home-stat"><b>ID + p.</b><span>rastreabilidade</span></div><div class="home-stat"><b>Humana</b><span>decisão final</span></div></div>';
+    }
+  }
+
+  document.querySelectorAll(".module-card").forEach(function(card){
+    var key=card.getAttribute("data-module"),meta=commercialModuleMeta[key];
+    if(!meta)return;
+    var icon=card.querySelector(".module-icon");if(icon)icon.textContent=meta.code;
+    if(!card.querySelector(".module-category")){
+      var tag=document.createElement("span");tag.className="module-category";tag.textContent=meta.category;card.appendChild(tag);
+    }
+  });
+  instalarProcessosRecentes();
+  renderProcessosRecentes();
+}
+
+function recentStore(){
+  try{return JSON.parse(sessionStorage.getItem("fiscaliza_recent_processes")||"[]")}catch(e){return []}
+}
+function setRecentStore(items){
+  try{sessionStorage.setItem("fiscaliza_recent_processes",JSON.stringify(items.slice(0,5)))}catch(e){}
+}
+function salvarProcessoRecente(a){
+  if(!analysisId||!a)return;
+  var p=a.process_profile||{};
+  var item={
+    id:analysisId,module:a.module_key||selectedModule,module_label:a.module_label||moduleLabels[selectedModule]||selectedModule,
+    number:p.number||"Processo analisado",interested:p.interested||"Interessado não identificado",
+    unit:p.unit||"Unidade não informada",stage:(a.next_action&&a.next_action.stage)||"Analisado",
+    updated:new Date().toISOString()
+  };
+  var list=recentStore().filter(function(x){return x.id!==item.id});
+  list.unshift(item);setRecentStore(list);
+  try{
+    recentProcessCache[item.id]={analysis:a,html:(document.getElementById("result")||{}).innerHTML||""};
+    sessionStorage.setItem("fiscaliza_cache_"+item.id,JSON.stringify({analysis:a,html:recentProcessCache[item.id].html}));
+  }catch(e){}
+  renderProcessosRecentes();
+}
+function instalarProcessosRecentes(){
+  var home=document.getElementById("screenHome"),modulePanel=document.querySelector(".module-panel.home-only");
+  if(!home||!modulePanel||document.getElementById("recentPanel"))return;
+  var p=document.createElement("section");p.id="recentPanel";p.className="recent-panel";
+  p.innerHTML='<div class="recent-head"><div><div class="kicker">Continuidade do trabalho</div><h3>Processos recentes</h3><p>Histórico temporário desta sessão de demonstração.</p></div></div><div id="recentList" class="recent-list"></div>';
+  modulePanel.insertAdjacentElement("afterend",p);
+}
+function renderProcessosRecentes(){
+  var listEl=document.getElementById("recentList");if(!listEl)return;
+  var list=recentStore();
+  if(!list.length){listEl.innerHTML='<div class="recent-empty">Quando você analisar um processo, ele aparecerá aqui para acesso rápido durante esta sessão.</div>';return}
+  listEl.innerHTML=list.map(function(x){
+    var dt=new Date(x.updated);var when=isNaN(dt)?"":dt.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+    return '<div class="recent-row">'+
+      '<div class="recent-main"><b>'+esc(x.number)+'</b><span>'+esc(x.interested)+'</span></div>'+
+      '<div class="recent-cell hide-mobile">'+esc(x.module_label)+'</div>'+
+      '<div class="recent-cell hide-mobile">'+esc(x.stage)+'</div>'+
+      '<div><span class="recent-status">Sessão atual · '+esc(when)+'</span></div>'+
+      '<button class="recent-open" onclick="abrirProcessoRecente(\''+esc(x.id)+'\')">Abrir</button></div>';
+  }).join("");
+}
+function abrirProcessoRecente(id){
+  var list=recentStore(),entry=list.find(function(x){return x.id===id});
+  if(!entry)return;
+  var cached=recentProcessCache[id];
+  if(!cached){
+    try{cached=JSON.parse(sessionStorage.getItem("fiscaliza_cache_"+id)||"null")}catch(e){}
+  }
+  if(!cached||!cached.analysis){
+    alert("O detalhamento deste processo não está mais disponível nesta sessão. Reanalise os autos para continuar.");
+    return;
+  }
+  abrirTelaModulo(entry.module,null,true);
+  setTimeout(function(){
+    analysisId=id;localStorage.setItem("fiscaliza_analysis_id",id);
+    var result=document.getElementById("result");
+    if(result)result.innerHTML=cached.html||"";
+    ajustarResultadoModulo(cached.analysis);
+  },160);
+}
+
+function garantirEstadoVazioProfissional(){
+  var empty=document.getElementById("systemEmpty");
+  if(!empty||empty.dataset.professional==="1")return;
+  empty.dataset.professional="1";
+  empty.innerHTML='<div class="empty-launch"><div class="empty-icon">＋</div><h3>Nenhum processo aberto</h3><p>Inicie um novo processo para carregar os autos ou use um caso fictício pronto para conhecer este fluxo.</p><div class="empty-actions"><button class="btn btn-primary" onclick="novoProcessoModulo()">+ Novo processo</button><button class="btn btn-blue" onclick="testarDemo()">Usar processo modelo</button></div></div>';
+}
+
+function adicionarCamposNovoProcesso(){
+  var upload=document.getElementById("uploadPanel");
+  if(!upload||upload.querySelector(".new-process-fields"))return;
+  var fields=document.createElement("div");fields.className="new-process-fields";
+  fields.innerHTML='<div class="np-field"><label>Número do processo <span style="font-weight:500;text-transform:none">(opcional)</span></label><input id="newProcessNumber" placeholder="Ex.: 1-1234/2026"></div>'+
+    '<div class="np-field"><label>Interessado / empresa <span style="font-weight:500;text-transform:none">(opcional)</span></label><input id="newProcessInterested" placeholder="Nome do interessado"></div>'+
+    '<div class="np-field"><label>Unidade responsável <span style="font-weight:500;text-transform:none">(opcional)</span></label><input id="newProcessUnit" placeholder="Ex.: Comissão / Secretaria"></div>';
+  var box=upload.querySelector(".uploadbox");
+  if(box)upload.insertBefore(fields,box);
+}
+
+function atualizarCabecalhoProfissional(a){
+  var profile=a&&a.process_profile;if(!profile)return;
+  var head=document.querySelector(".workspace-head");if(!head)return;
+  head.classList.add("process-open");
+  var title=document.getElementById("workspaceModuleTitle");
+  var desc=document.getElementById("workspaceModuleDesc");
+  var titleBox=head.querySelector(".workspace-title");
+  if(title)title.textContent=profile.number;
+  if(desc)desc.textContent=profile.interested+" · "+profile.unit;
+  if(titleBox){
+    var small=titleBox.querySelector("small");
+    if(small)small.textContent="Processo aberto";
+    var old=titleBox.querySelector(".process-context");if(old)old.remove();
+    var ctx=document.createElement("div");ctx.className="process-context";
+    ctx.innerHTML='<span class="module">'+esc(profile.module_label||a.module_label||"Módulo")+'</span><span>'+esc(profile.pages||0)+' páginas</span><span>'+esc(profile.documents||0)+' documentos</span><span>Analisado</span>';
+    titleBox.appendChild(ctx);
+  }
+}
+function restaurarCabecalhoModulo(){
+  var head=document.querySelector(".workspace-head");if(head)head.classList.remove("process-open");
+  var title=document.getElementById("workspaceModuleTitle"),desc=document.getElementById("workspaceModuleDesc");
+  var meta=commercialModuleMeta[selectedModule]||{};
+  if(title)title.textContent=moduleLabels[selectedModule]||selectedModule;
+  var descriptions={
+    penalizacao:"Responsabilização de fornecedor, contraditório, defesa, sanção e decisão.",
+    fiscalizacao:"Execução, entregas, ocorrências, fiscalização, medições e providências.",
+    reequilibrio:"Pedido, custos, justificativas, pareceres e decisão.",
+    rescisao:"Motivação, comunicação, contraditório, parecer e decisão de extinção.",
+    sindicancia:"Fato investigado, diligências, provas, relatório e encaminhamento.",
+    disciplinar:"Instauração, citação, instrução, defesa, relatório e julgamento."
+  };
+  if(desc)desc.textContent=descriptions[selectedModule]||"Análise administrativa assistida.";
+  var tb=head&&head.querySelector(".workspace-title");if(tb){
+    var small=tb.querySelector("small");if(small)small.textContent="Área de trabalho";
+    var ctx=tb.querySelector(".process-context");if(ctx)ctx.remove();
+  }
+}
+
+var _oldPrepararHomeComercialV72=prepararHomeComercial;
+prepararHomeComercial=function(){
+  _oldPrepararHomeComercialV72();
+  setTimeout(deixarHomeMaisProduto,0);
+};
+
+var _oldGarantirSistemaWorkspaceV72=garantirSistemaWorkspace;
+garantirSistemaWorkspace=function(){
+  _oldGarantirSistemaWorkspaceV72();
+  garantirEstadoVazioProfissional();
+};
+
+var _oldConfigurarCardNovoProcessoV72=configurarCardNovoProcesso;
+configurarCardNovoProcesso=function(){
+  _oldConfigurarCardNovoProcessoV72();
+  adicionarCamposNovoProcesso();
+};
+
+# placeholder
+"""
+# JS cannot contain Python comment marker; normalize it before insertion.
+_premium_js=_premium_js.replace("\n# placeholder\n","\n")
+
+# Latest Nuevo Processo behavior: keeps earlier analyses alive until TTL so recent-session access remains possible.
+_premium_js += r"""
+novoProcessoModulo=async function(){
+  analysisId=null;
+  localStorage.removeItem("fiscaliza_analysis_id");
+  var fi=document.getElementById("files");if(fi)fi.value="";
+  var ans=document.getElementById("answer");if(ans)ans.style.display="none";
+  limparEstadoAnaliseVisual();
+
+  var main=document.querySelector(".system-main");
+  if(main){main.classList.add("new-process-mode");main.classList.remove("process-loaded")}
+  var empty=document.getElementById("systemEmpty");if(empty)empty.style.display="none";
+  restaurarCabecalhoModulo();
+  configurarCardNovoProcesso();
+  ["newProcessNumber","newProcessInterested","newProcessUnit"].forEach(function(id){var x=document.getElementById(id);if(x)x.value=""});
+  var st=document.getElementById("processStatus");if(st){st.textContent="Novo processo";st.classList.remove("ready")}
+};
+
+var _oldPrepararInicioModuloV72=prepararInicioModulo;
+prepararInicioModulo=function(){
+  _oldPrepararInicioModuloV72();
+  var main=document.querySelector(".system-main");if(main)main.classList.remove("process-loaded");
+  restaurarCabecalhoModulo();
+  garantirEstadoVazioProfissional();
+};
+
+var _oldAtivarProcessoNoSistemaV72=ativarProcessoNoSistema;
+ativarProcessoNoSistema=function(a){
+  _oldAtivarProcessoNoSistemaV72(a);
+  var main=document.querySelector(".system-main");if(main)main.classList.add("process-loaded");
+  atualizarCabecalhoProfissional(a);
+  salvarProcessoRecente(a);
+};
+
+var _oldVoltarAosModulosV72=voltarAosModulos;
+voltarAosModulos=function(push){
+  _oldVoltarAosModulosV72(push);
+  setTimeout(function(){deixarHomeMaisProduto();renderProcessosRecentes()},0);
+};
+
+document.addEventListener("DOMContentLoaded",function(){
+  setTimeout(function(){
+    instalarConfiguracoes();
+    deixarHomeMaisProduto();
+    garantirEstadoVazioProfissional();
+  },180);
+});
+"""
+HTML=HTML.replace("</script>",_premium_js+"\n</script>",1)
+
+HTML=HTML.replace("VERSÃO 7.1 · NOVO PROCESSO DIRETO","VERSÃO 7.2 · ACABAMENTO COMERCIAL")
