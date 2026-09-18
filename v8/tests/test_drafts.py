@@ -78,3 +78,8 @@ def test_notificacao_de_instauracao_e_detalhada_e_nao_inventa_prazo():
     assert "5 dias úteis" not in text
     assert "15 dias úteis" not in text
     assert "não representa imputação definitiva" in text.lower()
+    assert draft.source_refs
+    refs={(r.document_id,r.page) for r in draft.source_refs}
+    assert ("DOC-001",1) in refs
+    assert ("DOC-003",3) in refs
+    assert ("DOC-005",5) in refs
