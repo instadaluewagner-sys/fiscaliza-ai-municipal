@@ -16,6 +16,7 @@ class Document(BaseModel):
     page_start: int
     page_end: int
     pages: list[int]
+    page_texts: dict[int, str] = {}
     confidence: float = Field(ge=0, le=1)
     text: str
 
