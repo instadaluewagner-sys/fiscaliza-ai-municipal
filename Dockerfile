@@ -12,6 +12,7 @@ COPY .bundle /tmp/fiscaliza-bundle
 RUN cat /tmp/fiscaliza-bundle/src0[0-3].b64 | tr -d '\n\r' | base64 -d > /tmp/fiscaliza-source.zip \
     && unzip -q /tmp/fiscaliza-source.zip -d /app \
     && gunzip -c /tmp/fiscaliza-bundle/app_v3.py.gz > /app/app_v3.py \
+    && cat /tmp/fiscaliza-bundle/patch_v32.py >> /app/app_v3.py \
     && rm -rf /tmp/fiscaliza-bundle /tmp/fiscaliza-source.zip
 
 RUN pip install --no-cache-dir fastapi uvicorn pymupdf python-multipart reportlab pytesseract pillow
