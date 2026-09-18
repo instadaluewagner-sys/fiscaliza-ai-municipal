@@ -42,6 +42,17 @@ class Evidence(BaseModel):
     excerpt: str
     confidence: float = Field(ge=0, le=1)
 
+class TimelineEvent(BaseModel):
+    sequence: int
+    label: str
+    type: str
+    document_id: str
+    page: int
+    date: Optional[str] = None
+    date_source: Literal["document", "envelope", "unknown"] = "unknown"
+    confidence: float = Field(ge=0, le=1)
+    title: str
+
 class StageResult(BaseModel):
     key: str
     label: str
@@ -64,6 +75,7 @@ class AnalysisResult(BaseModel):
     documents: list[Document]
     checklist: list[ChecklistItem]
     evidence: list[Evidence]
+    timeline: list[TimelineEvent] = Field(default_factory=list)
     stage: StageResult
     pending_items: list[PendingItem] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
