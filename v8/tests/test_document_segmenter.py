@@ -183,3 +183,40 @@ Conclusão do parecer.
     assert len(docs)==1
     assert docs[0].type=="parecer_juridico"
     assert docs[0].pages==[1,2,3]
+
+
+def test_perfil_contratual_traz_identificadores_e_fontes():
+    pages=[
+        page(1, """
+ATA DE REGISTRO DE PREÇOS Nº 083/2026
+Pregão Eletrônico nº 071/2026
+Empresa: EMPRESA MODELO LTDA
+CNPJ: 00.000.000/0000-00
+Objeto: fornecimento de 500 kits de higiene bucal.
+"""),
+        page(2, """
+CONTRATO ADMINISTRATIVO Nº 140/2026
+Pregão Eletrônico nº 071/2026
+Contratada: EMPRESA MODELO LTDA
+Objeto do Contrato: fornecimento de 500 kits de higiene bucal.
+Quantidade total: 500 kits de higiene bucal.
+"""),
+        page(3, """
+NOTA DE EMPENHO Nº 1450/2026
+Contrato nº 140/2026.
+"""),
+    ]
+    docs=segment_documents(pages)
+    result=analyze_penalizacao(docs)
+    p=result.profile
+
+    assert p.ata=="083/2026"
+    assert p.pregao=="071/2026"
+    assert p.contrato=="140/2026"
+    assert "1450/2026" in p.empenhos
+    assert p.quantity.startswith("500 kits")
+    assert p.sources["ata"].document_id is not None
+    assert p.sources["ata"].page==1
+    assert p.sources["contrato"].page==2
+    assert p.sources["empenhos"].page==3
+    assert p.sources["quantity"].page==2
