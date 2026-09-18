@@ -906,3 +906,205 @@ document.getElementById("q").addEventListener("keydown",function(e){if(e.key==="
 </script>
 </body>
 </html>"""
+
+
+# --- Precisão e demonstração auditável v3.7 ---
+# Corrige o caso demonstrativo sem criar respostas pré-montadas: a linha do tempo
+# e a matriz são derivadas dos mesmos achados produzidos pelo motor de análise.
+
+CONT = {
+    "defesa":["dos fatos","do direito","requer","contratada","penalidade","proporcionalidade","regularizacao","cronograma"],
+    "notificacao":["notificad","prazo","manifestacao","descumprimento","ciencia"],
+    "intimacao":["intimad","prazo","defesa","manifestacao","contraditorio"],
+    "parecer_juridico":["fundamentacao","conclusao","recomenda","juridico","autoridade"],
+    "parecer_tecnico":["analise tecnica","conclusao","fiscalizacao","execucao","entrega"],
+    "decisao":["decisao","determino","autorizo","rescis","extinc","instauracao"],
+    "contrato":["clausula","contratante","contratada","objeto","vigencia","prazo"]
+}
+
+def strong_type(p):
+    raw = p["text"] or ""
+    z = norm(raw)
+    first = norm(raw[:850])
+    head = norm(raw[:1900])
+
+    # Cabeçalhos/documentos autônomos primeiro.
+    if re.search(r"\bcontrato(?: administrativo)?\s*(?:n|no|numero|nº)", first) and "contratante" in z and "contratada" in z:
+        return "contrato"
+
+    if ("notificacao extrajudicial" in first or "notificacao administrativa" in first
+        or re.search(r"^\s*notificacao\s*(?:n|no|numero|nº)", first)):
+        return "notificacao"
+
+    # Importante: intimação vem antes de defesa para não classificar
+    # "intimada a apresentar defesa" como a própria defesa.
+    if ("fica a empresa intimada" in head or "fica intimado" in head or "fica intimada" in head
+        or re.search(r"^\s*intimacao\s*(?:n|no|numero|nº)", first)):
+        return "intimacao"
+
+    if (re.search(r"^\s*defesa administrativa\b", first)
+        or re.search(r"^\s*razoes de defesa\b", first)
+        or re.search(r"^\s*defesa\b", first)
+        or re.search(r"\b(?:vem|comparece).{0,120}\bapresentar\s+(?:a\s+|sua\s+)?defesa\b", head)):
+        return "defesa"
+
+    if ("parecer juridico" in first or ("procuradoria" in first and "parecer" in first)):
+        return "parecer_juridico"
+
+    if ("parecer tecnico" in first or "relatorio tecnico" in first or "manifestacao tecnica" in first):
+        return "parecer_tecnico"
+
+    if ("decisao administrativa" in first
+        or re.search(r"^\s*(decido|resolvo|determino|autorizo)\b", first)
+        or (any(k in head for k in ["decido","resolvo","determino","autorizo"])
+            and any(k in z for k in ["rescis","extinc","processo administrativo sancionador","instauracao"]))):
+        return "decisao"
+
+    if re.search(r"^\s*termo de recebimento\b", first) and any(k in z for k in ["recebemos","atesto","recebimento definitivo","recebimento provisorio"]):
+        return "termo_recebimento"
+    if "danfe" in first or re.search(r"^\s*nota fiscal(?: eletronica)?\b", first):
+        return "nota_fiscal"
+    if re.search(r"^\s*(nota de )?empenho\b", first):
+        return "empenho"
+    if re.search(r"^\s*(ordem|autorizacao) de fornecimento\b", first):
+        return "ordem_fornecimento"
+    return None
+
+def total_quantity(pages):
+    # Primeiro busca linguagem contratual explícita. Evita usar números soltos.
+    pats = [
+        r"(?:quantidade total|quantidade contratada|quantidade prevista)\s*[:\-]?\s*(\d{1,7})",
+        r"(?:objeto\s*[:\-]?\s*)?(?:fornecimento|aquisicao)\s+(?:de\s+)?(\d{1,7})\s+(?:kits|unidades|itens)\b",
+        r"\b(\d{1,7})\s+(?:kits|unidades|itens)\s+contratad[oa]s?\b",
+        r"quantidade\s*[:\-]?\s*(\d{1,7})\s+(?:unidades|unid\.?|kits|itens)\b"
+    ]
+    ordered = sorted(pages, key=lambda p: (0 if strong_type(p)=="contrato" else 1, p["page"]))
+    for p in ordered:
+        z = norm(p["text"])
+        for pat in pats:
+            for m in re.finditer(pat, z):
+                ctx = z[max(0,m.start()-120):min(len(z),m.end()+170)]
+                if any(b in ctx for b in ["por viagem","metade da quantidade","50% da quantidade","estimativa de transporte","restantes"]):
+                    continue
+                try:
+                    value = int(m.group(1))
+                except Exception:
+                    continue
+                if 1 <= value <= 10000000:
+                    return {"value":str(value),"source":{"file":p["file"],"page":p["page"]}}
+    return {"value":"Não identificado com segurança","source":None}
+
+def analyze_pages(pages):
+    prows,mrows = classify_pages(pages)
+    pieces,mentions = grouped(prows),grouped(mrows)
+    has = {k:any(x["type"]==k for x in pieces) for k in LABELS}
+
+    no_delivery = snippets(pages,[r"nenhuma entrega",r"nao houve entrega",r"nao realizou.*entrega",r"nao foram entregues",r"inexecucao total"],5)
+    sanction = snippets(pages,[r"abertura.*processo administrativo sancionador",r"instauracao.*processo administrativo sancionador",r"instaurar.*processo administrativo sancionador"],3)
+    delivery = snippets(pages,[r"foram entregues",r"foi entregue",r"entrega realizada",r"recebido.*objeto",r"execucao parcial"],4)
+
+    pending=[]
+    # Se o próprio processo registra que parte do objeto não foi entregue,
+    # ausência de termo de recebimento não vira falsa pendência automática.
+    if delivery and not no_delivery and not has["termo_recebimento"]:
+        pending.append("Há indício de entrega, mas não foi localizado termo de recebimento como peça autônoma.")
+    if not has["defesa"]:
+        pending.append("Não foi localizada defesa administrativa como peça autônoma com segurança.")
+    if not(has["notificacao"] or has["intimacao"]):
+        pending.append("Não foi localizada notificação/intimação como peça autônoma com segurança.")
+    if sanction:
+        pending.append("Os autos indicam abertura/instauração de processo sancionador posterior; não presuma sanção final a partir deste PDF.")
+
+    dp={p for x in pieces if x["type"]=="defesa" for p in x["pages"]}
+    defense = snippets(
+        pages,
+        [r"reequilibr",r"aumento.*custo",r"frete",r"impossibil",r"inviabil",r"forca maior",
+         r"rescis",r"atraso",r"fornecedor",r"materia.?prima",r"proporcional",r"penalidade",
+         r"regularizacao",r"cronograma"],
+        7,
+        dp if dp else None
+    )
+    contra = snippets(
+        pages,
+        [r"nenhuma entrega",r"nao houve entrega",r"nao foram entregues",r"entrega parcial",
+         r"execucao parcial",r"descumpr",r"inexecucao",r"ausencia.*restantes",
+         r"rescisao unilateral",r"extincao unilateral"],
+        7
+    )
+
+    if sanction:
+        conclusion="Os autos registram abertura/instauração de processo administrativo sancionador posterior. Isso não equivale a sanção já aplicada."
+    elif has["decisao"] and has["defesa"] and (has["notificacao"] or has["intimacao"]):
+        conclusion="Foram localizadas peças relevantes de contraditório e decisão. A ferramenta organiza a evidência; a decisão permanece humana."
+    else:
+        conclusion="Nem todas as peças esperadas foram identificadas como documentos autônomos com segurança. Menções no corpo dos autos não são tratadas como peças."
+
+    return {
+        "pieces":pieces,"mentions":mentions,"has":has,"defense":defense,"contra":contra,
+        "pending":pending,"quantity":total_quantity(pages),"conclusion":conclusion,
+        "no_delivery":no_delivery
+    }
+
+def arg_categories(pages,dpages):
+    cats=[
+        ("reequilíbrio econômico-financeiro",[r"reequilibr"]),
+        ("atraso de fornecedor/matéria-prima",[r"atraso",r"fornecedor",r"materia.?prima"]),
+        ("aumento de custos/frete",[r"aumento.*custo",r"frete"]),
+        ("impossibilidade/inviabilidade de execução",[r"impossibil",r"inviabil"]),
+        ("pedido de rescisão/encerramento",[r"rescis",r"encerramento"]),
+        ("proporcionalidade da penalidade",[r"proporcional",r"penalidade"]),
+        ("plano de regularização",[r"regularizacao",r"cronograma"])
+    ]
+    out=[]
+    for label,pats in cats:
+        found=[]
+        for p in pages:
+            if p["page"] not in dpages: continue
+            z=norm(p["text"])
+            if any(re.search(x,z) for x in pats): found.append(p["page"])
+        if found: out.append((label,sorted(set(found))))
+    return out
+
+# UI: cria linha do tempo e matriz a partir dos achados reais retornados pelo motor.
+HTML = HTML.replace(
+    "@media(max-width:1050px)",
+    """.timeline{display:grid;grid-template-columns:repeat(7,minmax(120px,1fr));gap:8px;overflow-x:auto;padding-bottom:4px;margin-top:8px}
+.timeline-step{min-width:120px;border-top:3px solid var(--teal);background:#fbfcfe;border-radius:0 0 10px 10px;padding:11px}
+.timeline-step .tp{font-size:9px;font-weight:900;color:var(--teal);text-transform:uppercase;letter-spacing:.07em}
+.timeline-step b{display:block;color:var(--navy);font-size:11px;margin-top:4px}
+.matrix{width:100%;border-collapse:collapse;margin-top:8px}
+.matrix th,.matrix td{text-align:left;border-bottom:1px solid var(--line);padding:10px 11px;font-size:11px}
+.matrix th{background:#f8fafc;color:#718196;text-transform:uppercase;letter-spacing:.08em;font-size:9px}
+.matrix-ok{color:var(--teal);font-weight:850}.matrix-limit{color:var(--warn);font-weight:850}
+@media(max-width:1050px)"""
+)
+
+_anchor = """  h+='<section class="section"><div class="kicker">Peças essenciais</div><h2>Estrutura do processo</h2><div class="piece-grid">';"""
+_insert = """  var ordered=(a.pieces||[]).slice().sort(function(x,y){return (x.pages[0]||9999)-(y.pages[0]||9999)});
+  if(ordered.length){
+    h+='<section class="section"><div class="kicker">Cronologia dos autos</div><h2>Linha do tempo do processo</h2><div class="timeline">';
+    for(var ti=0;ti<ordered.length;ti++){var tp=ordered[ti];h+='<div class="timeline-step"><div class="tp">p. '+esc(pagesText(tp.pages))+'</div><b>'+esc(tp.label)+'</b></div>'}
+    h+='</div></section>';
+  }
+
+  var matrixRows=[
+    ["Há contrato?",a.has.contrato?"Sim":"Não identificado",a.has.contrato,"contrato"],
+    ["Houve notificação/intimação?",(a.has.notificacao||a.has.intimacao)?"Sim":"Não identificado",(a.has.notificacao||a.has.intimacao),"notificacao"],
+    ["Há defesa administrativa?",a.has.defesa?"Sim":"Não identificado",a.has.defesa,"defesa"],
+    ["Há decisão?",a.has.decisao?"Sim":"Não identificado",a.has.decisao,"decisao"],
+    ["Quantidade total?",qUnknown?"Não identificada com segurança":a.quantity.value,!qUnknown,"quantidade"]
+  ];
+  function matrixSource(kind){
+    if(kind==="quantidade"&&a.quantity.source)return "p. "+a.quantity.source.page;
+    var xs=(a.pieces||[]).filter(function(x){return kind==="notificacao"?(x.type==="notificacao"||x.type==="intimacao"):x.type===kind});
+    return xs.length?"p. "+pagesText(xs[0].pages):"—";
+  }
+  h+='<section class="section"><div class="kicker">Auditabilidade</div><h2>Matriz de evidências</h2><table class="matrix"><thead><tr><th>Questão</th><th>Resposta</th><th>Fonte</th><th>Status</th></tr></thead><tbody>';
+  for(var mi=0;mi<matrixRows.length;mi++){var mr=matrixRows[mi];h+='<tr><td>'+esc(mr[0])+'</td><td>'+esc(mr[1])+'</td><td>'+matrixSource(mr[3])+'</td><td class="'+(mr[2]?'matrix-ok':'matrix-limit')+'">'+(mr[2]?'Confirmado':'Limite')+'</td></tr>'}
+  h+='</tbody></table></section>';
+
+  h+='<section class="section"><div class="kicker">Peças essenciais</div><h2>Estrutura do processo</h2><div class="piece-grid">';"""
+if _anchor in HTML:
+    HTML = HTML.replace(_anchor, _insert, 1)
+
+HTML = HTML.replace("VERSÃO 3.6 · DEMONSTRAÇÃO GUIADA","VERSÃO 3.7 · DEMONSTRAÇÃO AUDITÁVEL")
