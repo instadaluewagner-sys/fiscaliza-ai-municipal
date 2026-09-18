@@ -361,23 +361,57 @@ def build_pending_items(checklist: list[ChecklistItem], stage: StageResult) -> l
     )
     return pending
 
+def _has_current_pas_context(documents: list[Document]) -> bool:
+    heading_patterns = [
+        r"processo administrativo de penalizacao\s*(?:n|no|nº|n\.)",
+        r"processo administrativo sancionador\s*(?:n|no|nº|n\.)",
+        r"notificacao.{0,100}instauracao.{0,120}processo administrativo",
+        r"instaurad[oa].{0,120}processo administrativo (?:sancionador|de penalizacao)",
+    ]
+    for doc in documents:
+        head = norm(doc.text[:1800])
+        if any(re.search(p, head) for p in heading_patterns):
+            return True
+    return False
+
+
 def determine_stage(documents: list[Document]) -> StageResult:
     by = docs_by_type(documents)
     all_text = norm("\n".join(d.text for d in documents))
     decision_texts = [norm(d.text) for d in by.get("decisao", [])]
+
     authorizes_new_pas = any(
         ("autorizo" in t or "autoriza" in t)
-        and ("abertura de processo administrativo sancionador" in t or "instauracao de processo administrativo sancionador" in t)
-        for t in decision_texts
-    )
-    final_sanction = any(
-        any(k in t for k in ["aplico a sancao", "aplica-se a sancao", "multa", "impedimento de licitar", "declaracao de inidoneidade"])
-        and any(k in t for k in ["processo administrativo sancionador", "processo administrativo de penalizacao", "penalidade"])
+        and (
+            "abertura de processo administrativo sancionador" in t
+            or "instauracao de processo administrativo sancionador" in t
+        )
         for t in decision_texts
     )
 
-    if by.get("recurso"):
-        return StageResult(key="recurso",label="Fase recursal",confidence=.95,rationale="Recurso administrativo localizado.",next_action="Analisar o recurso e conferir os efeitos da decisão recorrida.",suggested_draft="decisao_recurso")
+    final_sanction = any(
+        any(k in t for k in [
+            "aplico a sancao",
+            "aplica-se a sancao",
+            "aplico a penalidade",
+            "multa",
+            "impedimento de licitar",
+            "declaracao de inidoneidade",
+        ])
+        and any(k in t for k in [
+            "processo administrativo sancionador",
+            "processo administrativo de penalizacao",
+            "penalidade",
+            "sancao",
+        ])
+        for t in decision_texts
+    )
+
+    current_pas = _has_current_pas_context(documents)
+
+    # 1. Uma decisão do processo de origem que só AUTORIZA abrir um PAS
+    # não pode ser tratada como julgamento sancionador, mesmo que haja defesa,
+    # notificação ou recurso no processo contratual de origem.
     if authorizes_new_pas and not final_sanction:
         return StageResult(
             key="instauracao_sancionadora_autorizada",
@@ -387,21 +421,97 @@ def determine_stage(documents: list[Document]) -> StageResult:
             next_action="Autuar/instaurar o processo sancionador, delimitar fatos e documentos de origem e então assegurar o contraditório conforme a norma aplicável.",
             suggested_draft="despacho_instauracao",
         )
+
+    # 2. Recurso só caracteriza fase recursal sancionadora quando há decisão
+    # sancionadora final ou contexto inequívoco do PAS.
+    if by.get("recurso") and final_sanction:
+        return StageResult(
+            key="recurso",
+            label="Fase recursal",
+            confidence=.96,
+            rationale="Recurso administrativo localizado após decisão sancionadora.",
+            next_action="Analisar o recurso e conferir os efeitos da decisão recorrida.",
+            suggested_draft="decisao_recurso",
+        )
+
     if by.get("decisao") and final_sanction:
-        return StageResult(key="julgamento",label="Julgamento sancionador identificado",confidence=.96,rationale="Decisão sancionadora com comando de aplicação de penalidade localizada.",next_action="Dar ciência da decisão, controlar eventual prazo recursal e registrar a sanção quando cabível.",suggested_draft="notificacao_decisao")
-    if by.get("relatorio_conclusivo"):
-        return StageResult(key="relatorio_conclusivo",label="Relatório conclusivo elaborado",confidence=.95,rationale="Relatório conclusivo da comissão localizado.",next_action="Encaminhar os autos à autoridade competente para julgamento.",suggested_draft="decisao")
-    if by.get("defesa") and (by.get("parecer_tecnico") or by.get("parecer_juridico") or by.get("relatorio_tecnico")):
-        return StageResult(key="instrucao_pos_defesa",label="Instrução após defesa",confidence=.90,rationale="Defesa e elementos de análise posteriores estão presentes.",next_action="Concluir a instrução e elaborar relatório conclusivo enfrentando os argumentos relevantes.",suggested_draft="relatorio_conclusivo")
-    if by.get("defesa"):
-        return StageResult(key="defesa_apresentada",label="Defesa apresentada",confidence=.94,rationale="Peça autônoma de defesa localizada.",next_action="Analisar a defesa, confrontar provas e realizar diligências se necessárias.",suggested_draft="despacho_diligencia")
-    if by.get("notificacao") or by.get("intimacao"):
-        return StageResult(key="aguardando_defesa",label="Contraditório aberto",confidence=.90,rationale="Notificação/intimação localizada sem defesa autônoma identificada.",next_action="Controlar o prazo de defesa e certificar o decurso ou recebimento da manifestação.",suggested_draft="certidao_prazo")
-    if "instaur" in all_text:
-        return StageResult(key="instaurado",label="Processo instaurado",confidence=.82,rationale="Há referência expressa à instauração, sem notificação autônoma identificada.",next_action="Expedir notificação/intimação de instauração e abertura de prazo para defesa.",suggested_draft="notificacao_instauracao")
-    if by.get("relatorio_tecnico") or by.get("oficio"):
-        return StageResult(key="apuracao_inicial",label="Apuração inicial",confidence=.82,rationale="Fato/execução documentados, sem instauração clara.",next_action="Conferir pressupostos e decidir sobre a instauração do processo de penalização.",suggested_draft="despacho_instauracao")
-    return StageResult(key="triagem",label="Triagem",confidence=.65,rationale="Elementos insuficientes para determinar fase posterior.",next_action="Completar a instrução inicial e confirmar a origem do fato.",suggested_draft="despacho_diligencia")
+        return StageResult(
+            key="julgamento",
+            label="Julgamento sancionador identificado",
+            confidence=.96,
+            rationale="Decisão sancionadora com comando de aplicação de penalidade localizada.",
+            next_action="Dar ciência da decisão, controlar eventual prazo recursal e registrar a sanção quando cabível.",
+            suggested_draft="notificacao_decisao",
+        )
+
+    # 3. Os atos abaixo só são interpretados como fases do PAS quando o processo
+    # analisado contém marcador inequívoco de que o PAS já existe.
+    if current_pas:
+        if by.get("relatorio_conclusivo"):
+            return StageResult(
+                key="relatorio_conclusivo",
+                label="Relatório conclusivo elaborado",
+                confidence=.95,
+                rationale="Relatório conclusivo da comissão localizado no contexto do processo sancionador.",
+                next_action="Encaminhar os autos à autoridade competente para julgamento.",
+                suggested_draft="decisao",
+            )
+        if by.get("defesa") and (by.get("parecer_tecnico") or by.get("parecer_juridico") or by.get("relatorio_tecnico")):
+            return StageResult(
+                key="instrucao_pos_defesa",
+                label="Instrução após defesa",
+                confidence=.90,
+                rationale="Defesa e elementos de análise posteriores estão presentes no processo sancionador.",
+                next_action="Concluir a instrução e elaborar relatório conclusivo enfrentando os argumentos relevantes.",
+                suggested_draft="relatorio_conclusivo",
+            )
+        if by.get("defesa"):
+            return StageResult(
+                key="defesa_apresentada",
+                label="Defesa apresentada",
+                confidence=.94,
+                rationale="Peça autônoma de defesa localizada no processo sancionador.",
+                next_action="Analisar a defesa, confrontar provas e realizar diligências se necessárias.",
+                suggested_draft="despacho_diligencia",
+            )
+        if by.get("notificacao") or by.get("intimacao"):
+            return StageResult(
+                key="aguardando_defesa",
+                label="Contraditório aberto",
+                confidence=.90,
+                rationale="Notificação/intimação de instauração localizada sem defesa autônoma identificada.",
+                next_action="Controlar o prazo de defesa e certificar o decurso ou recebimento da manifestação.",
+                suggested_draft="certidao_prazo",
+            )
+        return StageResult(
+            key="instaurado",
+            label="Processo sancionador instaurado",
+            confidence=.88,
+            rationale="Há marcador inequívoco de existência do processo sancionador, sem ato posterior de contraditório identificado.",
+            next_action="Expedir notificação/intimação de instauração e abertura de prazo para defesa.",
+            suggested_draft="notificacao_instauracao",
+        )
+
+    # 4. Sem contexto inequívoco de PAS, defesa/notificação podem pertencer ao
+    # processo contratual de origem. Permanecemos em apuração/preparação.
+    if by.get("relatorio_tecnico") or by.get("parecer_tecnico") or by.get("oficio") or by.get("notificacao") or by.get("defesa"):
+        return StageResult(
+            key="apuracao_inicial",
+            label="Apuração / processo de origem",
+            confidence=.84,
+            rationale="Há documentos sobre execução, comunicação ou manifestação, mas não foi identificado processo sancionador já instaurado.",
+            next_action="Conferir pressupostos, delimitar o fato e verificar se há decisão/competência para instaurar o processo sancionador.",
+            suggested_draft="despacho_instauracao",
+        )
+
+    return StageResult(
+        key="triagem",
+        label="Triagem",
+        confidence=.65,
+        rationale="Elementos insuficientes para determinar fase sancionadora posterior.",
+        next_action="Completar a instrução inicial e confirmar a origem do fato.",
+        suggested_draft="despacho_diligencia",
+    )
 
 def build_evidence(documents: list[Document], stage: StageResult | None = None):
     evidence = []
