@@ -2,17 +2,20 @@ import io
 import os
 import time
 import uuid
+import json
+import hashlib
 from pathlib import Path
 from typing import List
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from v8.modules.penalizacao import analyze_penalizacao
 from v8.services.document_segmenter import segment_documents
 from v8.services.drafts import generate_draft
 from v8.services.pdf_reader import extract_pages
+from v8.services.report import build_audit_payload, build_pdf_report
 
 BASE_DIR = Path(__file__).resolve().parent
 SESSION_TTL_SECONDS = int(os.getenv("V8_SESSION_TTL_SECONDS", "1800"))
@@ -97,7 +100,12 @@ async def analyze(module: str = "penalizacao", files: List[UploadFile] = File(..
         pages.extend(extracted)
         ocr_pages += ocr_count
         names.append(filename)
-        stored_files.append({"filename": filename, "bytes": data})
+        stored_files.append({
+            "filename": filename,
+            "bytes": data,
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "size_bytes": len(data),
+        })
 
     if not pages:
         raise HTTPException(400, "Envie pelo menos um PDF válido.")
@@ -113,12 +121,20 @@ async def analyze(module: str = "penalizacao", files: List[UploadFile] = File(..
         "pages": pages,
         "documents": documents,
         "analysis": result,
+        "ocr_pages": ocr_pages,
     }
 
     return {
         "analysis_id": analysis_id,
         "version": app.version,
-        "files": names,
+        "files": [
+            {
+                "filename": item["filename"],
+                "sha256": item["sha256"],
+                "size_bytes": item["size_bytes"],
+            }
+            for item in stored_files
+        ],
         "pages": len(pages),
         "ocr_pages": ocr_pages,
         "analysis": result.model_dump(),
@@ -182,6 +198,41 @@ def read_stage_draft(analysis_id: str, kind: str | None = None):
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
     return draft.model_dump()
+
+
+@app.get("/api/v8/report/{analysis_id}.json")
+def read_audit_json(analysis_id: str):
+    item = get_session(analysis_id)
+    payload = build_audit_payload(
+        analysis_id=analysis_id,
+        analysis=item["analysis"],
+        source_files=item["files"],
+        page_count=len(item["pages"]),
+        ocr_pages=item.get("ocr_pages", 0),
+    )
+    data = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+    headers = {
+        "Content-Disposition": f'attachment; filename="fiscaliza-v8-{analysis_id[:8]}.json"',
+        "Cache-Control": "no-store",
+    }
+    return Response(content=data, media_type="application/json; charset=utf-8", headers=headers)
+
+
+@app.get("/api/v8/report/{analysis_id}.pdf")
+def read_audit_pdf(analysis_id: str):
+    item = get_session(analysis_id)
+    data = build_pdf_report(
+        analysis_id=analysis_id,
+        analysis=item["analysis"],
+        source_files=item["files"],
+        page_count=len(item["pages"]),
+        ocr_pages=item.get("ocr_pages", 0),
+    )
+    headers = {
+        "Content-Disposition": f'attachment; filename="fiscaliza-v8-{analysis_id[:8]}.pdf"',
+        "Cache-Control": "no-store",
+    }
+    return Response(content=data, media_type="application/pdf", headers=headers)
 
 
 @app.delete("/api/v8/analysis/{analysis_id}")
