@@ -21,7 +21,7 @@
         2,
         3
       ],
-      "notes": "A página 1 é a capa do Diário Oficial; a peça decisória autônoma começa na página 2 e continua na página 3."
+      "notes": "A página 1 é capa/publicação do diário; a peça autônoma de decisão administrativa ocupa as páginas 2 e 3."
     }
   ],
   "critical_facts": [
@@ -41,6 +41,7 @@
   "profile_conflicts": {},
   "notes": [
     "Caso municipal publicado em Diário Oficial em 25/04/2025.",
+    "A página 1 é capa/publicação; a decisão autônoma começa na página 2.",
     "A decisão declara suspensão da empresa para licitar e contratar e determina publicação/registro.",
     "A página 3 determina ciência à empresa e prevê prazo de 10 dias para manifestação cabível."
   ]
