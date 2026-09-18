@@ -62,6 +62,7 @@ class StageResult(BaseModel):
     rationale: str
     next_action: str
     suggested_draft: str
+    sources: list[PageRef] = Field(default_factory=list)
 
 class ProcessProfile(BaseModel):
     process_number: Optional[str] = None
