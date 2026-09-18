@@ -8,20 +8,45 @@
 </head>
 <body>
   <main class="shell">
-    <header>
-      <span class="tag">V8 · ambiente paralelo</span>
-      <h1>Penalização contratual</h1>
-      <p>Primeiro núcleo da reconstrução: documentos → evidências → estágio → próximo ato.</p>
+    <header class="app-header">
+      <div>
+        <span class="tag">V8 · ambiente paralelo</span>
+        <h1>Penalização contratual</h1>
+        <p>Documentos → evidências → estágio processual → próximo ato.</p>
+      </div>
+      <div class="alpha-note">A versão pública atual permanece intacta.</div>
     </header>
-    <section class="panel">
-      <h2>Testar análise</h2>
+
+    <section class="panel upload-panel">
+      <div>
+        <h2>Validar um processo</h2>
+        <p>Envie um PDF. A V8 tenta separar peças autônomas antes de interpretar o processo.</p>
+      </div>
       <form id="form">
         <input id="files" type="file" accept="application/pdf" multiple required>
         <button>Analisar processo</button>
       </form>
-      <p class="note">Esta V8 não substitui a versão pública atual. É um ambiente de validação técnica.</p>
+      <p class="note">Ambiente técnico de validação. Sessões e PDFs são mantidos temporariamente em memória e expiram automaticamente.</p>
     </section>
-    <section id="out" class="panel hidden" aria-live="polite"></section>
+
+    <section id="workspace" class="workspace hidden">
+      <div class="analysis-pane">
+        <section id="out" class="panel" aria-live="polite"></section>
+      </div>
+      <aside class="viewer-pane">
+        <div class="viewer-head">
+          <div>
+            <small>Documento original</small>
+            <strong id="viewerTitle">Selecione uma peça</strong>
+          </div>
+          <span id="viewerPage">—</span>
+        </div>
+        <div id="viewerEmpty" class="viewer-empty">
+          Clique em um documento ou evidência para abrir o PDF exatamente na página citada.
+        </div>
+        <iframe id="pdfViewer" title="Visualizador do PDF original" class="pdf-viewer hidden"></iframe>
+      </aside>
+    </section>
   </main>
   <script src="/v8-static/app.js"></script>
 </body>
