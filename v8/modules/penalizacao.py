@@ -1004,15 +1004,17 @@ def build_evidence(documents: list[Document], stage: StageResult | None = None):
         )
     elif stage and stage.key in {"julgamento","recurso"}:
         add_once(
-            "sanction_decision",
+            "final_decision",
             "decision",
-            "Decisão sancionadora localizada",
+            "Decisão final do processo sancionador localizada",
             ("decisao",),
             [
-                r"aplico\s+(?:a\s+)?san[cç][aã]o",
-                r"aplico\s+(?:a\s+)?penalidade",
-                r"impedimento\s+de\s+licitar",
-                r"declara[cç][aã]o\s+de\s+inidoneidade",
+                r"aplic(?:o|ar|a-se).{0,80}(?:san[cç][aã]o|penalidade|multa|advert[eê]ncia|impedimento|inidoneidade)",
+                r"fica\s+aplicada.{0,80}(?:san[cç][aã]o|penalidade|multa|advert[eê]ncia)",
+                r"deixo\s+de\s+aplicar.{0,80}(?:san[cç][aã]o|penalidade|multa)",
+                r"julgo.{0,80}(?:improcedente|insubsistente)",
+                r"(?:decido|determino).{0,100}(?:o\s+)?arquivamento",
+                r"absolv(?:o|er)",
             ],
             .99,
         )
@@ -1036,8 +1038,8 @@ def _attach_stage_sources(stage: StageResult, evidence, documents: list[Document
         "aguardando_defesa": ["defense_deadline"],
         "defesa_apresentada": ["defense_submitted"],
         "instrucao_pos_defesa": ["defense_submitted", "legal_opinion"],
-        "julgamento": ["sanction_decision"],
-        "recurso": ["sanction_decision"],
+        "julgamento": ["final_decision"],
+        "recurso": ["final_decision"],
     }.get(stage.key, [])
 
     refs = []
