@@ -125,6 +125,13 @@ def evaluate(pdf_path: Path, benchmark_path: Path) -> dict:
 
     expected_stage = benchmark.get("expected_stage")
     stage_ok = analysis.stage.key == expected_stage if expected_stage else None
+    expected_stage_source_page = benchmark.get("expected_stage_source_page")
+    stage_source_match = None
+    if expected_stage_source_page is not None:
+        stage_source_match = any(
+            int(ref.page) == int(expected_stage_source_page)
+            for ref in analysis.stage.sources
+        )
 
     critical_facts = benchmark.get("critical_facts", [])
     evidence_checks = []
@@ -224,6 +231,9 @@ def evaluate(pdf_path: Path, benchmark_path: Path) -> dict:
         "expected_stage": expected_stage,
         "actual_stage": analysis.stage.key,
         "stage_match": stage_ok,
+        "expected_stage_source_page": expected_stage_source_page,
+        "stage_source_match": stage_source_match,
+        "stage_sources": [ref.model_dump() for ref in analysis.stage.sources],
         "suggested_draft": analysis.stage.suggested_draft,
         "integrity_warnings": analysis.warnings,
         "evidence_accuracy": evidence_accuracy,
