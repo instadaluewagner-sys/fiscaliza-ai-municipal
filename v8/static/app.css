@@ -81,3 +81,20 @@ header p,.note,.panel p{color:var(--muted)}
   .upload-panel form{margin-top:12px;justify-content:flex-start;flex-wrap:wrap}
   .check-grid,.next-grid{grid-template-columns:1fr}
 }
+
+
+.stage-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.secondary-btn{background:#eef4f7;color:var(--navy);border:1px solid #d8e3ea}
+.secondary-btn:hover{background:#e6eff4}
+.draft-panel{margin-top:10px;border:1px solid #dce5eb;border-radius:10px;overflow:hidden;background:#fff}
+.draft-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;border-bottom:1px solid #e4eaef;background:#fbfcfd}
+.draft-head small{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.06em;font-weight:850}
+.draft-head strong{display:block;color:var(--navy);font-size:11px;margin-top:2px}
+.draft-tools{display:flex;gap:6px}
+.draft-tools button{padding:6px 8px;font-size:8.5px}
+.draft-text{margin:0;white-space:pre-wrap;padding:14px 15px;max-height:420px;overflow:auto;font:11px/1.58 Georgia,"Times New Roman",serif;color:#263d50;background:#fff}
+.draft-foot{padding:9px 12px;border-top:1px solid #e4eaef;background:#fbfcfd}
+.draft-foot b{display:block;color:#6a7f91;font-size:8px;text-transform:uppercase;letter-spacing:.05em}
+.draft-sources{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.draft-source{border:1px solid #d8e5e2;background:#eff9f7;color:#087b70;border-radius:999px;padding:3px 6px;font-size:8px;font-weight:800;cursor:pointer}
+.draft-warning{color:#7b6a42;font-size:8px;margin-top:5px}
