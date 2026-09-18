@@ -98,3 +98,25 @@ header p,.note,.panel p{color:var(--muted)}
 .draft-sources{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
 .draft-source{border:1px solid #d8e5e2;background:#eff9f7;color:#087b70;border-radius:999px;padding:3px 6px;font-size:8px;font-weight:800;cursor:pointer}
 .draft-warning{color:#7b6a42;font-size:8px;margin-top:5px}
+
+
+.pending-list{display:grid;gap:6px}
+.pending-row{border:1px solid #e0e7ed;border-radius:9px;padding:9px 10px;background:#fff}
+.pending-row small{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.05em}
+.pending-row b{display:block;font-size:10px;margin-top:2px}
+.pending-row p{margin:3px 0 0!important;font-size:8.8px!important;line-height:1.45!important;color:#607486!important}
+
+.timeline-list{position:relative;display:grid;gap:0;padding-left:9px}
+.timeline-event{
+  position:relative;display:grid;grid-template-columns:12px minmax(0,1fr);gap:8px;text-align:left;
+  width:100%;background:transparent;color:inherit;border:0;border-left:1px solid #d7e3ea;
+  border-radius:0;padding:8px 8px 8px 12px
+}
+.timeline-event:hover{background:#f8fbfc;filter:none}
+.timeline-dot{
+  position:absolute;left:-5px;top:14px;width:9px;height:9px;border-radius:50%;
+  background:#0b8f82;border:2px solid #fff;box-shadow:0 0 0 1px #b9d7d1
+}
+.timeline-event small{display:block;color:#738698;font-size:7.8px;text-transform:none;letter-spacing:0}
+.timeline-event b{display:block;color:#17344c;font-size:10px;margin-top:2px}
+.timeline-event span:not(.timeline-dot){display:block;color:#6b8092;font-size:8px;margin-top:2px}
