@@ -5273,3 +5273,64 @@ document.addEventListener("DOMContentLoaded",function(){
 HTML=HTML.replace("</script>",_commercial_js+"\n</script>",1)
 
 HTML=HTML.replace("VERSÃO 6.8 · INTERFACE DE SISTEMA","VERSÃO 6.9 · INTERFACE COMERCIAL")
+
+
+# --- Versão comercial focada: 6 módulos v7.0 ---
+# Mantém todos os módulos no backend para expansão futura, mas exibe apenas os seis fluxos maduros.
+VISIBLE_MODULES = ["penalizacao","fiscalizacao","reequilibrio","rescisao","sindicancia","disciplinar"]
+
+_focus_css = """
+/* Home focada em seis fluxos */
+.screen-home .module-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.screen-home .module-card{min-height:142px!important}
+.screen-home .module-search{display:none!important}
+.screen-home .module-toolbar{align-items:flex-end!important}
+.screen-home .module-toolbar-copy{max-width:760px}
+.screen-home .module-toolbar-copy p{max-width:680px}
+@media(max-width:980px){.screen-home .module-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:620px){.screen-home .module-grid{grid-template-columns:1fr!important}}
+"""
+HTML=HTML.replace("</style>",_focus_css+"</style>",1)
+
+_focus_js = r"""
+function aplicarFocoComercialSeisModulos(){
+  var visible={penalizacao:1,fiscalizacao:1,reequilibrio:1,rescisao:1,sindicancia:1,disciplinar:1};
+  document.querySelectorAll(".module-card").forEach(function(card){
+    var key=card.getAttribute("data-module");
+    card.style.display=visible[key]?"block":"none";
+  });
+
+  var toolbar=document.querySelector(".module-toolbar");
+  if(toolbar){
+    var copy=toolbar.querySelector(".module-toolbar-copy");
+    if(copy){
+      var h=copy.querySelector("h2");if(h)h.textContent="Escolha um dos 6 fluxos especializados";
+      var p=copy.querySelector("p");if(p)p.textContent="Fluxos selecionados para entregar profundidade, consistência e rastreabilidade em rotinas críticas da gestão pública.";
+    }
+    var search=toolbar.querySelector(".module-search");if(search)search.remove();
+  }
+
+  document.querySelectorAll(".home-stat").forEach(function(stat){
+    var span=stat.querySelector("span"),b=stat.querySelector("b");
+    if(span&&b&&span.textContent.trim().toLowerCase()==="módulos"){
+      b.textContent="6";span.textContent="fluxos especializados";
+    }
+  });
+
+  var side=document.querySelector(".home-side-card p");
+  if(side)side.textContent="Um ambiente único para organizar gestão contratual e responsabilização administrativa com rastreabilidade e padrão de trabalho.";
+}
+
+var _oldPrepararHomeComercialV70=prepararHomeComercial;
+prepararHomeComercial=function(){
+  _oldPrepararHomeComercialV70();
+  setTimeout(aplicarFocoComercialSeisModulos,0);
+};
+
+document.addEventListener("DOMContentLoaded",function(){
+  setTimeout(aplicarFocoComercialSeisModulos,140);
+});
+"""
+HTML=HTML.replace("</script>",_focus_js+"\n</script>",1)
+
+HTML=HTML.replace("VERSÃO 6.9 · INTERFACE COMERCIAL","VERSÃO 7.0 · EDIÇÃO COMERCIAL")
