@@ -204,6 +204,7 @@ function renderAnalysis(a,meta){
   const checks=a.checklist||[];
   const timeline=a.timeline||[];
   const pending=a.pending_items||[];
+  const warnings=a.warnings||[];
   const stage=a.stage||{};
 
   const docsHtml=docs.map(function(d){
@@ -231,6 +232,10 @@ function renderAnalysis(a,meta){
     return '<div class="pending-row"><div><small>'+esc(pendingKindLabel(x.kind))+' · '+esc(x.severity)+'</small><b class="'+cls+'">'+esc(x.label)+'</b><p>'+esc(x.reason)+'</p></div></div>';
   }).join(""):'<div class="check-card"><small>Pendências</small><b class="ok">Nenhuma pendência atual identificada.</b></div>';
 
+  const qualityHtml=warnings.length
+    ? '<div class="quality-alert"><b>Conferência de integridade necessária</b>'+warnings.map(function(w){return '<span>• '+esc(w)+'</span>';}).join("")+'</div>'
+    : '';
+
   const timelineHtml=timeline.length?timeline.map(function(t){
     const dateLabel=formatIsoDate(t.date);
     const sourceLabel=t.date_source==="envelope"?"data do envelope":(t.date_source==="document"?"data do documento":"sem data");
@@ -244,6 +249,7 @@ function renderAnalysis(a,meta){
     '<div class="summary-head"><div><small>Análise V8</small><h2>'+profileValue(p.process_number||p.origin_process)+'</h2>'+
     '<div class="process-meta"><span class="chip">'+esc(meta.pages||0)+' páginas</span><span class="chip">'+esc(docs.length)+' peças segmentadas</span><span class="chip">'+esc(meta.ocr_pages||0)+' OCR</span></div></div>'+
     '<div class="summary-actions"><span class="stage-badge">'+esc(stage.label||"Estágio não definido")+'</span><button class="session-end" onclick="deleteCurrentAnalysis(true)">Encerrar sessão</button></div></div>'+
+    qualityHtml+
     '<div class="stage-card"><small>Leitura processual</small><strong>'+esc(stage.rationale||"")+'</strong><p>'+esc(stage.next_action||"")+'</p>'+
     '<div class="stage-sources"><b>Base documental da fase</b><div>'+stageSourcesHtml(stage)+'</div></div>'+
     '<div class="next-grid"><div class="next-box"><b>Próximo ato</b><span>'+esc(stage.next_action||"—")+'</span></div><div class="next-box"><b>Minuta compatível</b><span>'+esc(stage.suggested_draft||"—")+'</span></div></div>'+
