@@ -5334,3 +5334,191 @@ document.addEventListener("DOMContentLoaded",function(){
 HTML=HTML.replace("</script>",_focus_js+"\n</script>",1)
 
 HTML=HTML.replace("VERSÃO 6.9 · INTERFACE COMERCIAL","VERSÃO 7.0 · EDIÇÃO COMERCIAL")
+
+
+# --- Novo processo abre o upload imediatamente v7.1 ---
+_new_process_css = """
+/* Estado de criação: o upload vira a tela principal, sem exigir rolagem */
+.system-main.new-process-mode .module-dashboard,
+.system-main.new-process-mode #systemEmpty,
+.system-main.new-process-mode #processTabs,
+.system-main.new-process-mode #result,
+.system-main.new-process-mode #qaPanel,
+.system-main.new-process-mode #notificationPanel,
+.system-main.new-process-mode #docsPanel,
+.system-main.new-process-mode #privacyPanel,
+.system-main.new-process-mode #reportPanel{display:none!important}
+
+#uploadPanel.new-process-card{
+  display:block!important;
+  margin:0!important;
+  border-radius:14px!important;
+  border:1px solid var(--line)!important;
+  box-shadow:0 8px 24px rgba(15,47,73,.07)!important;
+  padding:20px 22px!important;
+  animation:newProcessIn .18s ease-out
+}
+#uploadPanel.new-process-card .panel-head{margin-bottom:14px!important}
+#uploadPanel.new-process-card .kicker{font-size:9.5px!important}
+#uploadPanel.new-process-card .title{font-size:21px!important;margin-top:2px!important}
+#uploadPanel.new-process-card .desc{font-size:11.5px!important}
+#uploadPanel.new-process-card .uploadbox{
+  min-height:128px!important;padding:20px!important;background:#f8fbfd!important;
+  border:1.5px dashed #9eb5c7!important;border-radius:12px!important
+}
+#uploadPanel.new-process-card .uploadcopy strong{font-size:13px!important}
+#uploadPanel.new-process-card .uploadcopy span{font-size:11px!important}
+.new-process-hint{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  border:1px solid #cfe5e1;background:#f2fbf9;border-radius:11px;padding:10px 12px;margin-bottom:12px
+}
+.new-process-hint strong{display:block;color:var(--teal);font-size:11px}
+.new-process-hint span{display:block;color:var(--muted);font-size:9.5px;margin-top:2px}
+.new-process-cancel{
+  border:0;background:transparent;color:var(--navy);font-size:10px;font-weight:850;cursor:pointer;
+  padding:7px 8px;border-radius:8px;white-space:nowrap
+}
+.new-process-cancel:hover{background:#e8f1f5}
+@keyframes newProcessIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+"""
+HTML=HTML.replace("</style>",_new_process_css+"</style>",1)
+
+_new_process_js = r"""
+function limparEstadoAnaliseVisual(){
+  lastAnalysisData=null;
+  currentProcessTab="resumo";
+  var result=document.getElementById("result");
+  if(result){result.innerHTML="";result.style.display="none"}
+  var tabs=document.getElementById("processTabs");
+  if(tabs)tabs.classList.remove("visible");
+  ["qaPanel","notificationPanel","docsPanel","privacyPanel","reportPanel"].forEach(function(id){
+    var x=document.getElementById(id);
+    if(x){x.classList.remove("tab-visible");x.style.display="none"}
+  });
+  var vals={dashDocs:"0",dashEvidence:"0",dashPending:"0",dashStage:"Não iniciada"};
+  Object.keys(vals).forEach(function(id){var x=document.getElementById(id);if(x)x.textContent=vals[id]});
+}
+
+function prepararInicioModulo(){
+  limparEstadoAnaliseVisual();
+  var main=document.querySelector(".system-main");
+  if(main)main.classList.remove("new-process-mode");
+
+  var empty=document.getElementById("systemEmpty");
+  if(empty)empty.style.display="flex";
+
+  // O upload não aparece solto abaixo da dobra: só abre quando o usuário escolhe Novo processo.
+  var upload=document.getElementById("uploadPanel");
+  if(upload){
+    upload.style.display="none";
+    upload.classList.remove("new-process-card");
+  }
+
+  var st=document.getElementById("processStatus");
+  if(st){st.textContent="Sem processo";st.classList.remove("ready")}
+
+  var title=document.getElementById("dashboardTitle");
+  if(title)title.textContent="Processo ainda não carregado";
+  var ds=document.getElementById("dashboardSub");
+  if(ds)ds.textContent="Clique em “+ Novo processo” para carregar os autos ou use o processo modelo.";
+
+  document.querySelectorAll(".side-item").forEach(function(x){x.classList.toggle("active",x.dataset.tab==="resumo")});
+  document.querySelectorAll(".process-tab").forEach(function(x){x.classList.toggle("active",x.dataset.tab==="resumo")});
+}
+
+function configurarCardNovoProcesso(){
+  var upload=document.getElementById("uploadPanel");
+  var main=document.querySelector(".system-main");
+  if(!upload||!main)return;
+
+  // Coloca o formulário no topo da área de trabalho, exatamente onde o usuário está olhando.
+  var first=main.firstElementChild;
+  if(first!==upload)main.insertBefore(upload,first);
+
+  upload.classList.add("new-process-card");
+  upload.style.display="block";
+
+  var head=upload.querySelector(".panel-head");
+  if(head){
+    var title=head.querySelector(".title");
+    var desc=head.querySelector(".desc");
+    var kicker=head.querySelector(".kicker");
+    if(kicker)kicker.textContent="Novo processo";
+    if(title)title.textContent="Carregue os autos";
+    if(desc)desc.textContent="Selecione um ou mais PDFs para iniciar a análise em "+(moduleLabels[selectedModule]||selectedModule)+".";
+  }
+
+  var old=upload.querySelector(".new-process-hint");
+  if(!old){
+    var hint=document.createElement("div");
+    hint.className="new-process-hint";
+    hint.innerHTML='<div><strong>Novo processo · '+esc(moduleLabels[selectedModule]||selectedModule)+'</strong><span>Os documentos serão analisados e organizados no fluxo deste módulo.</span></div><button class="new-process-cancel" onclick="cancelarNovoProcesso()">Cancelar</button>';
+    var box=upload.querySelector(".uploadbox");
+    if(box)upload.insertBefore(hint,box);
+    else upload.insertBefore(hint,upload.firstChild);
+  }
+}
+
+async function novoProcessoModulo(){
+  analysisId=analysisId||localStorage.getItem("fiscaliza_analysis_id");
+  if(analysisId){try{await fetch("/api/analysis/"+analysisId,{method:"DELETE"})}catch(e){}}
+  analysisId=null;
+  localStorage.removeItem("fiscaliza_analysis_id");
+
+  var fi=document.getElementById("files");
+  if(fi)fi.value="";
+  var ans=document.getElementById("answer");
+  if(ans)ans.style.display="none";
+
+  limparEstadoAnaliseVisual();
+
+  var main=document.querySelector(".system-main");
+  if(main)main.classList.add("new-process-mode");
+
+  var empty=document.getElementById("systemEmpty");
+  if(empty)empty.style.display="none";
+
+  configurarCardNovoProcesso();
+
+  var st=document.getElementById("processStatus");
+  if(st){st.textContent="Novo processo";st.classList.remove("ready")}
+
+  // Não desce a página. O conteúdo é substituído no próprio ponto da tela.
+  var work=document.querySelector(".workspace-head");
+  if(work){
+    var top=work.getBoundingClientRect().top;
+    if(top<0||top>150)work.scrollIntoView({behavior:"smooth",block:"start"});
+  }
+}
+
+function cancelarNovoProcesso(){
+  var upload=document.getElementById("uploadPanel");
+  if(upload){
+    upload.style.display="none";
+    upload.classList.remove("new-process-card");
+    var hint=upload.querySelector(".new-process-hint");
+    if(hint)hint.remove();
+  }
+  var main=document.querySelector(".system-main");
+  if(main)main.classList.remove("new-process-mode");
+  var empty=document.getElementById("systemEmpty");
+  if(empty)empty.style.display="flex";
+  var st=document.getElementById("processStatus");
+  if(st)st.textContent="Sem processo";
+}
+
+var _oldAtivarProcessoNoSistemaV71=ativarProcessoNoSistema;
+ativarProcessoNoSistema=function(a){
+  var main=document.querySelector(".system-main");
+  if(main)main.classList.remove("new-process-mode");
+  var upload=document.getElementById("uploadPanel");
+  if(upload){
+    upload.classList.remove("new-process-card");
+    var hint=upload.querySelector(".new-process-hint");
+    if(hint)hint.remove();
+  }
+  _oldAtivarProcessoNoSistemaV71(a);
+};
+"""
+HTML=HTML.replace("</script>",_new_process_js+"\n</script>",1)
+HTML=HTML.replace("VERSÃO 7.0 · EDIÇÃO COMERCIAL","VERSÃO 7.1 · NOVO PROCESSO DIRETO")
