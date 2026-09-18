@@ -6361,3 +6361,393 @@ ajustarResultadoModulo=function(a){
 HTML=HTML.replace("</script>",_penalty_ui_js+"\n</script>",1)
 
 HTML=HTML.replace("VERSÃO 7.3 · DADOS CONTEXTUALIZADOS","VERSÃO 7.4 · DOSSIÊ DE PENALIZAÇÃO")
+
+
+# --- Central executiva do processo v7.5 ---
+# A Visão Geral passa a consolidar o processo inteiro, inclusive a minuta assistida.
+# As abas detalhadas continuam disponíveis para aprofundamento.
+
+_overview_css = """
+/* Central executiva */
+#overviewHub{display:none;margin-bottom:12px}
+#overviewHub.visible{display:block}
+.ov-shell{display:grid;gap:11px}
+.ov-hero{
+  background:#fff;border:1px solid #dbe4eb;border-radius:12px;padding:16px 18px;
+  display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,.5fr);gap:18px;align-items:start
+}
+.ov-eyebrow{font-size:8.5px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#0b8f82}
+.ov-title{margin:3px 0 0;color:#102f49;font-size:18px;line-height:1.2}
+.ov-sub{margin:5px 0 0;color:#6b7d8f;font-size:10.5px;line-height:1.5}
+.ov-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+.ov-chip{display:inline-flex;padding:4px 7px;border:1px solid #dbe4eb;border-radius:999px;background:#f7f9fb;color:#53697c;font-size:8.5px;font-weight:800}
+.ov-chip.primary{border-color:#bfe0db;background:#eef9f7;color:#087b70}
+.ov-next{border-left:1px solid #e3e9ee;padding-left:17px}
+.ov-next small{display:block;color:#758698;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.07em}
+.ov-next strong{display:block;color:#102f49;font-size:12.5px;margin-top:4px}
+.ov-next p{margin:4px 0 0;color:#667a8d;font-size:9.5px;line-height:1.45}
+.ov-next button{margin-top:9px}
+
+.ov-progress{
+  background:#fff;border:1px solid #dbe4eb;border-radius:12px;padding:13px 16px
+}
+.ov-progress-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:11px}
+.ov-progress-head b{color:#102f49;font-size:11.5px}.ov-progress-head span{color:#718396;font-size:8.5px}
+.ov-track{display:grid;grid-template-columns:repeat(5,1fr);gap:0}
+.ov-stage{position:relative;padding-top:22px;font-size:8.5px;font-weight:800;color:#8090a0;text-align:center}
+.ov-stage:before{
+  content:"";position:absolute;top:6px;left:50%;transform:translateX(-50%);width:12px;height:12px;border-radius:50%;
+  background:#dce5eb;border:3px solid #fff;box-shadow:0 0 0 1px #d1dce4;z-index:2
+}
+.ov-stage:after{content:"";position:absolute;top:12px;left:0;right:0;height:2px;background:#e2e9ee;z-index:1}
+.ov-stage:first-child:after{left:50%}.ov-stage:last-child:after{right:50%}
+.ov-stage.done{color:#087b70}.ov-stage.done:before{background:#0b8f82;box-shadow:0 0 0 1px #0b8f82}
+.ov-stage.done:after{background:#9fd5cc}
+
+.ov-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,.55fr);gap:11px}
+.ov-panel{background:#fff;border:1px solid #dbe4eb;border-radius:12px;padding:15px 16px;min-width:0}
+.ov-panel-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:10px}
+.ov-panel-head h3{margin:0;color:#102f49;font-size:13px}
+.ov-panel-head p{margin:3px 0 0;color:#728497;font-size:9px;line-height:1.4}
+.ov-link{border:0;background:transparent;color:#0b7f74;font-size:8.5px;font-weight:850;cursor:pointer;padding:3px 0;white-space:nowrap}
+.ov-summary{color:#334d63;font-size:10.5px;line-height:1.6;margin:0}
+.ov-status-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:11px}
+.ov-status{border-top:2px solid #dce5eb;padding:8px 2px 0}
+.ov-status.ok{border-top-color:#0b8f82}.ov-status.warn{border-top-color:#d79a24}
+.ov-status small{display:block;color:#77899a;font-size:7.5px;text-transform:uppercase;letter-spacing:.055em;font-weight:850}
+.ov-status b{display:block;margin-top:3px;color:#143149;font-size:10px}
+.ov-status.ok b{color:#087b70}.ov-status.warn b{color:#9a6900}
+
+.ov-list{display:grid;gap:0}
+.ov-row{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:9px;align-items:start;padding:8px 0;border-top:1px solid #edf1f4}
+.ov-row:first-child{border-top:0}
+.ov-row-icon{width:20px;height:20px;border-radius:6px;background:#eaf7f4;color:#087b70;display:grid;place-items:center;font-size:9px;font-weight:900}
+.ov-row-icon.warn{background:#fff4e3;color:#a26b00}
+.ov-row b{display:block;color:#18344c;font-size:9.8px}.ov-row p{margin:2px 0 0;color:#748597;font-size:8.8px;line-height:1.4}
+.ov-row .ov-source{color:#688093;font-size:8px;text-align:right;white-space:nowrap}
+
+.ov-timeline{display:flex;gap:5px;overflow-x:auto;padding-bottom:3px}
+.ov-time{min-width:120px;border-left:2px solid #a7d7cf;background:#f8fbfb;border-radius:0 8px 8px 0;padding:8px}
+.ov-time small{display:block;color:#718497;font-size:7.5px}.ov-time b{display:block;color:#18344c;font-size:9px;margin-top:2px;line-height:1.3}
+
+.ov-dossier-line{display:flex;align-items:center;gap:9px}
+.ov-dossier-bar{height:7px;background:#e9eef2;border-radius:999px;overflow:hidden;flex:1}
+.ov-dossier-fill{height:100%;background:#0b8f82;border-radius:999px}
+.ov-dossier-num{font-size:9px;color:#526a7d;font-weight:850;white-space:nowrap}
+.ov-dossier-groups{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:10px}
+.ov-dossier-group{border:1px solid #e2e8ed;border-radius:8px;padding:8px}
+.ov-dossier-group b{display:block;color:#17344c;font-size:8.8px}.ov-dossier-group span{display:block;color:#7a8b9c;font-size:7.8px;margin-top:2px}
+
+.ov-draft-paper{
+  border:1px solid #dfe6ec;background:#fcfcfb;border-radius:9px;max-height:360px;overflow:auto;
+  padding:18px 20px;font-family:Georgia,"Times New Roman",serif;color:#24384b;font-size:10.5px;line-height:1.65;
+  white-space:pre-wrap
+}
+.ov-draft-loading{color:#77899a;font-family:"Segoe UI",Arial,sans-serif;font-size:9.5px}
+.ov-draft-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.ov-draft-actions .btn{font-size:9px!important;padding:7px 9px!important}
+.ov-note{margin-top:7px;color:#7b8b99;font-size:7.8px;line-height:1.4}
+
+.ov-evidence-columns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ov-evidence-block h4{margin:0 0 4px;color:#5e7285;font-size:8px;text-transform:uppercase;letter-spacing:.06em}
+.ov-evidence-item{border-top:1px solid #edf1f4;padding:7px 0}
+.ov-evidence-item:first-of-type{border-top:0}
+.ov-evidence-item p{margin:0;color:#3e566b;font-size:9px;line-height:1.45}
+.ov-evidence-item span{display:block;color:#7890a2;font-size:7.8px;margin-top:2px}
+
+.dossier-compact .dossier-row{
+  grid-template-columns:24px minmax(190px,.9fr) minmax(240px,1.45fr) 80px;
+  padding:8px 12px;min-height:44px
+}
+.dossier-compact .dossier-source{white-space:normal}
+.dossier-primary{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.dossier-more{color:#7890a0;font-size:8px;font-weight:750}
+.internal-refs-moved{display:none!important}
+
+@media(max-width:1050px){
+  .ov-hero,.ov-grid{grid-template-columns:1fr}
+  .ov-next{border-left:0;border-top:1px solid #e3e9ee;padding:12px 0 0}
+  .ov-status-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:700px){
+  .ov-track{grid-template-columns:1fr;gap:4px}
+  .ov-stage{text-align:left;padding:5px 0 5px 26px}
+  .ov-stage:before{left:8px;top:7px}.ov-stage:after{display:none}
+  .ov-evidence-columns,.ov-dossier-groups{grid-template-columns:1fr}
+}
+"""
+HTML=HTML.replace("</style>",_overview_css+"</style>",1)
+
+_overview_js = r"""
+function ovEsc(v){return esc(v==null?"":v)}
+function ovPageSource(x){
+  if(!x)return "";
+  if(x.document_id)return "ID "+ovEsc(x.document_id)+(x.page?" · p. "+ovEsc(x.page):"");
+  if(x.page)return "p. "+ovEsc(x.page);
+  return "";
+}
+function ovPrimaryDoc(docs,pages){
+  docs=docs||[];pages=pages||[];
+  if(docs.length){
+    var d=docs[0],txt="ID "+ovEsc(d.document_id||"");
+    if(d.source_document_id)txt+=" · "+ovEsc(d.source_document_id);
+    if(d.page)txt+=" · p. "+ovEsc(d.page);
+    return txt;
+  }
+  if(pages.length)return "p. "+ovEsc(pages[0]);
+  return "Sem fonte segura";
+}
+function ovStatusItems(a){
+  if(a.module_key==="penalizacao"){
+    var q=(a.quantity&& (a.quantity.display||a.quantity.value))||"Não identificado";
+    return [
+      {label:"Notificação",ok:!!(a.has&& (a.has.notificacao||a.has.intimacao)),value:(a.has&&(a.has.notificacao||a.has.intimacao))?"Localizada":"Conferir"},
+      {label:"Defesa",ok:!!(a.has&&a.has.defesa),value:(a.has&&a.has.defesa)?"Localizada":"Conferir"},
+      {label:"Decisão",ok:!!(a.has&&a.has.decisao),value:(a.has&&a.has.decisao)?"Localizada":"Conferir"},
+      {label:"Quantidade / objeto",ok:!String(q).toLowerCase().includes("não identificado"),value:q}
+    ];
+  }
+  return (a.module_summary||[]).slice(0,4).map(function(x){return {label:x.label,ok:x.ok,value:x.value}});
+}
+function ovStages(a){
+  if(a.module_key==="penalizacao"){
+    var has=a.has||{};
+    return [
+      {label:"Contratação",done:!!(has.contrato||has.empenho||has.ordem_fornecimento)},
+      {label:"Apuração",done:!!((a.contra||[]).length||(has.parecer_tecnico))},
+      {label:"Contraditório",done:!!((has.notificacao||has.intimacao)&&has.defesa)},
+      {label:"Instrução",done:!!(has.parecer_tecnico||has.parecer_juridico)},
+      {label:"Decisão",done:!!has.decisao}
+    ];
+  }
+  var rows=a.module_matrix||[];
+  if(!rows.length)return [
+    {label:"Entrada",done:true},{label:"Instrução",done:false},{label:"Análise",done:false},{label:"Conclusão",done:false},{label:"Encerramento",done:false}
+  ];
+  var labels=["Entrada","Instrução","Manifestação","Análise","Conclusão"];
+  return labels.map(function(l,i){return {label:l,done:i<Math.ceil((rows.filter(function(x){return x.ok}).length/rows.length)*5)}});
+}
+function ovTimeline(a){
+  var items=[];
+  if(a.module_key==="penalizacao"){
+    items=(a.pieces||[]).map(function(x){
+      return {label:x.label,pages:x.pages||[],documents:x.documents||[]};
+    }).sort(function(x,y){return (x.pages[0]||9999)-(y.pages[0]||9999)});
+  }else items=a.module_timeline||[];
+  return items.slice(0,7);
+}
+function ovEvidence(a){
+  if(a.module_key==="penalizacao"){
+    return {
+      favorable:(a.defense||[]).slice(0,3).map(function(x){return {text:x.text,source:ovPageSource(x)}}),
+      confront:(a.contra||[]).slice(0,3).map(function(x){return {text:x.text,source:ovPageSource(x)}})
+    };
+  }
+  var ev=(a.module_evidence||[]).slice(0,6).map(function(x){return {text:(x.label+": "+(x.text||"Evidência localizada.")),source:ovPageSource(x)}});
+  return {favorable:ev.slice(0,3),confront:ev.slice(3,6)};
+}
+function ovDossier(a){
+  if(a.module_key==="penalizacao"&&a.penalty_dossier){
+    var groups=a.penalty_dossier.map(function(g){
+      var ok=(g.rows||[]).filter(function(r){return r.ok}).length;
+      return {label:g.group,ok:ok,total:(g.rows||[]).length};
+    });
+    return {groups:groups,ok:(a.penalty_dossier_score||{}).ok||0,total:(a.penalty_dossier_score||{}).total||0};
+  }
+  var rows=a.module_matrix||[];
+  return {groups:[{label:"Controles do módulo",ok:rows.filter(function(x){return x.ok}).length,total:rows.length}],ok:rows.filter(function(x){return x.ok}).length,total:rows.length};
+}
+function ovPending(a){
+  var p=(a.review_flags||[]).map(function(x){return x.text});
+  if(!p.length)p=(a.pending||[]).slice();
+  return p.slice(0,5);
+}
+function ovDefaultDraftKind(a){
+  var m=a.module_key||selectedModule;
+  if(m==="penalizacao")return "notificacao";
+  if(m==="sindicancia"||m==="disciplinar"||m==="fiscalizacao")return "relatorio";
+  if(m==="reequilibrio"||m==="rescisao")return "decisao";
+  return "relatorio";
+}
+function ovDraftLabel(kind){
+  return {notificacao:"Notificação de instauração",relatorio:"Relatório conclusivo",decisao:"Minuta de decisão",diligencia:"Despacho de diligência",despacho:"Despacho",intimacao:"Intimação"}[kind]||"Minuta assistida";
+}
+function renderOverviewHub(a){
+  var main=document.querySelector(".system-main");
+  if(!main)return;
+  var hub=document.getElementById("overviewHub");
+  if(!hub){
+    hub=document.createElement("div");hub.id="overviewHub";
+    var tabs=document.getElementById("processTabs"),result=document.getElementById("result");
+    if(tabs&&tabs.nextSibling)tabs.parentNode.insertBefore(hub,tabs.nextSibling);
+    else if(result)result.parentNode.insertBefore(hub,result);
+    else main.appendChild(hub);
+  }
+
+  var p=a.process_profile||{},statuses=ovStatusItems(a),stages=ovStages(a),timeline=ovTimeline(a),ev=ovEvidence(a),dos=ovDossier(a),pending=ovPending(a);
+  var pct=dos.total?Math.round(dos.ok*100/dos.total):0;
+  var next=a.next_action||{};
+  var draftKind=ovDefaultDraftKind(a);
+
+  var sh=statuses.map(function(x){
+    return '<div class="ov-status '+(x.ok?'ok':'warn')+'"><small>'+ovEsc(x.label)+'</small><b>'+ovEsc(x.value)+'</b></div>';
+  }).join("");
+
+  var stageh=stages.map(function(x){return '<div class="ov-stage '+(x.done?'done':'')+'">'+ovEsc(x.label)+'</div>'}).join("");
+
+  var tlh=timeline.length?timeline.map(function(x){
+    return '<div class="ov-time"><small>'+ovEsc(ovPrimaryDoc(x.documents||[],x.pages||[]))+'</small><b>'+ovEsc(x.label)+'</b></div>';
+  }).join(""):'<div class="ov-time"><small>—</small><b>Cronologia ainda não consolidada</b></div>';
+
+  function evBlock(title,items){
+    var h='<div class="ov-evidence-block"><h4>'+title+'</h4>';
+    if(!items.length)h+='<div class="ov-evidence-item"><p>Nenhum achado prioritário nesta categoria.</p></div>';
+    items.forEach(function(x){h+='<div class="ov-evidence-item"><p>'+ovEsc(x.text)+'</p><span>'+ovEsc(x.source||"Fonte disponível na aba Evidências")+'</span></div>'});
+    return h+'</div>';
+  }
+
+  var pendh=pending.length?pending.map(function(x){
+    return '<div class="ov-row"><span class="ov-row-icon warn">!</span><div><b>Ponto para conferência</b><p>'+ovEsc(x)+'</p></div><span class="ov-source">Revisão humana</span></div>';
+  }).join(""):'<div class="ov-row"><span class="ov-row-icon">✓</span><div><b>Sem alerta prioritário</b><p>Não foi identificada pendência automática prioritária nesta leitura.</p></div><span class="ov-source">Automático</span></div>';
+
+  var dg=dos.groups.map(function(g){return '<div class="ov-dossier-group"><b>'+ovEsc(g.label)+'</b><span>'+ovEsc(g.ok)+' de '+ovEsc(g.total)+' itens localizados</span></div>'}).join("");
+
+  hub.innerHTML=
+    '<div class="ov-shell">'+
+      '<section class="ov-hero">'+
+        '<div><div class="ov-eyebrow">Visão geral do processo</div><h2 class="ov-title">'+ovEsc(p.number||a.module_label||"Processo analisado")+'</h2>'+
+        '<p class="ov-sub">'+ovEsc((p.interested&&p.interested!=="Interessado não identificado"?p.interested+" · ":"")+(a.conclusion||"Análise concluída."))+'</p>'+
+        '<div class="ov-meta"><span class="ov-chip primary">'+ovEsc(a.module_label||moduleLabels[selectedModule]||"Módulo")+'</span><span class="ov-chip">'+ovEsc((p.pages||0)+" páginas")+'</span><span class="ov-chip">'+ovEsc((p.documents||0)+" documentos")+'</span><span class="ov-chip">ID + página</span></div>'+
+        '<div class="ov-status-grid">'+sh+'</div></div>'+
+        '<aside class="ov-next"><small>Próxima providência</small><strong>'+ovEsc(next.stage||"Revisão do processo")+'</strong><p>'+ovEsc(next.action||"Conferir os elementos relevantes antes da conclusão.")+'</p><button class="btn btn-primary" onclick="mostrarAbaProcesso(\'pendencias\')">Ver pendências</button></aside>'+
+      '</section>'+
+
+      '<section class="ov-progress"><div class="ov-progress-head"><b>Andamento identificado</b><span>Leitura automática sujeita à conferência</span></div><div class="ov-track">'+stageh+'</div></section>'+
+
+      '<div class="ov-grid">'+
+        '<section class="ov-panel"><div class="ov-panel-head"><div><h3>Leitura executiva</h3><p>Resumo, pontos relevantes e situação do contraditório.</p></div><button class="ov-link" onclick="mostrarAbaProcesso(\'evidencias\')">Abrir evidências →</button></div>'+
+          '<p class="ov-summary">'+ovEsc(a.conclusion||"")+'</p>'+
+          '<div class="ov-evidence-columns">'+evBlock("Elementos favoráveis / manifestações",ev.favorable)+evBlock("Pontos a confrontar",ev.confront)+'</div>'+
+        '</section>'+
+        '<section class="ov-panel"><div class="ov-panel-head"><div><h3>Dossiê documental</h3><p>Completude dos elementos esperados para o módulo.</p></div><button class="ov-link" onclick="mostrarAbaProcesso(\'documentos\')">Abrir documentos →</button></div>'+
+          '<div class="ov-dossier-line"><div class="ov-dossier-bar"><div class="ov-dossier-fill" style="width:'+pct+'%"></div></div><span class="ov-dossier-num">'+ovEsc(dos.ok)+'/'+ovEsc(dos.total)+' · '+pct+'%</span></div>'+
+          '<div class="ov-dossier-groups">'+dg+'</div>'+
+        '</section>'+
+      '</div>'+
+
+      '<section class="ov-panel"><div class="ov-panel-head"><div><h3>Cronologia essencial</h3><p>Principais marcos encontrados nos autos.</p></div><button class="ov-link" onclick="mostrarAbaProcesso(\'cronologia\')">Ver cronologia completa →</button></div><div class="ov-timeline">'+tlh+'</div></section>'+
+
+      '<div class="ov-grid">'+
+        '<section class="ov-panel"><div class="ov-panel-head"><div><h3>Pendências e pontos de atenção</h3><p>O que merece conferência antes do próximo ato.</p></div><button class="ov-link" onclick="mostrarAbaProcesso(\'pendencias\')">Abrir revisão →</button></div><div class="ov-list">'+pendh+'</div></section>'+
+        '<section class="ov-panel"><div class="ov-panel-head"><div><h3 id="ovDraftTitle">'+ovEsc(ovDraftLabel(draftKind))+'</h3><p>Minuta assistida já integrada à visão geral.</p></div><button class="ov-link" onclick="mostrarAbaProcesso(\'minutas\')">Ver todas as minutas →</button></div>'+
+          '<div id="ovDraftPaper" class="ov-draft-paper"><span class="ov-draft-loading">Gerando minuta assistida a partir dos autos…</span></div>'+
+          '<div class="ov-draft-actions"><button class="btn btn-blue" onclick="copiarMinutaOverview()">Copiar minuta</button><button class="btn btn-blue" onclick="baixarMinutaOverview()">Baixar .txt</button><button class="btn btn-primary" onclick="mostrarAbaProcesso(\'minutas\')">Editar / outras minutas</button></div>'+
+          '<div class="ov-note">Conteúdo assistido. A revisão humana e a conferência dos autos permanecem obrigatórias.</div>'+
+        '</section>'+
+      '</div>'+
+    '</div>';
+
+  carregarMinutaOverview(a,draftKind);
+}
+async function carregarMinutaOverview(a,kind){
+  var paper=document.getElementById("ovDraftPaper");if(!paper)return;
+  analysisId=analysisId||localStorage.getItem("fiscaliza_analysis_id");
+  if(!analysisId){paper.textContent="Minuta indisponível: análise sem identificador de sessão.";return}
+  try{
+    var r=await fetch("/api/document-draft",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({analysis_id:analysisId,kind:kind})});
+    var d=await r.json();
+    if(!r.ok)throw new Error(d.detail||"Falha ao gerar");
+    paper.textContent=d.draft||"Minuta não gerada.";
+    paper.dataset.draft=d.draft||"";
+  }catch(e){
+    paper.textContent="Não foi possível gerar automaticamente a minuta nesta sessão. Use a aba Minutas para tentar novamente.";
+  }
+}
+async function copiarMinutaOverview(){
+  var p=document.getElementById("ovDraftPaper"),txt=(p&&p.dataset.draft)||"";
+  if(!txt)return;
+  try{await navigator.clipboard.writeText(txt)}catch(e){var ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove()}
+}
+function baixarMinutaOverview(){
+  var p=document.getElementById("ovDraftPaper"),txt=(p&&p.dataset.draft)||"";
+  if(!txt)return;
+  var blob=new Blob([txt],{type:"text/plain;charset=utf-8"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download="fiscaliza-minuta-assistida.txt";a.click();URL.revokeObjectURL(a.href);
+}
+
+function dossierPrimaryDocs(row){
+  var docs=(row.documents||[]).slice();
+  if(!docs.length)return [];
+  var label=(row.label||"").toLowerCase();
+  var keys=[];
+  if(label.includes("ata de registro"))keys=["ata de registro","arp"];
+  else if(label.includes("pregão")||label.includes("licitatório"))keys=["pregao","pregão","edital"];
+  else if(label.includes("contrato"))keys=["contrato administrativo","contrato nº","contrato n"];
+  else if(label.includes("empenho"))keys=["nota de empenho","empenho nº","empenho n"];
+  else if(label.includes("ordem")||label.includes("autorização"))keys=["ordem de fornecimento","autorizacao de fornecimento","autorização de fornecimento"];
+  else if(label.includes("notificação")||label.includes("intimação"))keys=["notificacao","notificação","intimacao","intimação"];
+  else if(label.includes("defesa"))keys=["defesa administrativa","razoes de defesa","razões de defesa"];
+  else if(label.includes("parecer técnico"))keys=["parecer tecnico","parecer técnico","relatorio tecnico","relatório técnico"];
+  else if(label.includes("parecer jurídico"))keys=["parecer juridico","parecer jurídico"];
+  else if(label.includes("decisão"))keys=["decisao","decisão"];
+  var ranked=docs.map(function(d){
+    var s=((d.source_document_id||"")+" "+(d.document_id||"")).toLowerCase();
+    var score=keys.some(function(k){return s.indexOf(k)>=0})?0:1;
+    return {d:d,score:score};
+  }).sort(function(a,b){return a.score-b.score});
+  var out=[],seen={};
+  ranked.forEach(function(x){
+    var key=x.d.document_id||x.d.source_document_id;
+    if(!seen[key]&&out.length<2){seen[key]=1;out.push(x.d)}
+  });
+  return out;
+}
+
+function penaltyDossierHtml(a){
+  var groups=a.penalty_dossier||[],score=a.penalty_dossier_score||{ok:0,total:0};
+  var h='<div class="dossier-shell dossier-compact"><div class="dossier-head"><div><h3>Checklist documental do processo</h3><p>Fonte principal por item. Outras menções permanecem disponíveis na aba Evidências.</p></div><span class="dossier-score">'+ovEsc(score.ok)+' de '+ovEsc(score.total)+' localizados</span></div>';
+  groups.forEach(function(g){
+    h+='<div class="dossier-group"><div class="dossier-group-title">'+ovEsc(g.group)+'</div>';
+    (g.rows||[]).forEach(function(r){
+      var primary=dossierPrimaryDocs(r),more=Math.max(0,(r.documents||[]).length-primary.length);
+      var src=r.ok?('<div class="dossier-primary">'+documentRefHtml(primary,r.pages&&r.pages.length?[r.pages[0]]:[])+(more?'<span class="dossier-more">+'+more+' referência(s)</span>':'')+'</div>'):'<span>Sem evidência segura na leitura automática</span>';
+      h+='<div class="dossier-row"><span class="dossier-state '+(r.ok?'ok':'miss')+'">'+(r.ok?'✓':'!')+'</span><div class="dossier-label">'+ovEsc(r.label)+'</div><div class="dossier-source">'+src+'</div><div class="dossier-status '+(r.ok?'ok':'miss')+'">'+(r.ok?'Localizado':'Conferir')+'</div></div>';
+    });
+    h+='</div>';
+  });
+  return h+'</div>';
+}
+
+var _oldMarcarGruposResultadoV75=marcarGruposResultado;
+marcarGruposResultado=function(){
+  _oldMarcarGruposResultadoV75();
+  document.querySelectorAll("#result details").forEach(function(d){
+    var t=(d.textContent||"").toLowerCase();
+    if(t.indexOf("referências internas")>=0||t.indexOf("referencias internas")>=0)d.dataset.group="evidencias";
+  });
+};
+
+var _oldSetPanelVisibilityV75=setPanelVisibility;
+setPanelVisibility=function(tab){
+  var hub=document.getElementById("overviewHub");
+  if(tab==="resumo"){
+    if(hub)hub.classList.add("visible");
+    var result=document.getElementById("result");if(result)result.style.display="none";
+    ["qaPanel","notificationPanel","docsPanel","privacyPanel","reportPanel"].forEach(function(id){var p=document.getElementById(id);if(p){p.style.display="none";p.classList.remove("tab-visible")}});
+    return;
+  }
+  if(hub)hub.classList.remove("visible");
+  _oldSetPanelVisibilityV75(tab);
+};
+
+var _oldAtivarProcessoNoSistemaV75=ativarProcessoNoSistema;
+ativarProcessoNoSistema=function(a){
+  _oldAtivarProcessoNoSistemaV75(a);
+  renderOverviewHub(a);
+  marcarGruposResultado();
+  mostrarAbaProcesso("resumo");
+};
+"""
+HTML=HTML.replace("</script>",_overview_js+"\n</script>",1)
+
+HTML=HTML.replace("VERSÃO 7.4 · DOSSIÊ DE PENALIZAÇÃO","VERSÃO 7.5 · CENTRAL EXECUTIVA")
