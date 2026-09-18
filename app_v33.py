@@ -2739,3 +2739,503 @@ HTML = HTML.replace(
     'st.textContent="Processo modelo carregado · "+d.pages+" páginas · análise real executada"'
 )
 HTML = HTML.replace("VERSÃO 5.0 · MODELO FIXO VALIDADO","VERSÃO 5.1 · PROCESSO MODELO COMPLETO")
+
+
+# --- Camada competitiva completa v6.0 ---
+import threading
+
+# Expiração automática real do estado em memória (30 minutos).
+class _ExpiringAnalyses(dict):
+    ttl_seconds = 1800
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        timer = threading.Timer(self.ttl_seconds, lambda: self.pop(key, None))
+        timer.daemon = True
+        timer.start()
+
+ANALYSES = _ExpiringAnalyses(ANALYSES)
+
+def _pages_for_type(a, typ):
+    return sorted({p for x in a.get("pieces",[]) if x.get("type")==typ for p in x.get("pages",[])})
+
+def _source_obj(label, file, page, text=""):
+    return {"label":label,"file":file or "Processo","page":page,"text":clip(text,260) if text else ""}
+
+def _detect_contradictions(pages, a):
+    out=[]
+    delivery_yes=snippets(
+        pages,
+        [r"foram entregues\s+\d+",r"foi entregue",r"entrega parcial",r"recebimento parcial",r"recebido.*objeto"],
+        4
+    )
+    delivery_no=snippets(
+        pages,
+        [r"nao houve entrega",r"nenhuma entrega",r"nao realizou nenhuma entrega",r"nao foram entregues",r"ausencia de execucao"],
+        4
+    )
+    if delivery_yes and delivery_no:
+        out.append({
+            "title":"Registros divergentes sobre entrega",
+            "detail":"Há documentos que indicam entrega/recebimento e outros que registram ausência ou inexecução. A divergência deve ser conferida no contexto e na cronologia.",
+            "severity":"alta",
+            "sources":[
+                _source_obj("Indício de entrega",delivery_yes[0].get("file"),delivery_yes[0].get("page"),delivery_yes[0].get("text")),
+                _source_obj("Indício de não entrega",delivery_no[0].get("file"),delivery_no[0].get("page"),delivery_no[0].get("text"))
+            ]
+        })
+
+    # Quantidades explícitas potencialmente conflitantes.
+    qhits=[]
+    qpats=[
+        r"(?:quantidade total|quantidade contratada|fornecimento de|aquisi[cç][aã]o de)\s*[:\-]?\s*(\d{1,7})",
+        r"\b(\d{1,7})\s+(?:kits|unidades|itens)\s+contratad"
+    ]
+    for p in pages:
+        z=norm(p.get("text") or "")
+        for pat in qpats:
+            for m in re.finditer(pat,z):
+                try:v=int(m.group(1))
+                except:continue
+                if 1<=v<=10000000:
+                    qhits.append((v,p["page"],p["file"]))
+    distinct=sorted(set(v for v,_,__ in qhits))
+    if len(distinct)>1:
+        src=[]
+        used=set()
+        for v,pg,fn in qhits:
+            if v in used:continue
+            used.add(v);src.append(_source_obj("Quantidade "+str(v),fn,pg))
+            if len(src)>=3:break
+        out.append({
+            "title":"Quantidades diferentes localizadas",
+            "detail":"O processo contém mais de uma quantidade apresentada como total/contratada. Isso pode refletir itens distintos ou uma inconsistência documental.",
+            "severity":"media","sources":src
+        })
+
+    # CNPJs diferentes próximos ao nome da contratada: alerta de cadastro.
+    cnpjs={}
+    for p in pages:
+        for m in re.finditer(r"\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b",p.get("text") or ""):
+            val=m.group(0);cnpjs.setdefault(val,[]).append((p["file"],p["page"]))
+    if len(cnpjs)>1:
+        src=[]
+        for val,locs in list(cnpjs.items())[:3]:
+            src.append(_source_obj("CNPJ "+val,locs[0][0],locs[0][1]))
+        out.append({
+            "title":"Mais de um CNPJ localizado",
+            "detail":"Foram encontrados CNPJs diferentes nos autos. Confirme qual pertence à contratada antes de gerar ou expedir documentos.",
+            "severity":"alta","sources":src
+        })
+    return out
+
+def _process_checklist(pages,a):
+    has=a.get("has",{})
+    q=a.get("quantity",{}).get("value","")
+    qok=bool(q and "não identificado" not in norm(q))
+    science=bool(snippets(pages,[r"comprovante de ciencia",r"confirmou ciencia",r"recebimento da notificacao",r"notificacao.*recebid"],3))
+    legal=bool(_validated_legal_basis(pages))
+    final=bool(a.get("final_sanction"))
+    rows=[
+        ("Contrato ou instrumento equivalente",bool(has.get("contrato") or has.get("empenho") or has.get("ordem_fornecimento")),_pages_for_type(a,"contrato")+_pages_for_type(a,"empenho")+_pages_for_type(a,"ordem_fornecimento")),
+        ("Notificação/intimação",bool(has.get("notificacao") or has.get("intimacao")),_pages_for_type(a,"notificacao")+_pages_for_type(a,"intimacao")),
+        ("Comprovação de ciência",science,[]),
+        ("Defesa administrativa",bool(has.get("defesa")),_pages_for_type(a,"defesa")),
+        ("Manifestação técnica/fiscal",bool(has.get("parecer_tecnico")),_pages_for_type(a,"parecer_tecnico")),
+        ("Parecer/fundamentação jurídica",bool(has.get("parecer_juridico") or legal),_pages_for_type(a,"parecer_juridico")),
+        ("Decisão/despacho",bool(has.get("decisao")),_pages_for_type(a,"decisao")),
+        ("Quantidade/objeto identificável",qok,[a.get("quantity",{}).get("source",{}).get("page")] if a.get("quantity",{}).get("source") else []),
+        ("Sanção final expressa",final,[x.get("page") for x in a.get("final_sanction",[]) if x.get("page")])
+    ]
+    return [{"label":lab,"ok":ok,"pages":sorted(set(p for p in pgs if p))} for lab,ok,pgs in rows]
+
+def _next_action(pages,a):
+    has=a.get("has",{})
+    final=bool(a.get("final_sanction"))
+    if final:
+        return {
+            "stage":"Julgamento identificado",
+            "action":"Revisar a decisão, comprovar a ciência da interessada e verificar eventual fase recursal ou providência de registro.",
+            "why":"Há indicação de decisão final com sanção expressa nos autos."
+        }
+    if not (has.get("notificacao") or has.get("intimacao")):
+        return {
+            "stage":"Instrução inicial",
+            "action":"Conferir a instauração e providenciar notificação/intimação com descrição dos fatos, fundamento preliminar, prazo e acesso aos autos.",
+            "why":"Não foi localizada notificação ou intimação como peça autônoma."
+        }
+    if not has.get("defesa"):
+        return {
+            "stage":"Contraditório",
+            "action":"Aguardar/registrar a defesa dentro do prazo aplicável ou certificar o decurso do prazo antes de prosseguir.",
+            "why":"Há comunicação processual, mas a defesa ainda não foi localizada como peça autônoma."
+        }
+    if has.get("defesa") and not (has.get("parecer_tecnico") or has.get("parecer_juridico")):
+        return {
+            "stage":"Análise da defesa",
+            "action":"Confrontar os argumentos da defesa com a fiscalização e realizar as diligências/provas necessárias antes do relatório conclusivo.",
+            "why":"A defesa foi localizada, mas a instrução posterior ainda parece incompleta."
+        }
+    if has.get("defesa") and not has.get("decisao"):
+        return {
+            "stage":"Conclusão da instrução",
+            "action":"Elaborar relatório conclusivo e encaminhar os autos à autoridade competente para decisão motivada.",
+            "why":"Há contraditório e elementos de instrução, mas não foi localizada decisão."
+        }
+    return {
+        "stage":"Revisão final",
+        "action":"Conferir se a decisão enfrenta os argumentos relevantes, está vinculada às provas e registra as providências posteriores.",
+        "why":"O processo contém peças de contraditório e decisão."
+    }
+
+def _review_flags(pages,a,contradictions,checklist):
+    flags=[]
+    for c in contradictions[:2]:
+        flags.append({"level":"alta" if c.get("severity")=="alta" else "media","text":c["title"]})
+    for row in checklist:
+        if not row["ok"] and row["label"] in [
+            "Notificação/intimação","Comprovação de ciência","Defesa administrativa",
+            "Parecer/fundamentação jurídica","Decisão/despacho"
+        ]:
+            flags.append({"level":"alta" if row["label"] in ["Notificação/intimação","Defesa administrativa"] else "media","text":"Não identificado com segurança: "+row["label"]+"."})
+    deadline=_explicit_defense_deadline(pages)
+    if deadline.startswith("["):
+        flags.append({"level":"media","text":"Prazo de defesa não foi validado automaticamente; conferir a norma e o ato de intimação."})
+    channel=_explicit_defense_channel(pages)
+    if channel.startswith("["):
+        flags.append({"level":"media","text":"Canal oficial de recebimento da defesa não foi validado automaticamente."})
+    # máximo de cinco, priorizando alta.
+    flags.sort(key=lambda x:0 if x["level"]=="alta" else 1)
+    return flags[:5]
+
+def _traceability(a):
+    rows=[]
+    for x in a.get("pieces",[]):
+        rows.append({
+            "claim":x.get("label"),
+            "status":"Peça identificada",
+            "source":x.get("file"),
+            "pages":x.get("pages",[])
+        })
+    q=a.get("quantity",{})
+    if q.get("source"):
+        rows.append({
+            "claim":"Quantidade total: "+str(q.get("value")),
+            "status":"Dado extraído",
+            "source":q["source"].get("file"),
+            "pages":[q["source"].get("page")]
+        })
+    for x in a.get("final_sanction",[])[:2]:
+        rows.append({
+            "claim":"Possível decisão sancionatória final",
+            "status":"Trecho localizado",
+            "source":x.get("file"),
+            "pages":[x.get("page")]
+        })
+    return rows
+
+_previous_analyze_pages_v60 = analyze_pages
+def analyze_pages(pages):
+    a=_previous_analyze_pages_v60(pages)
+    contradictions=_detect_contradictions(pages,a)
+    checklist=_process_checklist(pages,a)
+    a["contradictions"]=contradictions
+    a["process_checklist"]=checklist
+    a["next_action"]=_next_action(pages,a)
+    a["review_flags"]=_review_flags(pages,a,contradictions,checklist)
+    a["traceability"]=_traceability(a)
+    a["metrics"]={
+        "pages":len(pages),
+        "pieces":len(a.get("pieces",[])),
+        "mentions":len(a.get("mentions",[])),
+        "evidence_points":len(a.get("defense",[]))+len(a.get("contra",[]))+len(a.get("traceability",[])),
+        "checklist_ok":sum(1 for x in checklist if x["ok"]),
+        "checklist_total":len(checklist)
+    }
+    return a
+
+class DocumentDraftReq(BaseModel):
+    analysis_id: str
+    kind: str
+
+def _draft_header(md,title):
+    return [
+        title,"",
+        "Processo/Protocolo de origem: nº "+md["origem"],
+        "Processo Administrativo de Penalização: nº "+md["penalizacao"],
+        "Empresa: "+md["empresa"],
+        "CNPJ: "+md["cnpj"],""
+    ]
+
+def _generic_document_draft(item,kind):
+    pages=item["pages"];a=analyze_pages(pages);md=_validated_metadata(pages)
+    kind=(kind or "").lower()
+    if kind=="notificacao":
+        return _draft_notification({"pages":pages,"analysis":a})
+
+    facts=_build_validated_facts(pages,a,md)
+    facts_text=" ".join(x["text"] for x in facts[:5]) if facts else "[SÍNTESE DOS FATOS — CONFERIR AUTOS]"
+    defense_pages=piece_pages(a,"defesa")
+    defense_note=("Defesa localizada nas páginas "+fmt_pages(defense_pages)+"." if defense_pages else "Defesa administrativa não identificada com segurança.")
+    legal=", ".join(_validated_legal_basis(pages)) or "[FUNDAMENTAÇÃO JURÍDICA — CONFERIR]"
+
+    if kind=="despacho":
+        lines=_draft_header(md,"MINUTA — DESPACHO DE INSTAURAÇÃO")
+        lines += [
+            "Considerando os documentos constantes dos autos e a necessidade de apuração regular dos fatos, especialmente: "+facts_text,
+            "",
+            "DETERMINO a instauração do Processo Administrativo de Penalização nº "+md["penalizacao"]+", assegurados o contraditório, a ampla defesa e a produção de provas.",
+            "",
+            "Encaminhem-se os autos à Comissão/unidade competente para adoção das providências de notificação e instrução.",
+            "",
+            "[LOCAL], [DATA].","","[AUTORIDADE COMPETENTE]","",
+            "MINUTA ASSISTIDA — REVISÃO HUMANA OBRIGATÓRIA."
+        ]
+    elif kind=="intimacao":
+        lines=_draft_header(md,"MINUTA — INTIMAÇÃO PARA MANIFESTAÇÃO/DEFESA")
+        lines += [
+            "Fica a empresa INTIMADA para apresentar manifestação/defesa e especificar as provas que pretenda produzir no prazo de "+_explicit_defense_deadline(pages)+".",
+            "",
+            "A manifestação deverá ser encaminhada ao seguinte canal oficial: "+_explicit_defense_channel(pages)+".",
+            "",
+            "A empresa deverá ter acesso aos documentos que fundamentam o ato, preservado o contraditório e a ampla defesa.",
+            "",
+            "[LOCAL], [DATA].","","[RESPONSÁVEL]","",
+            "MINUTA ASSISTIDA — REVISÃO HUMANA OBRIGATÓRIA."
+        ]
+    elif kind=="diligencia":
+        lines=_draft_header(md,"MINUTA — DESPACHO DE DILIGÊNCIA")
+        lines += [
+            "Considerando a necessidade de esclarecimento dos fatos e de formação adequada da convicção administrativa, DETERMINO a realização das seguintes diligências:",
+            "",
+            "1. [INDICAR DOCUMENTO/INFORMAÇÃO FALTANTE];",
+            "2. [INDICAR UNIDADE OU RESPONSÁVEL PELA RESPOSTA];",
+            "3. [INDICAR PRAZO E FORMA DE CUMPRIMENTO].",
+            "",
+            "Pontos já identificados pelo sistema que merecem conferência: "+("; ".join(x["text"] for x in a.get("review_flags",[])[:3]) or "nenhum alerta automático relevante."),
+            "",
+            "[LOCAL], [DATA].","","[RESPONSÁVEL]","",
+            "MINUTA ASSISTIDA — REVISÃO HUMANA OBRIGATÓRIA."
+        ]
+    elif kind=="relatorio":
+        lines=_draft_header(md,"MINUTA — RELATÓRIO CONCLUSIVO")
+        lines += [
+            "I — SÍNTESE DOS AUTOS",
+            facts_text,"",
+            "II — CONTRADITÓRIO E DEFESA",
+            defense_note,"",
+            "III — FUNDAMENTAÇÃO A CONFERIR",
+            legal,"",
+            "IV — ANÁLISE",
+            "Os fatos, a defesa e as provas deverão ser confrontados de forma individualizada. A presente minuta não presume responsabilidade e exige revisão integral dos autos.","",
+            "V — CONCLUSÃO",
+            "[INDICAR, APÓS REVISÃO HUMANA, SE HÁ OU NÃO RESPONSABILIDADE E O ENQUADRAMENTO JURÍDICO CORRESPONDENTE].","",
+            "[LOCAL], [DATA].","","[COMISSÃO/RESPONSÁVEL]","",
+            "MINUTA ASSISTIDA — REVISÃO HUMANA OBRIGATÓRIA."
+        ]
+    elif kind=="decisao":
+        lines=_draft_header(md,"MINUTA — DECISÃO ADMINISTRATIVA")
+        lines += [
+            "Vistos e examinados os autos.",
+            "",
+            "Considero a síntese fática e os documentos constantes do processo: "+facts_text,
+            "",
+            "Registro quanto ao contraditório: "+defense_note,
+            "",
+            "Fundamentação a ser conferida: "+legal+".",
+            "",
+            "DECIDO:",
+            "[A AUTORIDADE COMPETENTE DEVERÁ PREENCHER A CONCLUSÃO, O ENQUADRAMENTO E, SE CABÍVEL, A SANÇÃO E SUA DOSIMETRIA, APÓS REVISÃO INTEGRAL DOS AUTOS].",
+            "",
+            "A decisão deverá enfrentar os argumentos relevantes da defesa, indicar as provas consideradas e motivar eventual sanção de forma individualizada.",
+            "",
+            "[LOCAL], [DATA].","","[AUTORIDADE COMPETENTE]","",
+            "MINUTA ASSISTIDA — DECISÃO HUMANA OBRIGATÓRIA."
+        ]
+    else:
+        raise HTTPException(400,"Tipo de minuta não suportado.")
+
+    return {"draft":"\n".join(lines),"sources":["Processo analisado · "+str(len(pages))+" página(s)"]}
+
+@app.post("/api/document-draft")
+def document_draft(req:DocumentDraftReq):
+    item=ANALYSES.get(req.analysis_id)
+    if not item:raise HTTPException(409,"A análise desta sessão expirou ou foi excluída.")
+    return _generic_document_draft(item,req.kind)
+
+@app.delete("/api/analysis/{analysis_id}")
+def delete_analysis(analysis_id):
+    existed=analysis_id in ANALYSES
+    ANALYSES.pop(analysis_id,None)
+    return {"ok":True,"deleted":existed}
+
+# Corrige rota de demonstração duplicada: mantém apenas a implementação mais recente.
+app.router.routes = [
+    r for r in app.router.routes
+    if not (getattr(r,"path",None)=="/api/demo-pdf" and "GET" in getattr(r,"methods",set()))
+]
+app.add_api_route("/api/demo-pdf", demo_pdf, methods=["GET"])
+
+app.version="6.0"
+
+# --- UI v6.0 ---
+HTML = HTML.replace(
+    "Do processo extenso à evidência que sustenta a decisão.",
+    "Leia menos páginas. Encontre mais evidências. Decida com mais segurança."
+)
+
+HTML = HTML.replace(
+    "@media(max-width:1050px)",
+    """.control-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.control-card{border:1px solid var(--line);border-radius:13px;padding:14px;background:#fbfcfe}
+.control-card b{display:block;color:var(--navy);font-size:12px}.control-card span{display:block;color:var(--muted);font-size:10px;margin-top:4px}
+.check-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:11px}.check-row:last-child{border-bottom:0}
+.check-ok{font-weight:900;color:var(--teal)}.check-miss{font-weight:900;color:var(--warn)}
+.contradiction{border-left:4px solid #b7791f;background:#fffaf0;padding:12px 14px;border-radius:8px;margin:9px 0}
+.contradiction.high{border-left-color:#b42318;background:#fff5f4}
+.contradiction b{display:block;color:var(--navy);font-size:12px}.contradiction p{margin:4px 0;color:var(--muted);font-size:11px}
+.next-action{border:1px solid #b8d8d2;background:#effaf8;border-radius:14px;padding:16px}.next-action strong{display:block;color:var(--teal);font-size:13px}.next-action p{margin:6px 0 0;font-size:12px;color:#29465a}
+.review-flag{display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line);font-size:11px}.review-flag:last-child{border-bottom:0}
+.flag-dot{width:9px;height:9px;border-radius:50%;background:#d99a16;margin-top:4px;flex:0 0 auto}.flag-dot.high{background:#b42318}
+.trace-row{display:grid;grid-template-columns:1.2fr .7fr .8fr;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:10px}.trace-row b{color:var(--navy)}
+.metric-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.metric{border:1px solid var(--line);border-radius:11px;padding:12px;background:#f8fafc}.metric strong{display:block;font-size:22px;color:var(--navy)}.metric span{font-size:9px;text-transform:uppercase;color:var(--muted);letter-spacing:.06em}
+.doc-chain{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.doc-chain .btn{font-size:10px;padding:9px 11px}
+.privacy-box{display:flex;justify-content:space-between;gap:20px;align-items:center;border:1px solid var(--line);border-radius:13px;padding:14px 16px;background:#f8fafc;margin-top:14px}.privacy-box p{margin:0;font-size:10px;color:var(--muted);max-width:900px}
+.bank-mode{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:14px}.bank-step{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}.bank-step b{font-size:10px;color:var(--navy)}.bank-step span{display:block;font-size:9px;color:var(--muted);margin-top:3px}
+@media(max-width:1050px){.control-grid{grid-template-columns:1fr}.metric-grid{grid-template-columns:repeat(2,1fr)}.bank-mode{grid-template-columns:1fr}.trace-row{grid-template-columns:1fr}} 
+@media(max-width:1050px)"""
+)
+
+# Painel de fluxo de documentos antes do relatório.
+_doc_panel = """  <section class="panel">
+    <div class="panel-head"><div><div class="kicker">Fluxo documental assistido</div><h2 class="title">Gerar próximo documento</h2><p class="desc">Minutas padronizadas com preenchimento apenas de dados validados. A decisão e a revisão permanecem humanas.</p></div></div>
+    <div class="doc-chain">
+      <button class="btn btn-blue" onclick="gerarDocumento('despacho')">Despacho de instauração</button>
+      <button class="btn btn-blue" onclick="gerarDocumento('notificacao')">Notificação</button>
+      <button class="btn btn-blue" onclick="gerarDocumento('intimacao')">Intimação</button>
+      <button class="btn btn-blue" onclick="gerarDocumento('diligencia')">Diligência</button>
+      <button class="btn btn-blue" onclick="gerarDocumento('relatorio')">Relatório conclusivo</button>
+      <button class="btn btn-primary" onclick="gerarDocumento('decisao')">Minuta de decisão</button>
+    </div>
+    <div id="chainDraftBox" class="draft-box">
+      <div class="draft-toolbar"><div><strong>Documento para revisão</strong><br><span>Edite e confira antes de qualquer uso oficial.</span></div><div class="draft-actions"><button class="btn btn-blue" onclick="copiarChain()">Copiar</button><button class="btn btn-primary" onclick="baixarChain()">Baixar .txt</button></div></div>
+      <textarea id="chainDraftText" class="draft-text"></textarea>
+      <div id="chainSources" class="draft-sources"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><div><div class="kicker">Privacidade e sessão</div><h2 class="title">Controle dos dados analisados</h2></div></div>
+    <div class="privacy-box"><p>O conteúdo extraído permanece apenas na memória temporária desta instância para permitir perguntas e minutas. A sessão expira automaticamente em até 30 minutos. Para testes públicos, prefira dados fictícios ou documentos públicos.</p><button class="btn btn-primary" onclick="encerrarAnalise()">Encerrar e excluir dados da sessão</button></div>
+  </section>
+
+"""
+_report_marker = """  <section class="panel">
+    <div class="footer-actions">
+      <div><div class="kicker">Documentação da análise</div><h2 class="title">Relatório para revisão humana</h2>"""
+if _report_marker in HTML:
+    HTML=HTML.replace(_report_marker,_doc_panel+_report_marker,1)
+
+# Roteiro de banca de 90 segundos dentro do painel demonstrativo.
+_demo_anchor = """    <div class="demo-note">Cenário fictício criado exclusivamente para demonstração e avaliação do produto.</div>"""
+_demo_add = """    <div class="demo-note">Cenário fictício criado exclusivamente para demonstração e avaliação do produto.</div>
+    <div class="bank-mode">
+      <div class="bank-step"><b>0–15s · Processo</b><span>Abra o caso modelo completo.</span></div>
+      <div class="bank-step"><b>15–35s · Evidência</b><span>Mostre linha do tempo e matriz.</span></div>
+      <div class="bank-step"><b>35–55s · Risco</b><span>Abra pendências e contradições.</span></div>
+      <div class="bank-step"><b>55–75s · Consulta</b><span>Pergunte sobre a defesa e fontes.</span></div>
+      <div class="bank-step"><b>75–90s · Ação</b><span>Gere a minuta e mostre revisão humana.</span></div>
+    </div>"""
+if _demo_anchor in HTML:
+    HTML=HTML.replace(_demo_anchor,_demo_add,1)
+
+# Mede o tempo real de análise no navegador.
+HTML=HTML.replace(
+    'var fd=new FormData();for(var i=0;i<fs.length;i++)fd.append("files",fs[i]);',
+    'var startedAt=performance.now();var fd=new FormData();for(var i=0;i<fs.length;i++)fd.append("files",fs[i]);',
+    1
+)
+HTML=HTML.replace(
+    'var a=d.analysis;var h="";',
+    'var elapsedSec=((performance.now()-startedAt)/1000).toFixed(1);var a=d.analysis;var h="";',
+    1
+)
+
+# Insere os novos painéis no resultado, antes de cautelas/limites.
+_result_anchor = """  h+='<section class="section"><div class="kicker">Cautelas da análise</div><h2>Pendências e limites</h2>';"""
+_result_insert = """  if(a.metrics){
+    h+='<section class="section"><div class="kicker">Impacto da análise</div><h2>Métricas desta execução</h2><div class="metric-grid">';
+    h+='<div class="metric"><strong>'+a.metrics.pages+'</strong><span>páginas lidas</span></div>';
+    h+='<div class="metric"><strong>'+a.metrics.pieces+'</strong><span>peças identificadas</span></div>';
+    h+='<div class="metric"><strong>'+a.metrics.evidence_points+'</strong><span>pontos de evidência</span></div>';
+    h+='<div class="metric"><strong>'+a.metrics.checklist_ok+'/'+a.metrics.checklist_total+'</strong><span>controles atendidos</span></div>';
+    h+='<div class="metric"><strong>'+elapsedSec+'s</strong><span>tempo desta análise</span></div>';
+    h+='</div></section>';
+  }
+
+  if(a.process_checklist){
+    h+='<div class="control-grid"><section class="section"><div class="kicker">Controle processual</div><h2>Mapa de pendências</h2>';
+    for(var ci=0;ci<a.process_checklist.length;ci++){var cr=a.process_checklist[ci];h+='<div class="check-row"><span>'+esc(cr.label)+(cr.pages.length?' · p. '+esc(cr.pages.join(", ")):'')+'</span><span class="'+(cr.ok?'check-ok':'check-miss')+'">'+(cr.ok?'✓ Confirmado':'! Conferir')+'</span></div>'}
+    h+='</section>';
+
+    h+='<section class="section"><div class="kicker">Confronto inteligente</div><h2>Contradições e divergências</h2>';
+    if(!a.contradictions||!a.contradictions.length)h+='<div class="empty">Nenhuma contradição objetiva relevante foi detectada automaticamente.</div>';
+    for(var cc=0;cc<(a.contradictions||[]).length;cc++){var co=a.contradictions[cc];h+='<div class="contradiction '+(co.severity==="alta"?"high":"")+'"><b>'+esc(co.title)+'</b><p>'+esc(co.detail)+'</p><div class="sources">'+(co.sources||[]).map(function(s){return '<span class="source-card">'+esc(s.label)+' · p. '+esc(s.page)+'</span>'}).join("")+'</div></div>'}
+    h+='</section>';
+
+    h+='<section class="section"><div class="kicker">Próximo passo</div><h2>Ação processual sugerida</h2>';
+    if(a.next_action)h+='<div class="next-action"><strong>'+esc(a.next_action.stage)+'</strong><p>'+esc(a.next_action.action)+'</p><p><b>Por quê:</b> '+esc(a.next_action.why)+'</p></div>';
+    h+='</section></div>';
+  }
+
+  if(a.review_flags){
+    h+='<div class="cols"><section class="section"><div class="kicker">Revisão da Comissão</div><h2>Pontos antes da assinatura</h2>';
+    if(!a.review_flags.length)h+='<div class="empty">Nenhum alerta prioritário identificado automaticamente.</div>';
+    for(var rf=0;rf<a.review_flags.length;rf++){var fl=a.review_flags[rf];h+='<div class="review-flag"><span class="flag-dot '+(fl.level==="alta"?"high":"")+'"></span><span>'+esc(fl.text)+'</span></div>'}
+    h+='</section><section class="section"><div class="kicker">Como chegou aqui</div><h2>Rastreabilidade da conclusão</h2>';
+    for(var tr=0;tr<(a.traceability||[]).slice(0,10).length;tr++){var tv=a.traceability[tr];h+='<div class="trace-row"><b>'+esc(tv.claim)+'</b><span>'+esc(tv.status)+'</span><span>'+esc(sourceLabel(tv.source))+' · p. '+esc((tv.pages||[]).join(", "))+'</span></div>'}
+    h+='</section></div>';
+  }
+
+  h+='<section class="section"><div class="kicker">Cautelas da análise</div><h2>Pendências e limites</h2>';"""
+if _result_anchor in HTML:
+    HTML=HTML.replace(_result_anchor,_result_insert,1)
+
+# Funções do fluxo documental e exclusão de sessão.
+_js_anchor = "function relatorio(){"
+_js_new = """async function gerarDocumento(kind){
+  analysisId=analysisId||localStorage.getItem("fiscaliza_analysis_id");
+  if(!analysisId){alert("Analise um processo primeiro.");return}
+  var box=document.getElementById("chainDraftBox"),ta=document.getElementById("chainDraftText"),src=document.getElementById("chainSources");
+  box.style.display="block";ta.value="Gerando documento assistido…";src.innerHTML="";
+  var r=await fetch("/api/document-draft",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({analysis_id:analysisId,kind:kind})});
+  var d=await r.json();
+  if(!r.ok){ta.value=d.detail||"Não foi possível gerar o documento.";return}
+  ta.value=d.draft;
+  src.innerHTML='<div class="kicker">Fontes e contexto</div>'+(d.sources||[]).map(function(x){return '<span class="source-card">'+esc(x)+'</span>'}).join("");
+  box.scrollIntoView({behavior:"smooth",block:"start"});
+}
+async function copiarChain(){
+  var ta=document.getElementById("chainDraftText");if(!ta.value)return;
+  try{await navigator.clipboard.writeText(ta.value)}catch(e){ta.select();document.execCommand("copy")}
+}
+function baixarChain(){
+  var ta=document.getElementById("chainDraftText");if(!ta.value)return;
+  var blob=new Blob([ta.value],{type:"text/plain;charset=utf-8"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="fiscaliza-minuta-assistida.txt";a.click();URL.revokeObjectURL(a.href);
+}
+async function encerrarAnalise(){
+  analysisId=analysisId||localStorage.getItem("fiscaliza_analysis_id");
+  if(analysisId){try{await fetch("/api/analysis/"+analysisId,{method:"DELETE"})}catch(e){}}
+  analysisId=null;localStorage.removeItem("fiscaliza_analysis_id");
+  var fi=document.getElementById("files");if(fi)fi.value="";
+  var rs=document.getElementById("result");if(rs)rs.innerHTML="";
+  var st=document.getElementById("status");if(st)st.textContent="Sessão encerrada e estado da análise removido desta instância.";
+  var ab=document.getElementById("answer");if(ab)ab.style.display="none";
+  var db=document.getElementById("draftBox");if(db)db.style.display="none";
+  var cb=document.getElementById("chainDraftBox");if(cb)cb.style.display="none";
+}
+"""
+if _js_anchor in HTML:
+    HTML=HTML.replace(_js_anchor,_js_new+_js_anchor,1)
+
+HTML=HTML.replace("VERSÃO 5.1 · PROCESSO MODELO COMPLETO","VERSÃO 6.0 · CONTROLE PROCESSUAL COMPLETO")
