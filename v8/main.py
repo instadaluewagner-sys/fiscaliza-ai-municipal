@@ -16,12 +16,24 @@ from v8.services.pdf_reader import extract_pages
 
 BASE_DIR = Path(__file__).resolve().parent
 SESSION_TTL_SECONDS = int(os.getenv("V8_SESSION_TTL_SECONDS", "1800"))
+MAX_PDF_BYTES = int(os.getenv("V8_MAX_PDF_BYTES", str(30 * 1024 * 1024)))
 V8_ANALYSES: dict[str, dict] = {}
 
 app = FastAPI(title="Fiscaliza.AI V8", version="8.0.0-alpha.2")
 
 if (BASE_DIR / "static").exists():
     app.mount("/v8-static", StaticFiles(directory=BASE_DIR / "static"), name="v8-static")
+
+
+@app.middleware("http")
+async def sensitive_no_store(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/api/v8/"):
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "no-referrer"
+    return response
 
 
 def cleanup_sessions() -> None:
@@ -52,6 +64,7 @@ def health():
         "status": "parallel-rebuild",
         "temporary_sessions": len(V8_ANALYSES),
         "session_ttl_seconds": SESSION_TTL_SECONDS,
+        "max_pdf_bytes": MAX_PDF_BYTES,
     }
 
 
@@ -67,10 +80,16 @@ async def analyze(module: str = "penalizacao", files: List[UploadFile] = File(..
     stored_files = []
 
     for upload in files:
-        filename = upload.filename or "processo.pdf"
+        filename = Path(upload.filename or "processo.pdf").name
+        filename = "".join(ch for ch in filename if ch >= " " and ch not in {'"', "\r", "\n"}) or "processo.pdf"
         if not filename.lower().endswith(".pdf"):
             continue
         data = await upload.read()
+        if len(data) > MAX_PDF_BYTES:
+            raise HTTPException(
+                413,
+                f"O arquivo '{filename}' excede o limite de {MAX_PDF_BYTES // (1024 * 1024)} MB por PDF.",
+            )
         try:
             extracted, ocr_count = extract_pages(data, filename)
         except ValueError as exc:
