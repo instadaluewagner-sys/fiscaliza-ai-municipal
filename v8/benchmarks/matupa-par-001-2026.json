@@ -10,7 +10,7 @@
   "object_description": "aquisição imediata de medicamentos e materiais em atendimento ao Hospital Municipal de Matupá-MT",
   "expected_stage": "julgamento",
   "expected_suggested_draft": "notificacao_decisao",
-  "expected_stage_source_page": 1,
+  "expected_stage_source_page": 4,
   "expected_ocr_min": 0,
   "documents": [
     {
