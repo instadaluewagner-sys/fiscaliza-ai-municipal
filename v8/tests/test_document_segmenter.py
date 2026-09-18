@@ -1,0 +1,143 @@
+from v8.services.document_segmenter import detect_header, segment_documents
+from v8.modules.penalizacao import analyze_penalizacao
+
+
+def page(n, text, file="processo.pdf"):
+    return {"file": file, "page": n, "text": text, "ocr": False}
+
+
+def test_pedido_reequilibrio_com_mencoes_nao_vira_contrato_ou_defesa():
+    pages=[
+        page(1, """
+AO MUNICÍPIO
+PEDIDO DE REEQUILÍBRIO ECONÔMICO-FINANCEIRO,
+CUMULADO COM PEDIDO DE EMISSÃO DE EMPENHOS E PEDIDO SUCESSIVO DE RESCISÃO AMIGÁVEL
+Contrato n.º 308/2025 – Pregão Eletrônico n.º 90025/2025
+Em resposta à Notificação Extrajudicial recebida, a contratada apresentou justificativa.
+"""),
+        page(2, """
+II – DO DIREITO
+O Contrato nº 308/2025 prevê revisão contratual.
+A empresa sustenta que não cabem penalidades.
+"""),
+    ]
+    docs=segment_documents(pages)
+    assert len(docs)==1
+    assert docs[0].type=="pedido_reequilibrio"
+    assert docs[0].pages==[1,2]
+
+
+def test_wrapper_1doc_que_so_encaminha_anexo_nao_e_a_peca():
+    pages=[
+        page(36, """
+1Doc: Protocolo 7- 15.566/2025 36/67
+De: Wlademir C.
+Para: Representante: ASSESTE COMERCIO DE EXTINTORES LTDA
+Data: 10/09/2025 às 16:38:28
+Encaminhamento de notificação, solicito que a empresa verifique o prazo.
+Anexos:
+NOTIFICACAO_EXTRAJUDICIAL_ASSESTE_COM_DE_EXTINTORES_LTDA.pdf
+"""),
+        page(37, """
+MUNICÍPIO DE FRANCISCO BELTRÃO
+NOTIFICANTE: MUNICÍPIO DE FRANCISCO BELTRÃO
+NOTIFICADO: ASSESTE COMERCIO DE EXTINTORES LTDA
+NOTIFICAÇÃO EXTRAJUDICIAL
+Assunto: Notificação para início imediato das entregas.
+"""),
+        page(38, """
+Em razão do parecer técnico exarado nos autos, a contratada fica NOTIFICADA.
+Prazo para providências conforme o contrato.
+"""),
+    ]
+    docs=segment_documents(pages)
+    assert [d.type for d in docs]==["movimentacao_1doc","notificacao"]
+    assert docs[1].pages==[37,38]
+
+
+def test_intimacao_1doc_performativa_e_reconhecida_sem_titulo():
+    detected=detect_header("""
+1Doc: Protocolo 10- 15.566/2025 49/67
+De: Marcelo C.
+Para: Representante: ASSESTE COMERCIO DE EXTINTORES LTDA
+Data: 07/10/2025 às 09:20:46
+Com fundamento no Parecer Jurídico nº 1079/2025, intimo a empresa ASSESTE COMÉRCIO DE EXTINTORES LTDA
+para que, no prazo de 5 (cinco) dias úteis, apresente sua defesa.
+""")
+    assert detected is not None
+    assert detected[0]=="intimacao"
+
+
+def test_wrapper_de_defesa_com_anexo_nao_e_a_defesa():
+    pages=[
+        page(50, """
+1Doc: Protocolo 11- 15.566/2025 50/67
+De: ASSESTE COMERCIO DE EXTINTORES LTDA
+Para: Envolvidos internos acompanhando
+Data: 08/10/2025 às 11:58:59
+Defesa Administrativa – Processo nº 15566/2025 – Contrato nº 308/2025
+Anexos:
+Defesa_Asseste_10_2025.pdf
+"""),
+        page(51, """
+Excelentíssimo(a) Senhor(a) Prefeito(a)
+Assunto: Defesa Administrativa – Processo nº 15566/2025 – Contrato nº 308/2025
+I – SÍNTESE DOS FATOS
+A empresa apresenta suas razões.
+"""),
+        page(52, """
+II – DO MÉRITO
+A contratada sustenta que houve fato superveniente.
+"""),
+    ]
+    docs=segment_documents(pages)
+    assert [d.type for d in docs]==["movimentacao_1doc","defesa"]
+    assert docs[1].pages==[51,52]
+
+
+def test_despacho_que_autoriza_pas_e_identificado_como_decisao_mas_estagio_nao_e_julgamento():
+    pages=[
+        page(59, """
+MUNICÍPIO DE FRANCISCO BELTRÃO
+DESPACHO Nº 693/2025
+PROCESSO N.º: 15566/2025
+INTERESSADA: ASSESTE COMÉRCIO DE EXTINTORES LTDA
+ASSUNTO: EXTINÇÃO CONTRATUAL UNILATERAL
+Assim, DEFIRO a extinção unilateral do Contrato nº 308/2025 e autorizo a abertura de
+processo administrativo sancionador, a ser conduzido por Comissão Especial, para apuração
+de eventuais responsabilidades, assegurando-se o contraditório e a ampla defesa.
+""")
+    ]
+    docs=segment_documents(pages)
+    assert docs[0].type=="decisao"
+    result=analyze_penalizacao(docs)
+    assert result.stage.key=="instauracao_sancionadora_autorizada"
+    assert result.stage.suggested_draft=="despacho_instauracao"
+
+
+def test_simulacao_logistica_60_unidades_nao_vira_quantidade_contratada():
+    pages=[
+        page(1, """
+PEDIDO DE REEQUILÍBRIO ECONÔMICO-FINANCEIRO
+Contrato nº 308/2025.
+Estimativa de custos logísticos por unidade (média de 60 unidades por viagem).
+Dividido por 60 extintores: R$ 40,38/unidade.
+""")
+    ]
+    docs=segment_documents(pages)
+    result=analyze_penalizacao(docs)
+    assert result.profile.quantity is None
+
+
+def test_quantidade_explicita_em_contrato_e_aceita():
+    pages=[
+        page(1, """
+CONTRATO ADMINISTRATIVO Nº 140/2026
+Objeto: fornecimento de 500 kits de higiene bucal para unidades municipais.
+Quantidade total: 500 kits de higiene bucal.
+""")
+    ]
+    docs=segment_documents(pages)
+    result=analyze_penalizacao(docs)
+    assert result.profile.quantity is not None
+    assert result.profile.quantity.startswith("500 kits")
