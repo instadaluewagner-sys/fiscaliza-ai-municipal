@@ -304,3 +304,22 @@ Contrato nº 308/2025.
     docs=segment_documents(pages)
     p=analyze_penalizacao(docs).profile
     assert p.contrato=="308/2025"
+
+
+def test_cnpj_do_contratante_nao_vira_conflito_do_fornecedor():
+    pages=[
+        page(1, """
+CONTRATO DE FORNECIMENTO DE MERCADORIAS Nº 308/2025
+O MUNICÍPIO DE EXEMPLO, inscrito no CNPJ 77.816.510/0001-66, doravante CONTRATANTE,
+e, de outro lado, ASSESTE COMÉRCIO DE EXTINTORES LTDA, inscrita no CNPJ 82.253.642/0001-67,
+doravante CONTRATADA, celebram o presente contrato.
+"""),
+        page(2, """
+NOTIFICAÇÃO EXTRAJUDICIAL
+NOTIFICADO: ASSESTE COMÉRCIO DE EXTINTORES LTDA
+CNPJ: 82.253.642/0001-67
+"""),
+    ]
+    p=analyze_penalizacao(segment_documents(pages)).profile
+    assert p.cnpj=="82.253.642/0001-67"
+    assert "77.816.510/0001-66" not in p.conflicts.get("cnpj",[])
