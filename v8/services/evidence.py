@@ -20,11 +20,27 @@ def locate_excerpt(doc: Document, patterns: list[str], limit: int = 360) -> tupl
         for sentence in sentences:
             if any(rx.search(sentence) for rx in regs):
                 return page, sentence[:limit]
+        # Fallback por janela quando a frase foi quebrada pela extração do PDF.
+        for rx in regs:
+            m = rx.search(compact)
+            if m:
+                start=max(0,m.start()-120)
+                end=min(len(compact),m.end()+220)
+                return page, compact[start:end][:limit]
     return doc.page_start, first_excerpt(doc.text, patterns, limit)
 
-def evidence_from_document(doc: Document, fact: str, patterns: list[str], confidence: float = 0.9) -> Evidence:
+def evidence_from_document(
+    doc: Document,
+    fact: str,
+    patterns: list[str],
+    confidence: float = 0.9,
+    key: str = "generic",
+    category: str = "fact",
+) -> Evidence:
     page, excerpt = locate_excerpt(doc, patterns)
     return Evidence(
+        key=key,
+        category=category,
         fact=fact,
         document_id=doc.id,
         page=page,
