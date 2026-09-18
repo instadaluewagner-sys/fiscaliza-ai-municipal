@@ -1298,3 +1298,233 @@ if _js_marker in HTML:
     HTML = HTML.replace(_js_marker, _js + _js_marker, 1)
 
 HTML = HTML.replace("VERSÃO 3.7 · DEMONSTRAÇÃO AUDITÁVEL","VERSÃO 3.8 · MINUTA ASSISTIDA")
+
+
+# --- Minuta detalhada v3.9 ---
+def _find_deadline_for_defense(pages):
+    joined = "\n".join(p["text"] or "" for p in pages)
+    pats = [
+        r"(?:defesa|manifestação|manifestacao)[^.\n]{0,180}?prazo\s+de\s+([0-9]{1,2}\s*\([^)]+\)\s*dias\s+úteis)",
+        r"prazo\s+de\s+([0-9]{1,2}\s*\([^)]+\)\s*dias\s+úteis)[^.\n]{0,180}?(?:defesa|manifestação|manifestacao)",
+        r"(?:defesa|manifestação|manifestacao)[^.\n]{0,180}?prazo\s+de\s+([0-9]{1,2}\s+dias\s+úteis)"
+    ]
+    for pat in pats:
+        m=re.search(pat,joined,flags=re.I|re.S)
+        if m:return re.sub(r"\s+"," ",m.group(1)).strip()
+    return "[PRAZO EM DIAS ÚTEIS — CONFERIR NORMA APLICÁVEL]"
+
+def _find_official_email(pages):
+    joined="\n".join(p["text"] or "" for p in pages)
+    emails=re.findall(r"[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}",joined,flags=re.I)
+    official=[e for e in emails if any(k in e.lower() for k in ["gov.br","prefeitura","municipio","comissao","penal"])]
+    return (official[0] if official else (emails[0] if emails else "[ENDEREÇO ELETRÔNICO OFICIAL]"))
+
+def _find_possible_sanctions(pages):
+    joined=norm("\n".join(p["text"] or "" for p in pages))
+    labels=[]
+    tests=[
+        ("advertência",["advertencia"]),
+        ("multa",["multa"]),
+        ("impedimento de licitar e contratar",["impedimento de licitar","impedimento de contratar"]),
+        ("declaração de inidoneidade",["declaracao de inidoneidade","inidoneidade"])
+    ]
+    for label,keys in tests:
+        if any(k in joined for k in keys):labels.append(label)
+    return labels
+
+def _trace_line(label, rows):
+    pgs=sorted(set(int(x.get("page",0)) for x in rows if x.get("page")))
+    if not pgs:return ""
+    return "[Rastreabilidade interna — "+label+": p. "+", ".join(str(p) for p in pgs)+"]"
+
+def _draft_notification(item):
+    pages=item["pages"]
+    a=item["analysis"]
+    md=_metadata_from_pages(pages)
+    deadline=_find_deadline_for_defense(pages)
+    channel=_find_official_email(pages)
+    sanctions=_find_possible_sanctions(pages)
+
+    facts=[{"page":s["page"],"text":clip(s["text"],560)} for s in (a.get("contra") or [])[:8]]
+    defenses=[{"page":s["page"],"text":clip(s["text"],560)} for s in (a.get("defense") or [])[:6]]
+    legal=_legal_refs(pages)
+
+    # Complementa a cronologia com páginas de peças processuais.
+    piece_map={}
+    for x in (a.get("pieces") or []):
+        piece_map.setdefault(x["label"],[]).extend(x["pages"])
+    piece_rows=[]
+    for label,pgs in sorted(piece_map.items(), key=lambda kv:min(kv[1]) if kv[1] else 9999):
+        piece_rows.append((label,sorted(set(pgs))))
+
+    total=a.get("quantity",{}).get("value","Não identificado com segurança")
+    total_src=a.get("quantity",{}).get("source")
+    total_note=(" [Fonte: p. "+str(total_src["page"])+"]") if total_src else ""
+
+    title="MINUTA — NOTIFICAÇÃO EXTRAJUDICIAL DE INSTAURAÇÃO DE PROCESSO ADMINISTRATIVO DE PENALIZAÇÃO"
+    lines=[
+        title,
+        "",
+        "NOTIFICAÇÃO EXTRAJUDICIAL Nº [NÚMERO]/[COMISSÃO OU UNIDADE]/[ÓRGÃO]",
+        "",
+        "Processo Administrativo de Penalização: nº "+md["processo"],
+        "Ata de Registro de Preços: nº "+md["ata"],
+        "Pregão Eletrônico: nº "+md["pregao"],
+        "Nota de Empenho: nº "+md["empenho"],
+        "Empresa: "+md["empresa"],
+        "CNPJ: "+md["cnpj"],
+        "",
+        "Assunto: Notificação de instauração de Processo Administrativo de Penalização e abertura de prazo para apresentação de defesa.",
+        "",
+        "[ÓRGÃO/ENTIDADE], pessoa jurídica de direito público interno, por intermédio de [COMISSÃO/UNIDADE COMPETENTE], representada neste ato por [NOME E CARGO DA AUTORIDADE/RESPONSÁVEL], no uso das atribuições previstas em [NORMA DE COMPETÊNCIA], NOTIFICA E INTIMA a empresa "+md["empresa"]+", inscrita no CNPJ sob o nº "+md["cnpj"]+", acerca da instauração do Processo Administrativo de Penalização nº "+md["processo"]+", destinado à apuração de possível descumprimento das obrigações relacionadas à contratação identificada nesta notificação.",
+        "",
+        "A presente notificação possui caráter estritamente processual e não representa imputação definitiva de responsabilidade, juízo antecipado de culpabilidade ou aplicação antecipada de penalidade. Destina-se a dar ciência à empresa acerca dos fatos e documentos que fundamentaram a instauração do procedimento, bem como a assegurar o exercício do contraditório e da ampla defesa.",
+        "",
+        "I — DA IDENTIFICAÇÃO DA CONTRATAÇÃO",
+        "",
+        "Conforme os documentos analisados, a contratação está relacionada à Ata de Registro de Preços nº "+md["ata"]+", ao Pregão Eletrônico nº "+md["pregao"]+" e à Nota de Empenho nº "+md["empenho"]+".",
+        "",
+        "A quantidade total identificada automaticamente no processo é "+total+"."+total_note,
+        "",
+        "Deverão ser conferidos, antes da expedição desta notificação, o objeto completo da contratação, os valores unitários e totais, o prazo contratual de entrega, a data de encaminhamento da Nota de Empenho ou instrumento equivalente e as condições específicas previstas no edital, na ata, no contrato e nos demais documentos da contratação.",
+        "",
+        "II — DA CRONOLOGIA DOCUMENTAL IDENTIFICADA",
+        ""
+    ]
+    if piece_rows:
+        for idx,(label,pgs) in enumerate(piece_rows,1):
+            lines.append(str(idx)+". "+label+" identificado(a) nas páginas "+", ".join(str(p) for p in pgs)+" dos autos analisados.")
+    else:
+        lines.append("[NÃO FOI POSSÍVEL ESTRUTURAR AUTOMATICAMENTE A CRONOLOGIA DAS PEÇAS. CONFERIR OS AUTOS.]")
+    lines += [
+        "",
+        "A cronologia acima é apresentada como instrumento de organização dos autos. A natureza jurídica de cada documento, sua autoria, data, validade, conteúdo integral e efeito processual deverão ser confirmados pela Comissão antes da expedição da notificação.",
+        "",
+        "III — DOS FATOS APURADOS ATÉ O MOMENTO",
+        ""
+    ]
+    if facts:
+        for idx,x in enumerate(facts,1):
+            lines.append(str(idx)+". "+x["text"]+" [Fonte: p. "+str(x["page"])+"]")
+    else:
+        lines.append("[INSERIR SÍNTESE DETALHADA E CRONOLÓGICA DOS FATOS APURADOS.]")
+    lines += [
+        "",
+        "Os fatos acima descritos deverão ser confrontados com o conteúdo integral dos documentos originais, especialmente com o instrumento convocatório, a ata ou contrato, a nota de empenho, comunicações administrativas, comprovantes de ciência, relatórios da fiscalização, documentos de recebimento e eventuais manifestações apresentadas pela contratada.",
+        "",
+        "IV — DAS ALEGAÇÕES, JUSTIFICATIVAS E ELEMENTOS APRESENTADOS PELA EMPRESA",
+        ""
+    ]
+    if defenses:
+        for idx,x in enumerate(defenses,1):
+            lines.append(str(idx)+". "+x["text"]+" [Fonte: p. "+str(x["page"])+"]")
+    else:
+        lines.append("Até o momento, o sistema não identificou com segurança elementos suficientes para sintetizar justificativas ou argumentos apresentados pela empresa. A Comissão deverá conferir se existem pedidos, manifestações, defesas, documentos comprobatórios ou outras justificativas nos autos.")
+    lines += [
+        "",
+        "As alegações e documentos apresentados pela empresa deverão ser analisados de forma individualizada, inclusive quanto à tempestividade, pertinência, vínculo com o objeto contratado, capacidade de demonstrar fato impeditivo ou justificativo e eventual repercussão sobre a responsabilidade administrativa.",
+        "",
+        "V — DOS PONTOS QUE NECESSITAM DE ESCLARECIMENTO OU CONFRONTO",
+        "",
+        "Sem prejuízo de outros aspectos que possam ser identificados pela Comissão durante a instrução, deverão ser esclarecidos, conforme aplicável ao caso concreto:",
+        "",
+        "a) se a obrigação contratual foi cumprida integral ou parcialmente e em que extensão;",
+        "b) se houve atraso, inexecução parcial ou inexecução total e quais documentos comprovam essa circunstância;",
+        "c) se a empresa foi regularmente cientificada acerca das obrigações, cobranças, notificações e prazos;",
+        "d) se a justificativa apresentada guarda relação direta com o objeto contratado e com o período de execução;",
+        "e) se eventual fato alegado pela empresa era imprevisível, inevitável ou alheio à sua esfera ordinária de risco empresarial;",
+        "f) se foram realizadas diligências concretas para superar o impedimento alegado, inclusive busca por fornecedores, produtos equivalentes ou outras alternativas de cumprimento;",
+        "g) se houve comunicação tempestiva à Administração sobre eventual impossibilidade ou dificuldade de execução;",
+        "h) se existem prejuízos, custos adicionais, necessidade de nova contratação ou comprometimento da continuidade do serviço público;",
+        "i) se há circunstâncias agravantes, atenuantes ou elementos que recomendem solução proporcional ao caso concreto.",
+        "",
+        "VI — DO ENQUADRAMENTO JURÍDICO PRELIMINAR",
+        ""
+    ]
+    if legal:
+        for idx,x in enumerate(legal,1):
+            lines.append(str(idx)+". "+x["text"]+" [Fonte: p. "+str(x["page"])+"]")
+    else:
+        lines.append("[INSERIR E CONFERIR OS DISPOSITIVOS DA LEI Nº 14.133/2021, DO REGULAMENTO MUNICIPAL E DOS INSTRUMENTOS DA CONTRATAÇÃO APLICÁVEIS AO CASO.]")
+    lines += [
+        "",
+        "Os fatos registrados nos autos poderão, em tese, caracterizar infração administrativa prevista na legislação aplicável e nos instrumentos da contratação. O enquadramento jurídico, entretanto, possui natureza preliminar e somente poderá ser confirmado, alterado ou afastado após a análise da defesa, das provas produzidas e do conjunto completo dos autos.",
+        "",
+        "A indicação preliminar de possível infração não representa antecipação de julgamento, nem dispensa a demonstração dos pressupostos fáticos e jurídicos necessários à eventual responsabilização.",
+        "",
+        "VII — DAS SANÇÕES EM TESE E DA NECESSIDADE DE DOSIMETRIA",
+        ""
+    ]
+    if sanctions:
+        lines.append("Foram localizadas nos documentos analisados referências às seguintes espécies de sanção: "+", ".join(sanctions)+". A Comissão deverá confirmar se tais sanções são juridicamente cabíveis ao enquadramento efetivamente adotado.")
+    else:
+        lines.append("A eventual sanção somente poderá ser definida após a instrução e o enquadramento jurídico definitivo. Não foi adotada automaticamente nesta minuta qualquer espécie de penalidade.")
+    lines += [
+        "",
+        "Caso ao final da instrução seja reconhecida responsabilidade administrativa, a autoridade competente deverá observar os limites legais e regulamentares aplicáveis e considerar, entre outros fatores, a natureza e a gravidade da infração, as peculiaridades do caso concreto, as circunstâncias agravantes ou atenuantes, os danos eventualmente causados à Administração, a vantagem auferida, a existência de antecedentes e os princípios da razoabilidade e da proporcionalidade, quando cabíveis.",
+        "",
+        "VIII — DO CONTRADITÓRIO, DA AMPLA DEFESA E DO PRAZO",
+        "",
+        "Fica a empresa NOTIFICADA E INTIMADA para apresentar defesa escrita e especificar as provas que pretenda produzir, no prazo de "+deadline+", contado na forma estabelecida pela legislação e regulamentação aplicáveis ao procedimento.",
+        "",
+        "A empresa poderá apresentar todos os documentos, esclarecimentos e provas que entender pertinentes à elucidação dos fatos, especialmente aqueles relacionados ao cumprimento da obrigação, à justificativa apresentada e às circunstâncias que possam ter impedido ou dificultado a execução contratual.",
+        "",
+        "As provas deverão ser especificadas na defesa, com indicação de sua pertinência para o esclarecimento dos fatos. O eventual indeferimento de prova deverá ser motivado pela autoridade competente, na forma da legislação e regulamentação aplicáveis.",
+        "",
+        "IX — DA FORMA DE APRESENTAÇÃO DA DEFESA",
+        "",
+        "A defesa e os respectivos documentos deverão ser encaminhados ao seguinte canal oficial: "+channel+".",
+        "",
+        "No campo destinado ao assunto deverá constar:",
+        "DEFESA – PROCESSO ADMINISTRATIVO Nº "+md["processo"]+" – "+md["empresa"]+".",
+        "",
+        "Antes da expedição, deverá ser conferido se o endereço eletrônico, protocolo digital ou outro canal indicado está oficialmente autorizado para recebimento da defesa e se existem requisitos de formato, tamanho ou assinatura dos documentos.",
+        "",
+        "X — DO ACESSO AOS AUTOS E DA CIÊNCIA INTEGRAL",
+        "",
+        "Deverá ser assegurado à empresa acesso aos documentos que fundamentam a instauração do procedimento, inclusive aos elementos necessários ao exercício efetivo do contraditório e da ampla defesa. Caso a íntegra dos autos seja encaminhada juntamente com esta notificação, registrar expressamente essa circunstância na versão final.",
+        "",
+        "XI — DA AUSÊNCIA DE DEFESA E DO PROSSEGUIMENTO DO PROCESSO",
+        "",
+        "A ausência de apresentação de defesa no prazo estabelecido não impede o regular prosseguimento do processo, observadas as consequências especificamente previstas na legislação e no regulamento aplicáveis. Qualquer referência a revelia, preclusão ou presunção deverá ser conferida diretamente na norma municipal e na legislação incidente antes da expedição.",
+        "",
+        "A empresa poderá intervir no processo posteriormente nos limites admitidos pela legislação aplicável, recebendo-o no estado em que se encontrar, sem prejuízo da validade dos atos regularmente praticados, quando assim previsto no regime jurídico incidente.",
+        "",
+        "XII — DAS PROVIDÊNCIAS APÓS A DEFESA",
+        "",
+        "Apresentada a defesa, deverão ser analisados os argumentos e documentos juntados, realizadas as diligências e provas consideradas necessárias e, encerrada a instrução, elaborado relatório conclusivo ou manifestação equivalente, com posterior encaminhamento à autoridade competente para julgamento mediante decisão motivada.",
+        "",
+        "A decisão final deverá enfrentar os argumentos relevantes apresentados pela defesa, indicar os fatos considerados comprovados, explicitar o enquadramento jurídico adotado e, se for o caso, justificar de forma individualizada a espécie e a dosimetria da sanção.",
+        "",
+        "XIII — DA RASTREABILIDADE DA MINUTA",
+        "",
+        _trace_line("fatos utilizados",facts),
+        _trace_line("elementos apresentados pela empresa",defenses),
+        _trace_line("fundamentos jurídicos encontrados",legal),
+        "",
+        "As notas de rastreabilidade acima destinam-se à conferência interna da Comissão e podem ser retiradas da versão expedida após a validação dos documentos originais.",
+        "",
+        "[MUNICÍPIO/UF], [DATA CERTIFICADA].",
+        "",
+        "[NOME DA AUTORIDADE/RESPONSÁVEL]",
+        "[CARGO/FUNÇÃO]",
+        "",
+        "MINUTA AUTOMÁTICA DETALHADA — REVISÃO HUMANA OBRIGATÓRIA ANTES DE EXPEDIÇÃO."
+    ]
+
+    sources=[]
+    for x in facts:sources.append("Fato · p. "+str(x["page"]))
+    for x in defenses:sources.append("Elemento da empresa · p. "+str(x["page"]))
+    for x in legal:sources.append("Fundamento jurídico · p. "+str(x["page"]))
+    if total_src:sources.append("Quantidade total · p. "+str(total_src["page"]))
+    return {"draft":"\n".join([x for x in lines if x is not None]),"metadata":md,"sources":sources}
+
+HTML = HTML.replace(
+    "Notificação de instauração e abertura de prazo para defesa",
+    "Notificação detalhada de instauração e abertura de prazo para defesa"
+)
+HTML = HTML.replace(
+    "Gera uma minuta editável a partir das evidências encontradas. Campos não identificados permanecem entre colchetes e exigem conferência humana.",
+    "Gera uma minuta extensa, estruturada e editável, com fatos, justificativas, enquadramento preliminar, dosimetria, contraditório, provas, acesso aos autos e rastreabilidade. Campos não identificados permanecem entre colchetes."
+)
+HTML = HTML.replace("VERSÃO 3.8 · MINUTA ASSISTIDA","VERSÃO 3.9 · MINUTA DETALHADA")
