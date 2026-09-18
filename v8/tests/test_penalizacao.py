@@ -24,3 +24,16 @@ def test_ata_so_e_obrigatoria_quando_arp_e_aplicavel():
     result=analyze_penalizacao(docs)
     ata=next(x for x in result.checklist if x.key=="ata")
     assert ata.status=="not_applicable"
+
+
+def test_decisao_de_origem_que_autoriza_novo_pas_nao_e_julgamento_sancionador():
+    docs=[
+        doc(1,"contrato","CONTRATO ADMINISTRATIVO Nº 308/2025",1),
+        doc(2,"notificacao","NOTIFICAÇÃO EXTRAJUDICIAL para início das entregas.",2),
+        doc(3,"defesa","DEFESA ADMINISTRATIVA apresentada pela contratada.",3),
+        doc(4,"parecer_juridico","PARECER JURÍDICO sobre extinção contratual.",4),
+        doc(5,"decisao","DESPACHO Nº 693/2025. DEFIRO a extinção unilateral do contrato e AUTORIZO A ABERTURA DE PROCESSO ADMINISTRATIVO SANCIONADOR para apuração das penalidades cabíveis.",5),
+    ]
+    result=analyze_penalizacao(docs)
+    assert result.stage.key=="instauracao_sancionadora_autorizada"
+    assert result.stage.suggested_draft=="despacho_instauracao"
