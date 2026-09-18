@@ -12,8 +12,22 @@ on:
       - ".github/workflows/v8-real-benchmark.yml"
 
 jobs:
-  asseste:
+  benchmark:
+    name: ${{ matrix.case }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - case: ASSESTE · processo de origem
+            slug: asseste
+            url: "https://franciscobeltrao.pr.gov.br/wp-content/uploads/2025/03/TERMO-DE-RESCISAO-CONT.-308-ASSESTE-COMERCIO-DE-EXTINTORES-LTDA-UNILATERAL-Protocolo-15.566.2025.pdf"
+            benchmark: v8/benchmarks/francisco-beltrao-asseste-15566-2025.json
+          - case: Felício dos Santos · decisão final PAS
+            slug: felicio-pas
+            url: "https://feliciodossantos.mg.gov.br/arquivo/69610df0940e0.pdf"
+            benchmark: v8/benchmarks/felicio-dos-santos-pas-07-2025.json
+
     steps:
       - uses: actions/checkout@v4
 
@@ -21,22 +35,27 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
+      - name: Install OCR system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-por tesseract-ocr-eng
+
+      - name: Install Python dependencies
         run: pip install -r v8/requirements.txt
 
-      - name: Download public ASSESTE process
+      - name: Download public benchmark PDF
         run: |
           mkdir -p .benchmark-data
           curl --fail --location --retry 3 \
-            "https://franciscobeltrao.pr.gov.br/wp-content/uploads/2025/03/TERMO-DE-RESCISAO-CONT.-308-ASSESTE-COMERCIO-DE-EXTINTORES-LTDA-UNILATERAL-Protocolo-15.566.2025.pdf" \
-            --output .benchmark-data/asseste.pdf
+            "${{ matrix.url }}" \
+            --output ".benchmark-data/${{ matrix.slug }}.pdf"
 
       - name: Evaluate real PDF
         run: |
           PYTHONPATH=. python v8/benchmarks/runner.py \
-            .benchmark-data/asseste.pdf \
-            v8/benchmarks/francisco-beltrao-asseste-15566-2025.json \
-            --output .benchmark-data/result.json \
+            ".benchmark-data/${{ matrix.slug }}.pdf" \
+            "${{ matrix.benchmark }}" \
+            --output ".benchmark-data/${{ matrix.slug }}.json" \
             --fail-below-recall 1.0 \
             --fail-below-precision 1.0 \
             --fail-below-boundary 0.95 \
@@ -44,38 +63,42 @@ jobs:
             --fail-below-evidence 1.0 \
             --fail-below-conflict 1.0
 
-      - name: Benchmark summary
+      - name: Benchmark summary and semantic gates
+        env:
+          RESULT_FILE: ".benchmark-data/${{ matrix.slug }}.json"
         run: |
           python - <<'PY'
           import json, os
           from pathlib import Path
-          p=Path('.benchmark-data/result.json')
-          d=json.loads(p.read_text(encoding='utf-8'))
-          with open(Path(os.environ['GITHUB_STEP_SUMMARY']), 'a', encoding='utf-8') as f:
-              f.write('# Fiscaliza.AI V8 — benchmark real\n\n')
-              f.write(f"- Caso: {d['case_id']}\n")
+
+          d=json.loads(Path(os.environ["RESULT_FILE"]).read_text(encoding="utf-8"))
+          with open(Path(os.environ["GITHUB_STEP_SUMMARY"]), "a", encoding="utf-8") as f:
+              f.write(f"# Fiscaliza.AI V8 — {d['case_id']}\n\n")
               f.write(f"- Páginas: **{d['pages']}**\n")
+              f.write(f"- Páginas com OCR: **{d['ocr_pages']}**\n")
               f.write(f"- Peças segmentadas: **{d['documents_detected']}**\n")
               f.write(f"- Recall documental: **{(d['document_recall'] or 0)*100:.1f}%**\n")
               f.write(f"- Precisão documental: **{(d['document_precision'] or 0)*100:.1f}%**\n")
               f.write(f"- Falsos positivos: **{d['false_positive_count']}**\n")
               f.write(f"- IoU médio das fronteiras: **{(d['boundary_mean_iou'] or 0)*100:.1f}%**\n")
               f.write(f"- Fronteiras exatas: **{d['exact_boundary_count']}/{d['expected_document_total']}**\n")
-              f.write(f"- Alertas de integridade: **{len(d.get('integrity_warnings', []))}**\n")
-              f.write(f"- Perfil contratual: **{(d['profile_accuracy'] or 0)*100:.1f}%**\n")
+              f.write(f"- Perfil processual/contratual: **{(d['profile_accuracy'] or 0)*100:.1f}%**\n")
               f.write(f"- Evidências críticas: **{(d['evidence_accuracy'] or 0)*100:.1f}%**\n")
-              f.write(f"- Divergências esperadas detectadas: **{(d['conflict_accuracy'] or 0)*100:.1f}%**\n")
-              f.write(f"- Estágio esperado: {d['expected_stage']}\n")
-              f.write(f"- Estágio detectado: {d['actual_stage']}\n")
-              f.write(f"- Estágio correto: **{'sim' if d['stage_match'] else 'não'}**\n")
-              f.write(f"- Fonte do estágio correta: **{'sim' if d.get('stage_source_match') else 'não'}**\n")
-              f.write(f"- Minuta sugerida: {d['suggested_draft']}\n")
-          assert d['stage_match'], 'Estágio processual divergente do gabarito'
-          assert d.get('stage_source_match') is not False, 'Fonte documental do estágio divergente do gabarito'
-          assert not d.get('integrity_warnings'), 'Há alertas de integridade na análise'
+              if d.get("conflict_accuracy") is not None:
+                  f.write(f"- Divergências esperadas detectadas: **{d['conflict_accuracy']*100:.1f}%**\n")
+              f.write(f"- Alertas de integridade: **{len(d.get('integrity_warnings', []))}**\n")
+              f.write(f"- Estágio detectado: **{d['actual_stage']}**\n")
+              f.write(f"- Fonte do estágio correta: **{'sim' if d.get('stage_source_match') is not False else 'não'}**\n")
+              f.write(f"- Minuta sugerida: **{d['suggested_draft']}**\n")
+
+          assert d["stage_match"], "Estágio processual divergente do gabarito"
+          assert d.get("stage_source_match") is not False, "Fonte documental do estágio divergente do gabarito"
+          assert d.get("draft_match") is not False, "Minuta sugerida divergente do gabarito"
+          assert d.get("ocr_expectation_match") is not False, "OCR abaixo do mínimo esperado para o caso"
+          assert not d.get("integrity_warnings"), "Há alertas de integridade na análise"
           PY
 
       - uses: actions/upload-artifact@v4
         with:
-          name: v8-asseste-benchmark
-          path: .benchmark-data/result.json
+          name: "v8-${{ matrix.slug }}-benchmark"
+          path: ".benchmark-data/${{ matrix.slug }}.json"
