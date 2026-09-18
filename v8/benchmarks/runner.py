@@ -126,6 +126,35 @@ def evaluate(pdf_path: Path, benchmark_path: Path) -> dict:
     expected_stage = benchmark.get("expected_stage")
     stage_ok = analysis.stage.key == expected_stage if expected_stage else None
 
+    critical_facts = benchmark.get("critical_facts", [])
+    evidence_checks = []
+    for expected in critical_facts:
+        key = expected.get("key")
+        page = int(expected["support_page"])
+        matches = [
+            ev for ev in analysis.evidence
+            if ev.key == key and int(ev.page) == page
+        ]
+        evidence_checks.append({
+            "key": key,
+            "expected_page": page,
+            "matched": bool(matches),
+            "actual": [
+                {
+                    "document_id": ev.document_id,
+                    "page": ev.page,
+                    "fact": ev.fact,
+                    "excerpt": ev.excerpt[:180],
+                }
+                for ev in matches
+            ],
+        })
+    evidence_accuracy = (
+        sum(1 for x in evidence_checks if x["matched"]) / len(evidence_checks)
+        if evidence_checks
+        else None
+    )
+
     profile_expected = benchmark.get("profile_expectations", {})
     profile_actual = analysis.profile.model_dump(exclude={"sources"})
     profile_checks = {}
@@ -139,6 +168,22 @@ def evaluate(pdf_path: Path, benchmark_path: Path) -> dict:
     profile_accuracy = (
         sum(1 for x in profile_checks.values() if x["matched"]) / len(profile_checks)
         if profile_checks
+        else None
+    )
+
+    expected_conflicts = benchmark.get("profile_conflicts", {})
+    conflict_checks = {}
+    for key, expected_values in expected_conflicts.items():
+        actual_values = analysis.profile.conflicts.get(key, [])
+        normalized_actual = {norm_text(x) for x in actual_values}
+        conflict_checks[key] = {
+            "expected": expected_values,
+            "actual": actual_values,
+            "matched": all(norm_text(x) in normalized_actual for x in expected_values),
+        }
+    conflict_accuracy = (
+        sum(1 for x in conflict_checks.values() if x["matched"]) / len(conflict_checks)
+        if conflict_checks
         else None
     )
 
@@ -160,12 +205,16 @@ def evaluate(pdf_path: Path, benchmark_path: Path) -> dict:
         "stage_match": stage_ok,
         "suggested_draft": analysis.stage.suggested_draft,
         "integrity_warnings": analysis.warnings,
+        "evidence_accuracy": evidence_accuracy,
+        "evidence_checks": evidence_checks,
         "profile_accuracy": profile_accuracy,
         "profile_checks": profile_checks,
         "profile_sources": {
             key: value.model_dump()
             for key, value in analysis.profile.sources.items()
         },
+        "conflict_accuracy": conflict_accuracy,
+        "conflict_checks": conflict_checks,
         "documents": doc_results,
     }
 
@@ -202,6 +251,18 @@ def main():
         default=None,
         help="Retorna código 5 se a precisão do perfil ficar abaixo deste limite.",
     )
+    parser.add_argument(
+        "--fail-below-evidence",
+        type=float,
+        default=None,
+        help="Retorna código 6 se a precisão das evidências críticas ficar abaixo deste limite.",
+    )
+    parser.add_argument(
+        "--fail-below-conflict",
+        type=float,
+        default=None,
+        help="Retorna código 7 se a detecção de divergências ficar abaixo deste limite.",
+    )
     args = parser.parse_args()
 
     result = evaluate(Path(args.pdf), Path(args.benchmark))
@@ -223,6 +284,12 @@ def main():
     if args.fail_below_profile is not None and result["profile_accuracy"] is not None:
         if result["profile_accuracy"] < args.fail_below_profile:
             raise SystemExit(5)
+    if args.fail_below_evidence is not None and result["evidence_accuracy"] is not None:
+        if result["evidence_accuracy"] < args.fail_below_evidence:
+            raise SystemExit(6)
+    if args.fail_below_conflict is not None and result["conflict_accuracy"] is not None:
+        if result["conflict_accuracy"] < args.fail_below_conflict:
+            raise SystemExit(7)
 
 
 if __name__ == "__main__":
