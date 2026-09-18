@@ -21,7 +21,7 @@ LINE_HEADER_RULES = [
     ("intimacao", r"^\s*INTIMA[CÇ][AÃ]O\b", 0.99),
     ("defesa", r"^\s*(?:ASSUNTO\s*:\s*)?DEFESA\s+ADMINISTRATIVA\b", 0.995),
     ("recurso", r"^\s*(?:ASSUNTO\s*:\s*)?RECURSO\s+ADMINISTRATIVO\b", 0.995),
-    ("decisao", r"^\s*(?:DECIS[AÃ]O\s+ADMINISTRATIVA|DESPACHO\s+(?:N[ºO.]?\s*)?[A-Z0-9./-]+)\b", 0.99),
+    ("decisao", r"^\s*(?:DECIS[AÃ]O\s+ADMINISTRATIVA\b|DESPACHO\s+(?:N\s*[º°O.]*\s*)?[0-9]{1,8}(?:[./-][0-9]{1,8})*)", 0.99),
     ("contrato", r"^\s*CONTRATO\s+(?:ADMINISTRATIVO|DE\s+FORNECIMENTO|DE\s+PRESTA[CÇ][AÃ]O|N[ºO.])\b", 0.99),
     ("empenho", r"^\s*NOTA\s+DE\s+EMPENHO\b", 0.995),
     ("ordem_fornecimento", r"^\s*(?:ORDEM|AUTORIZA[CÇ][AÃ]O)\s+DE\s+FORNECIMENTO\b", 0.995),
