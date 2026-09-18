@@ -135,6 +135,17 @@ def evaluate(pdf_path: Path, benchmark_path: Path) -> dict:
             ev for ev in analysis.evidence
             if ev.key == key and int(ev.page) == page
         ]
+        page_candidates = []
+        if not matches:
+            for doc in documents:
+                if page in doc.pages:
+                    page_text = doc.page_texts.get(page, "")
+                    page_candidates.append({
+                        "document_id": doc.id,
+                        "type": doc.type,
+                        "page": page,
+                        "text_excerpt": re.sub(r"\\s+", " ", page_text)[:700],
+                    })
         evidence_checks.append({
             "key": key,
             "expected_page": page,
@@ -148,6 +159,7 @@ def evaluate(pdf_path: Path, benchmark_path: Path) -> dict:
                 }
                 for ev in matches
             ],
+            "page_candidates": page_candidates,
         })
     evidence_accuracy = (
         sum(1 for x in evidence_checks if x["matched"]) / len(evidence_checks)
