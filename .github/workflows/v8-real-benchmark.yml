@@ -36,7 +36,13 @@ jobs:
           PYTHONPATH=. python v8/benchmarks/runner.py \
             .benchmark-data/asseste.pdf \
             v8/benchmarks/francisco-beltrao-asseste-15566-2025.json \
-            --output .benchmark-data/result.json
+            --output .benchmark-data/result.json \
+            --fail-below-recall 1.0 \
+            --fail-below-precision 1.0 \
+            --fail-below-boundary 0.95 \
+            --fail-below-profile 0.95 \
+            --fail-below-evidence 1.0 \
+            --fail-below-conflict 1.0
 
       - name: Benchmark summary
         run: |
@@ -56,10 +62,15 @@ jobs:
               f.write(f"- IoU médio das fronteiras: **{(d['boundary_mean_iou'] or 0)*100:.1f}%**\n")
               f.write(f"- Fronteiras exatas: **{d['exact_boundary_count']}/{d['expected_document_total']}**\n")
               f.write(f"- Alertas de integridade: **{len(d.get('integrity_warnings', []))}**\n")
+              f.write(f"- Perfil contratual: **{(d['profile_accuracy'] or 0)*100:.1f}%**\n")
+              f.write(f"- Evidências críticas: **{(d['evidence_accuracy'] or 0)*100:.1f}%**\n")
+              f.write(f"- Divergências esperadas detectadas: **{(d['conflict_accuracy'] or 0)*100:.1f}%**\n")
               f.write(f"- Estágio esperado: {d['expected_stage']}\n")
               f.write(f"- Estágio detectado: {d['actual_stage']}\n")
               f.write(f"- Estágio correto: **{'sim' if d['stage_match'] else 'não'}**\n")
               f.write(f"- Minuta sugerida: {d['suggested_draft']}\n")
+          assert d['stage_match'], 'Estágio processual divergente do gabarito'
+          assert not d.get('integrity_warnings'), 'Há alertas de integridade na análise'
           PY
 
       - uses: actions/upload-artifact@v4
