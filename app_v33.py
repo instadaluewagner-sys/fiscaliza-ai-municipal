@@ -1932,3 +1932,264 @@ def _draft_notification(item):
     return {"draft":"\n".join(lines),"metadata":md,"sources":sources}
 
 HTML = HTML.replace("VERSÃO 4.0 · MODELO INSTITUCIONAL","VERSÃO 4.1 · NARRATIVA PROCESSUAL")
+
+
+# --- Minuta institucional limpa v4.2 ---
+def _extract_contract_no(pages):
+    joined="\n".join(p["text"] or "" for p in pages)
+    return _first_match(joined,[
+        r"Contrato\s*(?:n[ºo.]?|número)?\s*[:\-]?\s*([0-9][0-9.\-\/]+)"
+    ])
+
+def _safe_defense_email(pages):
+    # Nunca usa e-mail da própria contratada como canal da defesa.
+    candidates=[]
+    for p in pages:
+        raw=re.sub(r"\s+"," ",p["text"] or "")
+        z=norm(raw)
+        if not any(k in z for k in [
+            "defesa e os respectivos documentos","apresentar defesa","encaminhados exclusivamente",
+            "comissao de penalizacao","processo administrativo sancionador"
+        ]):
+            continue
+        for e in re.findall(r"[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}",raw,flags=re.I):
+            lo=e.lower()
+            score=0
+            if ".gov.br" in lo:score+=5
+            if any(k in lo for k in ["comissao","penal","processo","jurid","procur","licit"]):score+=2
+            candidates.append((score,e))
+    candidates.sort(reverse=True)
+    if candidates and candidates[0][0]>=5:
+        return candidates[0][1]
+    return "[ENDEREÇO ELETRÔNICO OFICIAL PARA RECEBIMENTO DA DEFESA]"
+
+def _date_from_text(text):
+    pats=[
+        r"\b(\d{1,2}\/\d{1,2}\/\d{4})\b",
+        r"\b(\d{1,2}\s+de\s+[A-Za-zÀ-ÿ]+\s+de\s+\d{4})\b"
+    ]
+    for pat in pats:
+        m=re.search(pat,text or "",flags=re.I)
+        if m:return m.group(1)
+    return None
+
+def _clean_process_text(text):
+    s=re.sub(r"\s+"," ",text or "").strip()
+    # Remove blocos típicos de 1Doc, assinatura, contatos e cabeçalhos.
+    s=re.sub(r"1Doc:\s*Protocolo[^.]{0,180}","",s,flags=re.I)
+    s=re.sub(r"VERIFICAÇÃO DAS ASSINATURAS.*","",s,flags=re.I)
+    s=re.sub(r"Para verificar a validade das assinaturas[^.]*\.?","",s,flags=re.I)
+    s=re.sub(r"Assinado por \d+ pessoa[^.]*\.?","",s,flags=re.I)
+    s=re.sub(r"(?:Telefone|Whatsapp)[^ ]{0,5}\s*[:\-]?\s*[\d ()\-]+","",s,flags=re.I)
+    s=re.sub(r"https?://\S+","",s,flags=re.I)
+    s=re.sub(r"\b[\w.\-+]+@[\w.\-]+\.\w+\b","",s)
+    s=re.sub(r"\s+"," ",s).strip(" -;:")
+    return s
+
+def _material_case_facts(pages,a,limit=6):
+    out=[]
+
+    # 1) Fato material de não entrega/inexecução: prioridade máxima.
+    for p in pages:
+        raw=_clean_process_text(p["text"])
+        for s in re.split(r"(?<=[.!?;])\s+",raw):
+            z=norm(s)
+            if any(k in z for k in [
+                "nao realizou nenhuma entrega","nao houve entrega","nenhuma entrega",
+                "sem que tenha sido comprovado o cumprimento","nao foram entregues",
+                "ausencia de execucao parcial ou total","inexecucao total","inexecucao parcial"
+            ]):
+                if 45<=len(s)<=750:
+                    out.append({"page":p["page"],"text":_sentence(s),"kind":"execucao"})
+                    break
+        if any(x["kind"]=="execucao" for x in out):break
+
+    # 2) Pedido/requerimento da empresa como marco cronológico, mas em frase limpa.
+    for p in pages[:20]:
+        z=norm(p["text"])
+        if "pedido de reequilibrio" in z or "reequilibrio economico-financeiro" in z:
+            dt=_date_from_text(p["text"])
+            contract=_extract_contract_no(pages)
+            txt=("Em "+dt+", " if dt else "")+"a empresa apresentou pedido de reequilíbrio econômico-financeiro"
+            if contract!="[NÃO IDENTIFICADO AUTOMATICAMENTE]":
+                txt+=" relacionado ao Contrato nº "+contract
+            if "pedido sucessivo de rescisao amigavel" in z or "rescisao amigavel" in z:
+                txt+=", com pedido sucessivo de rescisão amigável em caso de indeferimento"
+            txt+="."
+            out.insert(0,{"page":p["page"],"text":txt,"kind":"pedido"})
+            break
+
+    # 3) Comunicação/notificação administrativa prévia, se houver.
+    notif=[]
+    for x in (a.get("pieces") or []):
+        if x.get("type")=="notificacao":
+            notif.extend(x.get("pages") or [])
+    if notif:
+        out.append({"page":min(notif),"text":"Consta dos autos notificação administrativa/extrajudicial dirigida à empresa, destinada a dar ciência dos fatos e solicitar manifestação ou regularização.","kind":"notificacao"})
+
+    # 4) Relatório/manifestação técnica sobre execução.
+    tech=[]
+    for x in (a.get("pieces") or []):
+        if x.get("type")=="parecer_tecnico":
+            tech.extend(x.get("pages") or [])
+    if tech:
+        out.append({"page":min(tech),"text":"A unidade técnica/fiscalização juntou manifestação acerca da execução contratual e das providências adotadas, documento que deverá ser conferido integralmente antes da expedição.","kind":"tecnico"})
+
+    # Remove duplicatas e ordena cronologicamente, preservando pedido inicial.
+    uniq=[];seen=set()
+    for x in out:
+        k=norm(x["text"])
+        if k in seen:continue
+        seen.add(k);uniq.append(x)
+    uniq.sort(key=lambda x:x["page"])
+    return uniq[:limit]
+
+def _clean_company_claims(pages,limit=4):
+    claims=[]
+    joined_pages=pages[:20]
+    contract=_extract_contract_no(pages)
+
+    # Pedido de reequilíbrio + rescisão, de forma sintética e sem cabeçalho bruto.
+    for p in joined_pages:
+        z=norm(p["text"])
+        if "reequilibrio economico-financeiro" in z:
+            txt="A empresa requereu reequilíbrio econômico-financeiro"
+            if contract!="[NÃO IDENTIFICADO AUTOMATICAMENTE]":txt+=" do Contrato nº "+contract
+            if "emissao de empenhos" in z:txt+=", cumulando pedido de emissão de empenhos"
+            if "rescisao amigavel" in z:txt+=" e pedido sucessivo de rescisão amigável"
+            txt+="."
+            claims.append({"page":p["page"],"text":txt})
+            break
+
+    # Orçamento/custo superior ao valor contratado.
+    for p in joined_pages:
+        z=norm(p["text"])
+        if "mocelin" in z and ("124,55" in p["text"] or "115,00" in p["text"]):
+            claims.append({"page":p["page"],"text":"A empresa apresentou orçamento de fabricante para sustentar aumento do custo de aquisição, apontando valor superior ao preço unitário contratado."})
+            break
+
+    # Desequilíbrio/impossibilidade técnico-financeira.
+    for p in joined_pages:
+        raw=_clean_process_text(p["text"])
+        for s in re.split(r"(?<=[.!?;])\s+",raw):
+            z=norm(s)
+            if "desequilibrio contratual" in z or ("impossibilidade tecnica" in z and "financeira" in z):
+                if 40<=len(s)<=500:
+                    claims.append({"page":p["page"],"text":_sentence(s)})
+                    break
+        if len(claims)>=3:break
+
+    # Consequência incalculável / fato extraordinário.
+    for p in joined_pages:
+        raw=_clean_process_text(p["text"])
+        for s in re.split(r"(?<=[.!?;])\s+",raw):
+            z=norm(s)
+            if "consequencia incalculavel" in z or "fato, ainda que previsivel" in z:
+                if 40<=len(s)<=500:
+                    claims.append({"page":p["page"],"text":_sentence(s)})
+                    break
+        if len(claims)>=limit:break
+
+    uniq=[];seen=set()
+    for x in claims:
+        k=norm(x["text"])
+        if k in seen:continue
+        seen.add(k);uniq.append(x)
+    return uniq[:limit]
+
+def _sanction_legal_refs(pages,limit=4):
+    refs=[]
+    strong_terms=[
+        "art. 155","artigo 155","art. 156","artigo 156","art. 158","artigo 158",
+        "responsabilizado administrativamente","infracao administrativa","sanção de impedimento",
+        "sancao de impedimento","declaracao de inidoneidade","processo administrativo sancionador"
+    ]
+    for p in pages:
+        raw=_clean_process_text(p["text"])
+        for s in re.split(r"(?<=[.!?;:])\s+",raw):
+            z=norm(s)
+            if not any(k in z for k in strong_terms):continue
+            if len(s)<30 or len(s)>750:continue
+            clean=_sentence(s)
+            k=norm(clean)
+            if all(norm(x["text"])!=k for x in refs):
+                refs.append({"page":p["page"],"text":clean})
+                if len(refs)>=limit:return refs
+    return refs
+
+def _draft_notification(item):
+    pages=item["pages"];a=item["analysis"];md=_metadata_from_pages(pages)
+    contract=_extract_contract_no(pages)
+    facts=_material_case_facts(pages,a,6)
+    defenses=_clean_company_claims(pages,4)
+    legal=_sanction_legal_refs(pages,4)
+    deadline=_find_deadline_for_defense(pages)
+    channel=_safe_defense_email(pages)
+
+    lines=[
+        "NOTIFICAÇÃO EXTRAJUDICIAL Nº [NÚMERO]/COMISSÃO DE PENALIZAÇÃO/[SIGLA DO ÓRGÃO]/[MUNICÍPIO]","",
+        "Processo Administrativo de Penalização: nº "+md["processo"],
+        "Ata de Registro de Preços: nº "+md["ata"],
+        "Pregão Eletrônico: nº "+md["pregao"],
+        "Nota de Empenho: nº "+md["empenho"],
+        "Empresa: "+md["empresa"],
+        "CNPJ: "+md["cnpj"],"",
+        "Assunto: Notificação de instauração de Processo Administrativo de Penalização e abertura de prazo para apresentação de defesa.","",
+        "[PREFEITURA/ÓRGÃO], pessoa jurídica de direito público interno, inscrita no CNPJ sob o nº [CNPJ DO ÓRGÃO], por intermédio da Comissão Permanente de Penalização, representada neste ato por [NOME DO RESPONSÁVEL], [CARGO/FUNÇÃO], no uso das atribuições previstas em [NORMA DE COMPETÊNCIA] e [PORTARIA DE DESIGNAÇÃO], NOTIFICA E INTIMA a empresa "+md["empresa"]+", inscrita no CNPJ sob o nº "+md["cnpj"]+", acerca da instauração do Processo Administrativo de Penalização nº "+md["processo"]+", destinado à apuração de possível descumprimento de obrigação decorrente da contratação relacionada ao Pregão Eletrônico nº "+md["pregao"]+(". e ao Contrato nº "+contract if contract!="[NÃO IDENTIFICADO AUTOMATICAMENTE]" else "."),
+        "",
+        "A presente notificação possui caráter processual e não representa imputação definitiva de responsabilidade ou aplicação antecipada de penalidade, destinando-se a dar ciência à empresa dos fatos apurados e a assegurar o exercício do contraditório e da ampla defesa.",""
+    ]
+
+    # Contextualização contratual no mesmo estilo narrativo do modelo da Comissão.
+    if contract!="[NÃO IDENTIFICADO AUTOMATICAMENTE]":
+        lines += ["Conforme consta nos autos, a contratação foi formalizada por meio do Contrato nº "+contract+", vinculado ao Pregão Eletrônico nº "+md["pregao"]+". Os demais dados da contratação que não tenham sido identificados automaticamente deverão ser conferidos diretamente nos documentos originais antes da expedição desta notificação.",""]
+    else:
+        lines += ["Conforme consta nos autos, a contratação está vinculada ao Pregão Eletrônico nº "+md["pregao"]+". Os demais instrumentos, valores, itens, prazos e documentos da contratação deverão ser conferidos diretamente nos autos antes da expedição desta notificação.",""]
+
+    if facts:
+        for i,x in enumerate(facts):
+            lead=["Conforme registrado no processo, ","Na sequência, ","Posteriormente, ","Ainda segundo os autos, ","De acordo com a documentação juntada, ","Por fim, "][min(i,5)]
+            tx=_sentence(x["text"])
+            if tx:tx=tx[0].lower()+tx[1:]
+            lines += [lead+tx,""]
+    else:
+        lines += ["[INSERIR NARRATIVA CRONOLÓGICA DOS FATOS COMPROVADOS NOS AUTOS.]",""]
+
+    if defenses:
+        lines += ["A empresa apresentou justificativas que deverão ser consideradas na instrução do procedimento.",""]
+        for i,x in enumerate(defenses):
+            lead=["Em sua manifestação, ","A empresa alegou, ainda, que ","Também sustentou que ","Por fim, "][min(i,3)]
+            tx=_sentence(x["text"])
+            if tx:tx=tx[0].lower()+tx[1:]
+            lines += [lead+tx,""]
+
+    lines += [
+        "Os documentos apresentados até o momento deverão ser analisados em conjunto. A justificativa da empresa constitui elemento relevante para a apuração, mas não permite, por si só, concluir pelo afastamento automático de eventual responsabilidade administrativa. Deverão ser verificadas a relação entre os fatos alegados e o objeto contratado, a tempestividade das comunicações, as providências efetivamente adotadas e a existência de prova suficiente acerca da impossibilidade ou dificuldade de cumprimento da obrigação.",""
+    ]
+
+    if legal:
+        for x in legal:lines += [_sentence(x["text"]),""]
+
+    lines += [
+        "Dessa forma, os fatos registrados nos autos poderão caracterizar, em tese, infração administrativa prevista na legislação aplicável e nos instrumentos da contratação. O enquadramento jurídico indicado possui caráter preliminar e poderá ser mantido, alterado ou afastado após a análise da defesa e das provas produzidas durante a instrução, não representando decisão antecipada quanto à responsabilidade da empresa.","",
+        "Caso, ao final da instrução, seja reconhecida a responsabilidade administrativa da empresa, poderá ser aplicada a sanção juridicamente cabível, conforme o enquadramento definitivo e as circunstâncias do caso concreto, observados os limites e critérios estabelecidos na legislação, no regulamento aplicável e nos instrumentos da contratação.","",
+        "Na eventual aplicação de sanção deverão ser considerados a natureza e a gravidade da infração, as peculiaridades do caso concreto, as circunstâncias agravantes ou atenuantes, os danos eventualmente causados à Administração e os princípios da razoabilidade e da proporcionalidade.","",
+        "Dessa forma, fica a empresa NOTIFICADA E INTIMADA para apresentar defesa escrita e especificar as provas que pretenda produzir, no prazo de "+deadline+", contado na forma prevista na legislação e regulamentação aplicáveis ao procedimento.","",
+        "A empresa poderá apresentar todos os documentos, esclarecimentos e provas que entender pertinentes à elucidação dos fatos, especialmente aqueles relacionados ao cumprimento da obrigação, à justificativa apresentada e às circunstâncias que possam ter impedido ou dificultado a execução contratual.","",
+        "As provas deverão ser especificadas na defesa, com indicação de sua pertinência para o esclarecimento dos fatos. Poderão ser indeferidas pela Comissão, mediante decisão fundamentada, as provas ilícitas, impertinentes, desnecessárias, protelatórias ou intempestivas, quando assim previsto na norma aplicável.","",
+        "A defesa e os respectivos documentos deverão ser encaminhados exclusivamente ao endereço eletrônico ou canal oficial: "+channel+".","",
+        "No campo destinado ao assunto da mensagem deverá constar: DEFESA – PROCESSO ADMINISTRATIVO Nº "+md["processo"]+" – "+md["empresa"]+".","",
+        "Para assegurar o pleno conhecimento dos fatos e dos documentos que fundamentaram a instauração do procedimento, deverá ser disponibilizada à empresa cópia integral dos autos ou acesso equivalente aos documentos do Processo Administrativo de Penalização nº "+md["processo"]+".","",
+        "A ausência de apresentação de defesa no prazo estabelecido implicará o regular prosseguimento do processo, observadas as consequências previstas na legislação e no regulamento aplicáveis.","",
+        "Concluída a instrução processual, a Comissão Permanente de Penalização ou unidade competente elaborará relatório conclusivo e encaminhará os autos à autoridade competente para julgamento e decisão motivada.","",
+        "[MUNICÍPIO/UF], data certificada.","","[NOME DO RESPONSÁVEL]","[CARGO/FUNÇÃO]","",
+        "MINUTA AUTOMÁTICA — REVISÃO HUMANA OBRIGATÓRIA ANTES DE EXPEDIÇÃO."
+    ]
+
+    sources=[]
+    for x in facts:sources.append("Fato material · p. "+str(x["page"]))
+    for x in defenses:sources.append("Justificativa da empresa · p. "+str(x["page"]))
+    for x in legal:sources.append("Fundamento sancionador · p. "+str(x["page"]))
+    return {"draft":"\n".join(lines),"metadata":md,"sources":sources}
+
+HTML = HTML.replace("VERSÃO 4.1 · NARRATIVA PROCESSUAL","VERSÃO 4.2 · MINUTA INSTITUCIONAL LIMPA")
