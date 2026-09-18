@@ -68,8 +68,10 @@ jobs:
               f.write(f"- Estágio esperado: {d['expected_stage']}\n")
               f.write(f"- Estágio detectado: {d['actual_stage']}\n")
               f.write(f"- Estágio correto: **{'sim' if d['stage_match'] else 'não'}**\n")
+              f.write(f"- Fonte do estágio correta: **{'sim' if d.get('stage_source_match') else 'não'}**\n")
               f.write(f"- Minuta sugerida: {d['suggested_draft']}\n")
           assert d['stage_match'], 'Estágio processual divergente do gabarito'
+          assert d.get('stage_source_match') is not False, 'Fonte documental do estágio divergente do gabarito'
           assert not d.get('integrity_warnings'), 'Há alertas de integridade na análise'
           PY
 
