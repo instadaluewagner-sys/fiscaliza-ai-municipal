@@ -36,6 +36,8 @@ class PendingItem(BaseModel):
     reason: str
 
 class Evidence(BaseModel):
+    key: str = "generic"
+    category: Literal["fact", "procedural", "defense", "legal", "decision"] = "fact"
     fact: str
     document_id: str
     page: int
