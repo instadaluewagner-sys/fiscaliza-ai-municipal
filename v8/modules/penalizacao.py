@@ -1008,15 +1008,69 @@ def build_evidence(documents: list[Document], stage: StageResult | None = None):
 
     return evidence[:16]
 
+
+def _attach_stage_sources(stage: StageResult, evidence, documents: list[Document]) -> StageResult:
+    by_id = {d.id: d for d in documents}
+    preferred_keys = {
+        "instauracao_sancionadora_autorizada": ["origin_pas_authorization"],
+        "aguardando_defesa": ["defense_deadline"],
+        "defesa_apresentada": ["defense_submitted"],
+        "instrucao_pos_defesa": ["defense_submitted", "legal_opinion"],
+        "julgamento": ["sanction_decision"],
+        "recurso": ["sanction_decision"],
+    }.get(stage.key, [])
+
+    refs = []
+    seen = set()
+    for key in preferred_keys:
+        for ev in evidence:
+            if ev.key != key:
+                continue
+            doc = by_id.get(ev.document_id)
+            ref = PageRef(
+                file=doc.file if doc else "",
+                page=ev.page,
+                document_id=ev.document_id,
+            )
+            token = (ref.document_id, ref.page)
+            if token not in seen:
+                seen.add(token)
+                refs.append(ref)
+
+    if not refs:
+        fallback_types = {
+            "instaurado": ("oficio", "notificacao", "intimacao"),
+            "relatorio_conclusivo": ("relatorio_conclusivo",),
+            "apuracao_inicial": ("parecer_tecnico", "relatorio_tecnico", "oficio"),
+        }.get(stage.key, ())
+        for doc_type in fallback_types:
+            for doc in documents:
+                if doc.type != doc_type:
+                    continue
+                ref = PageRef(file=doc.file, page=doc.page_start, document_id=doc.id)
+                token = (ref.document_id, ref.page)
+                if token not in seen:
+                    seen.add(token)
+                    refs.append(ref)
+                    break
+            if refs:
+                break
+
+    stage.sources = refs[:3]
+    return stage
+
+
 def analyze_penalizacao(documents: list[Document]) -> AnalysisResult:
     stage = determine_stage(documents)
     checklist = build_checklist(documents, stage)
+    evidence = build_evidence(documents, stage)
+    stage = _attach_stage_sources(stage, evidence, documents)
     result = AnalysisResult(
         module="penalizacao",
         profile=build_profile(documents),
         documents=documents,
         checklist=checklist,
-        evidence=build_evidence(documents, stage),
+        evidence=evidence,
         timeline=build_timeline(documents),
         stage=stage,
         pending_items=build_pending_items(checklist, stage),
