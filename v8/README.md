@@ -1,6 +1,6 @@
-# Fiscaliza.AI V8 — reconstrução paralela
+# Fiscaliza.AI V8 RC1 — Penalização contratual
 
-A V8 é uma reconstrução limpa e paralela à versão publicada. Nada neste diretório altera o Render atual enquanto o serviço continuar apontando para o Dockerfile da raiz.
+A V8 RC1 é a primeira versão candidata da nova arquitetura. Ela permanece separada da versão publicada e concentra, nesta etapa, o módulo de Penalização contratual.
 
 ## Objetivo da primeira etapa
 
@@ -50,12 +50,10 @@ Concluído nesta etapa:
 - notificação de instauração detalhada, sem inventar prazo, competência ou dado ausente;
 - sessão temporária com expiração, encerramento explícito, cabeçalhos no-store e limite configurável por PDF.
 
-O benchmark real deve permanecer verde antes de qualquer migração para a versão publicada.
+Os testes internos automatizados são o gate obrigatório de cada alteração. Os benchmarks públicos reais ficam disponíveis para execução manual porque dependem de sites externos e não devem quebrar o desenvolvimento por indisponibilidade, bloqueio ou mudança de arquivo.
 
-## Próximos marcos
+## Escopo fechado da RC1
 
-- ampliar o conjunto de processos reais de regressão, incluindo um PAS completo já instaurado;
-- testar PDFs digitalizados com OCR e peças com baixa qualidade;
-- consolidar relatório/exportação auditável da análise;
-- fazer revisão visual final da V8;
-- somente depois migrar, um a um, os outros cinco módulos.
+A RC1 de Penalização entrega: upload de PDF, OCR, segmentação documental, identificação contratual rastreável, estágio processual, pendências, cronologia, evidências com DOC-ID + página, visualização do PDF original, minuta compatível com a fase, relatório PDF/JSON e exclusão da sessão.
+
+Os outros módulos ficam fora desta RC1. Eles só serão migrados depois da validação desta base.
