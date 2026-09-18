@@ -58,8 +58,22 @@ function profileSourceHtml(p,key){
   if(!src||!src.document_id)return '<span class="profile-source missing">Sem fonte segura</span>';
   return '<button class="profile-source" onclick="openDocument(\''+esc(src.document_id)+'\','+Number(src.page)+')">'+esc(src.document_id)+' · p. '+esc(src.page)+'</button>';
 }
+function profileConflictHtml(p,key){
+  const values=(p.conflicts||{})[key]||[];
+  const refs=(p.conflict_sources||{})[key]||[];
+  if(!values.length)return "";
+  return '<div class="profile-conflict"><strong>Divergência nos autos</strong>'+
+    values.map(function(value,i){
+      const src=refs[i];
+      const source=src&&src.document_id
+        ? '<button onclick="openDocument(\''+esc(src.document_id)+'\','+Number(src.page)+')">'+esc(src.document_id)+' · p. '+esc(src.page)+'</button>'
+        : '';
+      return '<span>'+esc(value)+source+'</span>';
+    }).join("")+
+  '</div>';
+}
 function profileCard(p,label,key,value){
-  return '<div class="profile-card"><small>'+esc(label)+'</small><b>'+profileValue(value)+'</b>'+profileSourceHtml(p,key)+'</div>';
+  return '<div class="profile-card '+(((p.conflicts||{})[key]||[]).length?'has-conflict':'')+'"><small>'+esc(label)+'</small><b>'+profileValue(value)+'</b>'+profileSourceHtml(p,key)+profileConflictHtml(p,key)+'</div>';
 }
 
 function formatIsoDate(value){
