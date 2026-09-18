@@ -894,9 +894,10 @@ def build_evidence(documents: list[Document], stage: StageResult | None = None):
         if key in used_keys:
             return
         regs = [re.compile(p, re.I) for p in patterns]
+        type_rank = {doc_type: i for i, doc_type in enumerate(types)}
         ordered = sorted(
             [d for d in documents if d.type in types],
-            key=lambda d: (-_source_weight(d.type), d.page_start),
+            key=lambda d: (type_rank.get(d.type, 999), d.page_start),
         )
         for doc in ordered:
             if any(rx.search(doc.text or "") for rx in regs):
