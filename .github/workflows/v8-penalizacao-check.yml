@@ -1,0 +1,20 @@
+name: V8 Penalizacao Check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  penalizacao:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install runtime dependencies
+        run: pip install fastapi uvicorn pymupdf python-multipart reportlab pytesseract pillow
+      - name: Compile Python
+        run: python -m py_compile app_v33.py rc1_patch.py profile_pimenta_bueno.py test_penalizacao_v140.py ui_smoke.py
+      - name: Penalizacao regression
+        run: python test_penalizacao_v140.py
