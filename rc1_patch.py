@@ -3921,3 +3921,510 @@ document.addEventListener("DOMContentLoaded",function(){
 </script>
 """
 core.HTML = core.HTML.replace("</body>", _home_exec_v85_js + "</body>", 1)
+
+
+# --- Home executiva isolada v8.6: corrige heranças e exibe somente 6 módulos ---
+_home_v86_css = r"""
+<style id="fiscaliza-home-v86">
+/* Oculta integralmente a Home antiga. A v8.6 não depende dos componentes herdados. */
+#screenHome > .home-welcome,
+#screenHome > .home-commercial-hero,
+#screenHome > .module-panel.home-only,
+#screenHome > .home-bottom-v85,
+#screenHome > .fiscaliza-home-footer{
+  display:none!important
+}
+
+#screenHome{
+  padding:14px 22px 22px!important;
+  min-height:calc(100vh - 72px)!important;
+  background:#f3f6f8!important
+}
+
+/* Container novo e isolado */
+.home-v86{
+  width:100%;
+  max-width:1500px;
+  margin:0 auto;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif
+}
+
+/* Faixa executiva — curta de propósito */
+.home-v86-summary{
+  display:grid;
+  grid-template-columns:minmax(0,1.2fr) auto;
+  gap:18px;
+  align-items:center;
+  min-height:104px;
+  padding:16px 18px;
+  border:1px solid #d8e4ea;
+  border-radius:15px;
+  background:
+    radial-gradient(circle at 96% 18%,rgba(18,154,145,.09),transparent 28%),
+    linear-gradient(110deg,#fff 0%,#f8fbfc 72%,#edf8f6 100%);
+  box-shadow:0 4px 14px rgba(14,45,68,.04)
+}
+.home-v86-summary h1{
+  margin:0;
+  font-size:27px!important;
+  line-height:1.15!important;
+  letter-spacing:-.3px;
+  color:#12334d!important
+}
+.home-v86-summary p{
+  margin:6px 0 0;
+  max-width:720px;
+  font-size:16px!important;
+  line-height:1.45!important;
+  color:#647b8d!important
+}
+.home-v86-kpis{
+  display:flex;
+  align-items:stretch;
+  gap:8px
+}
+.home-v86-kpi{
+  min-width:150px;
+  padding:10px 12px;
+  border:1px solid #d9e4ea;
+  border-radius:11px;
+  background:#fff
+}
+.home-v86-kpi b{
+  display:block;
+  font-size:17px!important;
+  line-height:1.2!important;
+  color:#12334d!important
+}
+.home-v86-kpi span{
+  display:block;
+  margin-top:3px;
+  font-size:16px!important;
+  line-height:1.3!important;
+  color:#708598!important
+}
+
+/* Cabeçalho da grade */
+.home-v86-modules-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+  gap:18px;
+  margin:14px 2px 9px
+}
+.home-v86-modules-head h2{
+  margin:0;
+  font-size:22px!important;
+  line-height:1.2!important;
+  color:#12334d!important
+}
+.home-v86-modules-head p{
+  margin:3px 0 0;
+  font-size:16px!important;
+  line-height:1.4!important;
+  color:#6c8193!important
+}
+.home-v86-count{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 10px;
+  border:1px solid #cfe3df;
+  border-radius:999px;
+  background:#eef8f5;
+  color:#08786e;
+  font-size:16px!important;
+  font-weight:700
+}
+.home-v86-count:before{
+  content:"";
+  width:8px;height:8px;border-radius:50%;
+  background:#12a58f
+}
+
+/* Exatamente seis cards */
+.home-v86-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:11px
+}
+.home-v86-card{
+  position:relative;
+  display:grid;
+  grid-template-columns:58px minmax(0,1fr);
+  gap:13px;
+  min-height:142px;
+  padding:15px 16px;
+  border:1px solid #d7e2e9;
+  border-radius:13px;
+  background:#fff;
+  box-shadow:0 3px 9px rgba(12,42,65,.025);
+  transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease
+}
+.home-v86-card:hover{
+  transform:translateY(-2px);
+  border-color:#b9cbd6;
+  box-shadow:0 10px 22px rgba(12,42,65,.08)
+}
+.home-v86-icon{
+  width:54px;height:54px;
+  border-radius:12px;
+  display:grid;
+  place-items:center;
+  align-self:start;
+  margin-top:2px
+}
+.home-v86-icon svg{
+  width:28px;height:28px
+}
+.home-v86-card[data-module="penalizacao"] .home-v86-icon{background:#e9f2ff;color:#1767c7}
+.home-v86-card[data-module="fiscalizacao"] .home-v86-icon{background:#e6f6f1;color:#087d72}
+.home-v86-card[data-module="reequilibrio"] .home-v86-icon{background:#fff0df;color:#c46818}
+.home-v86-card[data-module="rescisao"] .home-v86-icon{background:#fdecee;color:#b62939}
+.home-v86-card[data-module="disciplinar"] .home-v86-icon{background:#f0edff;color:#6246c7}
+.home-v86-card[data-module="sindicancia"] .home-v86-icon{background:#e5f6f4;color:#087a74}
+
+.home-v86-category{
+  display:inline-flex;
+  width:max-content;
+  max-width:100%;
+  padding:4px 8px;
+  border:1px solid #d8e3e9;
+  border-radius:999px;
+  background:#f6f9fb;
+  color:#6a8092;
+  font-size:16px!important;
+  line-height:1.2!important;
+  font-weight:700
+}
+.home-v86-card h3{
+  margin:7px 0 0;
+  font-size:19px!important;
+  line-height:1.25!important;
+  color:#102f49!important
+}
+.home-v86-card p{
+  margin:5px 0 0;
+  padding-right:2px;
+  font-size:16px!important;
+  line-height:1.4!important;
+  color:#667d90!important
+}
+.home-v86-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:11px
+}
+.home-v86-open,
+.home-v86-model{
+  border-radius:8px;
+  padding:7px 10px;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:16px!important;
+  line-height:1.2!important;
+  font-weight:700;
+  cursor:pointer
+}
+.home-v86-open{
+  border:0;
+  background:#123a59;
+  color:#fff
+}
+.home-v86-open:hover{background:#0d2f49}
+.home-v86-model{
+  border:1px solid #d7e3ea;
+  background:#f7fafc;
+  color:#526c80
+}
+.home-v86-model:hover{background:#eef4f7}
+
+/* Recentes só abaixo dos módulos — não interfere na primeira decisão */
+.home-v86-recent{
+  margin-top:13px;
+  padding:15px 16px;
+  border:1px solid #d9e4ea;
+  border-radius:14px;
+  background:#fff
+}
+.home-v86-recent-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+  gap:12px;
+  margin-bottom:9px
+}
+.home-v86-recent h2{
+  margin:0;
+  font-size:20px!important;
+  line-height:1.2!important;
+  color:#12334d!important
+}
+.home-v86-recent p{
+  margin:3px 0 0;
+  font-size:16px!important;
+  line-height:1.4!important;
+  color:#6d8193!important
+}
+.home-v86-recent-link{
+  border:0;
+  background:transparent;
+  color:#087d73;
+  font-size:16px!important;
+  font-weight:700;
+  cursor:pointer
+}
+.home-v86-recent-list{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px
+}
+.home-v86-recent-item{
+  min-width:0;
+  padding:10px 11px;
+  border:1px solid #e0e8ed;
+  border-radius:10px;
+  background:#fbfdfe
+}
+.home-v86-recent-item b{
+  display:block;
+  font-size:16px!important;
+  color:#16364e!important
+}
+.home-v86-recent-item span{
+  display:block;
+  margin-top:3px;
+  font-size:16px!important;
+  line-height:1.35!important;
+  color:#708598!important
+}
+.home-v86-recent-item button{
+  margin-top:7px;
+  border:0;
+  background:transparent;
+  padding:0;
+  color:#1767c7;
+  font-size:16px!important;
+  font-weight:700;
+  cursor:pointer
+}
+.home-v86-empty{
+  grid-column:1/-1;
+  padding:10px;
+  border:1px dashed #d7e3ea;
+  border-radius:9px;
+  color:#718699;
+  font-size:16px!important
+}
+
+/* A busca do topo continua, mas o campo novo é limpo e funcional */
+#homeTopSearchV85{
+  max-width:495px!important
+}
+
+/* Em 1366x768 os seis módulos devem aparecer sem rolar para encontrá-los */
+@media(max-height:800px) and (min-width:1000px){
+  #screenHome{padding-top:10px!important}
+  .home-v86-summary{
+    min-height:88px;
+    padding:12px 16px
+  }
+  .home-v86-summary h1{font-size:25px!important}
+  .home-v86-kpi{padding:8px 10px;min-width:140px}
+  .home-v86-modules-head{margin-top:10px;margin-bottom:7px}
+  .home-v86-card{
+    min-height:128px;
+    padding:12px 14px
+  }
+  .home-v86-icon{
+    width:49px;height:49px
+  }
+  .home-v86-card h3{margin-top:5px}
+  .home-v86-actions{margin-top:7px}
+}
+
+@media(max-width:1100px){
+  .home-v86-summary{
+    grid-template-columns:1fr
+  }
+  .home-v86-kpis{
+    display:grid;
+    grid-template-columns:repeat(3,1fr)
+  }
+  .home-v86-kpi{min-width:0}
+}
+@media(max-width:900px){
+  .home-v86-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .home-v86-recent-list{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+  #screenHome{padding:10px 12px 18px!important}
+  .home-v86-kpis{grid-template-columns:1fr}
+  .home-v86-grid{grid-template-columns:1fr}
+  .home-v86-modules-head{align-items:flex-start;flex-direction:column}
+}
+</style>
+"""
+core.HTML = core.HTML.replace("</head>", _home_v86_css + "</head>", 1)
+
+_home_v86_js = r"""
+<script id="fiscaliza-home-v86-js">
+function homeV86Meta(){
+  return {
+    penalizacao:{
+      category:"Responsabilização",
+      title:"Penalização contratual",
+      desc:"Responsabilização, defesa, sanção e decisão."
+    },
+    fiscalizacao:{
+      category:"Gestão contratual",
+      title:"Fiscalização de contratos",
+      desc:"Execução, entregas, ocorrências e fiscalização."
+    },
+    reequilibrio:{
+      category:"Gestão contratual",
+      title:"Reequilíbrio econômico-financeiro",
+      desc:"Pedido, custos, justificativas, pareceres e decisão."
+    },
+    rescisao:{
+      category:"Gestão contratual",
+      title:"Rescisão / extinção",
+      desc:"Motivação, contraditório, parecer e decisão."
+    },
+    disciplinar:{
+      category:"Responsabilização interna",
+      title:"Processo disciplinar",
+      desc:"Instauração, citação, defesa, relatório e julgamento."
+    },
+    sindicancia:{
+      category:"Apuração interna",
+      title:"Sindicância",
+      desc:"Fato, diligências, provas e relatório conclusivo."
+    }
+  };
+}
+function homeV86Card(key,meta){
+  var icon=(typeof homeIconSvg==="function")?homeIconSvg(key):"";
+  return '<article class="home-v86-card" data-module="'+key+'">'+
+    '<div class="home-v86-icon">'+icon+'</div>'+
+    '<div>'+
+      '<span class="home-v86-category">'+ovEsc(meta.category)+'</span>'+
+      '<h3>'+ovEsc(meta.title)+'</h3>'+
+      '<p>'+ovEsc(meta.desc)+'</p>'+
+      '<div class="home-v86-actions">'+
+        '<button class="home-v86-open" onclick="abrirModulo(\''+key+'\')">Abrir módulo →</button>'+
+        '<button class="home-v86-model" onclick="abrirModeloModuloV85(\''+key+'\')">Processo modelo</button>'+
+      '</div>'+
+    '</div>'+
+  '</article>';
+}
+function homeV86Recent(){
+  var list=(typeof recentStore==="function")?recentStore():[];
+  if(!list.length){
+    return '<div class="home-v86-empty">Os processos analisados nesta sessão aparecerão aqui para acesso rápido.</div>';
+  }
+  return list.slice(0,3).map(function(x){
+    return '<article class="home-v86-recent-item">'+
+      '<b>'+ovEsc(x.number||"Processo")+'</b>'+
+      '<span>'+ovEsc(x.module_label||"Processo administrativo")+'</span>'+
+      '<span>'+ovEsc(x.interested||"Interessado não informado")+'</span>'+
+      '<button onclick="abrirProcessoRecente(\''+ovEsc(x.id)+'\')">Abrir processo →</button>'+
+    '</article>';
+  }).join("");
+}
+function construirHomeV86(){
+  var home=document.getElementById("screenHome");
+  if(!home)return;
+  var root=document.getElementById("homeV86");
+  if(!root){
+    root=document.createElement("section");
+    root.id="homeV86";
+    root.className="home-v86";
+    home.insertBefore(root,home.firstChild);
+  }
+  var meta=homeV86Meta();
+  var keys=["penalizacao","fiscalizacao","reequilibrio","rescisao","disciplinar","sindicancia"];
+
+  root.innerHTML=
+    '<section class="home-v86-summary">'+
+      '<div>'+
+        '<h1>Escolha o fluxo que você deseja analisar</h1>'+
+        '<p>Seis módulos especializados, com evidências rastreáveis por documento e página e revisão humana preservada.</p>'+
+      '</div>'+
+      '<div class="home-v86-kpis">'+
+        '<div class="home-v86-kpi"><b>6 módulos</b><span>fluxos especializados</span></div>'+
+        '<div class="home-v86-kpi"><b>ID + página</b><span>rastreabilidade</span></div>'+
+        '<div class="home-v86-kpi"><b>Revisão humana</b><span>decisão final</span></div>'+
+      '</div>'+
+    '</section>'+
+    '<div class="home-v86-modules-head">'+
+      '<div><h2>Módulos especializados</h2><p>Acesse diretamente o fluxo desejado ou abra um processo modelo para demonstração.</p></div>'+
+      '<span class="home-v86-count">6 fluxos disponíveis</span>'+
+    '</div>'+
+    '<section class="home-v86-grid">'+keys.map(function(k){return homeV86Card(k,meta[k])}).join("")+'</section>'+
+    '<section class="home-v86-recent" id="homeV86Recent">'+
+      '<div class="home-v86-recent-head">'+
+        '<div><h2>Processos recentes</h2><p>Retome os últimos processos usados nesta sessão.</p></div>'+
+      '</div>'+
+      '<div class="home-v86-recent-list">'+homeV86Recent()+'</div>'+
+    '</section>';
+}
+function atualizarHomeV86Recent(){
+  var box=document.querySelector("#homeV86Recent .home-v86-recent-list");
+  if(box)box.innerHTML=homeV86Recent();
+}
+
+/* A busca passa a atuar somente na Home nova e nos recentes novos. */
+buscarHomeV85=function(q){
+  var raw=String(q||"").trim();
+  var key=raw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  var count=0;
+  document.querySelectorAll("#homeV86 .home-v86-card").forEach(function(card){
+    var txt=(card.textContent||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    var show=!key||txt.indexOf(key)>=0;
+    card.style.display=show?"grid":"none";
+    if(show)count++;
+  });
+  document.querySelectorAll("#homeV86 .home-v86-recent-item").forEach(function(row){
+    var txt=(row.textContent||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    row.style.display=(!key||txt.indexOf(key)>=0)?"block":"none";
+  });
+};
+
+var _prepararHomeComercialV86=prepararHomeComercial;
+prepararHomeComercial=function(){
+  _prepararHomeComercialV86();
+  setTimeout(function(){
+    construirHomeV86();
+    atualizarBuscaTopoV85();
+  },0);
+};
+
+var _deixarHomeMaisProdutoV86=deixarHomeMaisProduto;
+deixarHomeMaisProduto=function(){
+  _deixarHomeMaisProdutoV86();
+  setTimeout(function(){
+    construirHomeV86();
+    atualizarBuscaTopoV85();
+  },0);
+};
+
+var _voltarAosModulosV86=voltarAosModulos;
+voltarAosModulos=function(push){
+  _voltarAosModulosV86(push);
+  setTimeout(function(){
+    construirHomeV86();
+    atualizarBuscaTopoV85();
+  },0);
+};
+
+document.addEventListener("DOMContentLoaded",function(){
+  setTimeout(function(){
+    construirHomeV86();
+    atualizarBuscaTopoV85();
+  },420);
+});
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _home_v86_js + "</body>", 1)
