@@ -12,7 +12,7 @@ MODULES = [
 ]
 
 EXPECTED_MARKERS = {
-    "planejamento": "formalização da demanda",
+    "planejamento": "documento oficial de demanda",
     "formalizacao": "proposta vencedora",
     "fiscalizacao": "instrumento contratual",
     "alteracoes": "alteração contratual",
@@ -68,6 +68,23 @@ def main():
             fail(f"{module}: processo modelo com poucas páginas")
         if int(profile.get("documents") or 0) < 4:
             fail(f"{module}: rastreabilidade documental insuficiente: {profile.get('documents')} docs")
+
+        if module == "planejamento":
+            np = analysis.get("normative_profile") or {}
+            proc = analysis.get("procedure") or {}
+            legal = analysis.get("legal_matrix") or []
+            if np.get("id") != "pimenta_bueno_ro":
+                fail("planejamento: perfil normativo de Pimenta Bueno ausente")
+            if proc.get("key") != "pregao_bens":
+                fail(f"planejamento: procedimento classificado incorretamente: {proc}")
+            if len(legal) != 6:
+                fail(f"planejamento: matriz normativa deveria ter 6 controles; encontrou {len(legal)}")
+            if legal[0].get("control_id") != "dod" or not legal[0].get("ok"):
+                fail(f"planejamento: DOD não foi parametrizado/localizado corretamente: {legal[0] if legal else None}")
+            if not all(x.get("foundation") for x in legal):
+                fail("planejamento: há controle sem fundamento parametrizado")
+            if not all(x.get("documents") for x in legal if x.get("ok")):
+                fail("planejamento: controle localizado sem documento/página rastreável")
 
         results.append(
             (
