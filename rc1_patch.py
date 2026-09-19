@@ -2067,3 +2067,453 @@ _layout_readability_v81_css = r"""
 """
 
 core.HTML = core.HTML.replace("</head>", _layout_readability_v81_css + "</head>", 1)
+
+
+# --- Ajuste visual final v1: hierarquia de leitura v8.2 ---
+_visual_final_v82_css = r"""
+<style id="fiscaliza-visual-final-v82">
+
+/* =========================================================
+   VISÃO GERAL — separação visual e leitura por prioridade
+   ========================================================= */
+#overviewHub .ov-hero{
+  grid-template-columns:minmax(0,1.55fr) minmax(300px,.45fr)!important;
+  gap:16px!important;
+  padding:18px!important;
+  background:#fff!important
+}
+#overviewHub .ov-next{
+  border-left:0!important;
+  padding:16px!important;
+  border:1px solid #cfe3e0!important;
+  border-radius:13px!important;
+  background:linear-gradient(180deg,#f3fbf9 0%,#edf8f6 100%)!important
+}
+#overviewHub .ov-next small{
+  font-size:16px!important;
+  text-transform:none!important;
+  letter-spacing:0!important;
+  color:#5e7587!important
+}
+#overviewHub .ov-next strong{
+  font-size:19px!important;
+  line-height:1.3!important;
+  margin-top:5px!important
+}
+#overviewHub .ov-next p{
+  font-size:16px!important;
+  line-height:1.55!important
+}
+
+/* Quatro fatos-chave viram cartões independentes */
+#overviewHub .ov-status-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:9px!important;
+  margin-top:14px!important
+}
+#overviewHub .ov-status{
+  border:1px solid #dbe5ec!important;
+  border-top-width:3px!important;
+  border-radius:11px!important;
+  padding:12px 13px!important;
+  min-height:88px!important;
+  background:#f8fbfd!important
+}
+#overviewHub .ov-status:nth-child(1){
+  background:#f0f7ff!important;
+  border-color:#cbdff3!important;
+  border-top-color:#5c95c5!important
+}
+#overviewHub .ov-status:nth-child(2){
+  background:#f7f4fd!important;
+  border-color:#e1d9f2!important;
+  border-top-color:#8a71bd!important
+}
+#overviewHub .ov-status:nth-child(3){
+  background:#f0faf6!important;
+  border-color:#cce7db!important;
+  border-top-color:#4f9b7e!important
+}
+#overviewHub .ov-status:nth-child(4){
+  background:#fff8ed!important;
+  border-color:#eedfca!important;
+  border-top-color:#c88d43!important
+}
+#overviewHub .ov-status small{
+  display:block!important;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;
+  line-height:1.35!important;
+  text-transform:none!important;
+  letter-spacing:0!important;
+  font-weight:700!important;
+  color:#60768a!important
+}
+#overviewHub .ov-status b{
+  display:block!important;
+  margin-top:7px!important;
+  font-size:17px!important;
+  line-height:1.4!important;
+  color:#17354d!important
+}
+
+/* Leitura executiva: dois blocos visualmente separados */
+#overviewHub .ov-evidence-columns{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:12px!important;
+  margin-top:12px!important
+}
+#overviewHub .ov-evidence-block{
+  border:1px solid #dce6ed!important;
+  border-radius:12px!important;
+  padding:14px 15px!important;
+  background:#f8fbfd!important
+}
+#overviewHub .ov-evidence-block:first-child{
+  background:#f3faf7!important;
+  border-color:#d5e9e0!important
+}
+#overviewHub .ov-evidence-block:last-child{
+  background:#fff9ef!important;
+  border-color:#eee1cb!important
+}
+#overviewHub .ov-evidence-block h4{
+  margin:0 0 9px!important;
+  font-size:18px!important;
+  line-height:1.3!important;
+  text-transform:none!important;
+  letter-spacing:0!important;
+  color:#193750!important
+}
+#overviewHub .ov-evidence-item{
+  border-top:1px solid rgba(98,119,136,.16)!important;
+  padding:10px 0!important
+}
+#overviewHub .ov-evidence-item:first-of-type{border-top:0!important;padding-top:0!important}
+#overviewHub .ov-evidence-item p{
+  font-size:16px!important;
+  line-height:1.55!important;
+  color:#344f64!important
+}
+#overviewHub .ov-evidence-item span{
+  font-size:16px!important;
+  line-height:1.4!important;
+  color:#72899b!important;
+  margin-top:5px!important
+}
+
+/* Dossiê: ligeiramente diferenciado da leitura principal */
+#overviewHub .ov-grid > .ov-panel:nth-child(2){
+  background:#fcfdfe!important
+}
+
+/* =========================================================
+   CRONOLOGIA DA VISÃO GERAL — documento primeiro, ID depois
+   ========================================================= */
+#overviewHub .ov-timeline{
+  gap:10px!important;
+  padding:4px 0 9px!important
+}
+#overviewHub .ov-time.timeline-v82{
+  flex:0 0 205px!important;
+  min-width:205px!important;
+  border-left:0!important;
+  border:1px solid #dce6ed!important;
+  border-top:4px solid #5f9cbd!important;
+  border-radius:11px!important;
+  padding:12px!important;
+  background:#fbfdfe!important
+}
+#overviewHub .ov-time.timeline-v82:nth-child(4n+2){border-top-color:#7c72b7!important}
+#overviewHub .ov-time.timeline-v82:nth-child(4n+3){border-top-color:#4e9a7e!important}
+#overviewHub .ov-time.timeline-v82:nth-child(4n+4){border-top-color:#c48a43!important}
+.timeline-v82-title{
+  font-size:16px!important;
+  line-height:1.45!important;
+  font-weight:700!important;
+  color:#17354d!important;
+  text-transform:none!important;
+  letter-spacing:0!important
+}
+.timeline-v82-type{
+  display:inline-flex!important;
+  margin-top:9px!important;
+  padding:5px 8px!important;
+  border-radius:999px!important;
+  background:#eef4f8!important;
+  color:#526c80!important;
+  font-size:15px!important;
+  line-height:1.25!important;
+  font-weight:700!important;
+  text-transform:none!important
+}
+.timeline-v82-meta{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:6px!important;
+  margin-top:9px!important
+}
+.timeline-v82-page,
+.timeline-v82-id{
+  display:inline-flex!important;
+  align-items:center!important;
+  padding:5px 8px!important;
+  border-radius:999px!important;
+  border:1px solid #dbe5ec!important;
+  background:#fff!important;
+  color:#71879a!important;
+  font-size:15px!important;
+  line-height:1.25!important;
+  font-weight:500!important;
+  text-transform:none!important
+}
+
+/* =========================================================
+   CRONOLOGIA DETALHADA — cartão editorial, sem caixa alta
+   ========================================================= */
+#result.system-result .timeline-step.timeline-v82{
+  flex:0 0 260px!important;
+  min-width:260px!important;
+  max-width:260px!important;
+  min-height:190px!important;
+  padding:16px!important;
+  border:1px solid #d9e4eb!important;
+  border-top:4px solid #5f9cbd!important;
+  border-radius:13px!important;
+  background:#fff!important
+}
+#result.system-result .timeline-step.timeline-v82:nth-child(4n+2){border-top-color:#7c72b7!important}
+#result.system-result .timeline-step.timeline-v82:nth-child(4n+3){border-top-color:#4e9a7e!important}
+#result.system-result .timeline-step.timeline-v82:nth-child(4n+4){border-top-color:#c48a43!important}
+#result.system-result .timeline-step.timeline-v82 h4{
+  margin:0!important;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:18px!important;
+  line-height:1.45!important;
+  color:#17354d!important;
+  text-transform:none!important;
+  letter-spacing:0!important;
+  font-weight:700!important;
+  overflow-wrap:anywhere!important
+}
+#result.system-result .timeline-step.timeline-v82 .timeline-v82-type{
+  margin-top:11px!important
+}
+#result.system-result .timeline-step.timeline-v82 .timeline-v82-meta{
+  margin-top:12px!important
+}
+
+/* =========================================================
+   EVIDÊNCIAS E PENDÊNCIAS — status em chips, sem quebras
+   ========================================================= */
+.status-chip-v82{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:6px!important;
+  min-width:112px!important;
+  padding:6px 10px!important;
+  border-radius:999px!important;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;
+  line-height:1.25!important;
+  font-weight:700!important;
+  white-space:nowrap!important
+}
+.status-chip-v82.ok{
+  background:#e9f7f2!important;
+  color:#08786e!important;
+  border:1px solid #c6e5dc!important
+}
+.status-chip-v82.warn{
+  background:#fff5e6!important;
+  color:#9a6500!important;
+  border:1px solid #ecd8b3!important
+}
+#result.system-result td.matrix-ok,
+#result.system-result td.matrix-limit{
+  vertical-align:middle!important
+}
+#result.system-result .check-row{
+  border-radius:0!important
+}
+#result.system-result .check-row:nth-child(even){
+  background:#fbfdfe!important
+}
+
+/* Pontos a confrontar: reforço sutil por posição */
+#result.system-result .finding:nth-of-type(3n+1){border-left:5px solid #5f9cbd!important}
+#result.system-result .finding:nth-of-type(3n+2){border-left:5px solid #c48a43!important}
+#result.system-result .finding:nth-of-type(3n+3){border-left:5px solid #4e9a7e!important}
+
+/* =========================================================
+   CAIXA ALTA: apenas micro-rótulos institucionais
+   ========================================================= */
+#result.system-result .timeline-step h4,
+#overviewHub .ov-evidence-block h4,
+#overviewHub .ov-status small,
+#result.system-result .piece-name,
+#result.system-result .finding-text{
+  text-transform:none!important;
+  letter-spacing:normal!important
+}
+
+@media(max-width:1050px){
+  #overviewHub .ov-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:720px){
+  #overviewHub .ov-status-grid,
+  #overviewHub .ov-evidence-columns{grid-template-columns:1fr!important}
+}
+</style>
+"""
+
+core.HTML = core.HTML.replace("</head>", _visual_final_v82_css + "</head>", 1)
+
+_visual_final_v82_js = r"""
+<script id="fiscaliza-visual-final-v82-js">
+function readableDocumentTitleV82(value){
+  var s=String(value||"").replace(/\s+/g," ").trim();
+  if(!s)return "Documento";
+  var letters=s.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g,"");
+  if(letters && letters===letters.toUpperCase()){
+    s=s.toLocaleLowerCase("pt-BR");
+    s=s.charAt(0).toLocaleUpperCase("pt-BR")+s.slice(1);
+    s=s.replace(/\bnº\b/gi,"nº");
+  }
+  return s;
+}
+function timelineItemsV82(a){
+  var out=[];
+  if(!a)return out;
+
+  if(a.module_key==="penalizacao"){
+    (a.pieces||[]).forEach(function(piece){
+      var docs=piece.documents||[],pages=piece.pages||[];
+      if(docs.length){
+        docs.forEach(function(d,idx){
+          out.push({
+            title:readableDocumentTitleV82(d.source_document_id||piece.label),
+            type:piece.label||"Documento",
+            page:d.page||pages[idx]||pages[0]||null,
+            id:d.document_id||"",
+            order:d.page||pages[idx]||pages[0]||999999
+          });
+        });
+      }else{
+        out.push({
+          title:readableDocumentTitleV82(piece.label),
+          type:"Documento",
+          page:pages[0]||null,
+          id:"",
+          order:pages[0]||999999
+        });
+      }
+    });
+  }else{
+    (a.module_timeline||[]).forEach(function(item){
+      var docs=item.documents||[],pages=item.pages||[];
+      if(docs.length){
+        docs.forEach(function(d,idx){
+          out.push({
+            title:readableDocumentTitleV82(d.source_document_id||item.label),
+            type:item.label||"Documento",
+            page:d.page||pages[idx]||pages[0]||null,
+            id:d.document_id||"",
+            order:d.page||pages[idx]||pages[0]||999999
+          });
+        });
+      }else{
+        out.push({
+          title:readableDocumentTitleV82(item.label),
+          type:item.label||"Documento",
+          page:pages[0]||null,
+          id:"",
+          order:pages[0]||999999
+        });
+      }
+    });
+  }
+  out.sort(function(x,y){return (x.order||999999)-(y.order||999999)});
+  return out;
+}
+function timelineCardV82(item,compact){
+  var title=ovEsc(item.title||"Documento");
+  var type=ovEsc(readableDocumentTitleV82(item.type||"Documento"));
+  var page=item.page?'<span class="timeline-v82-page">p. '+ovEsc(item.page)+'</span>':"";
+  var id=item.id?'<span class="timeline-v82-id">ID '+ovEsc(item.id)+'</span>':"";
+  if(compact){
+    return '<article class="ov-time timeline-v82">'+
+      '<div class="timeline-v82-title">'+title+'</div>'+
+      '<span class="timeline-v82-type">'+type+'</span>'+
+      '<div class="timeline-v82-meta">'+page+id+'</div>'+
+    '</article>';
+  }
+  return '<article class="timeline-step timeline-v82">'+
+    '<h4>'+title+'</h4>'+
+    '<span class="timeline-v82-type">'+type+'</span>'+
+    '<div class="timeline-v82-meta">'+page+id+'</div>'+
+  '</article>';
+}
+function refinarVisaoGeralV82(a){
+  var hub=document.getElementById("overviewHub");
+  if(!hub||!a)return;
+
+  /* Remove caixa alta pesada nos dois cabeçalhos da leitura executiva. */
+  var evheads=hub.querySelectorAll(".ov-evidence-block h4");
+  if(evheads[0])evheads[0].textContent="Elementos favoráveis / manifestações";
+  if(evheads[1])evheads[1].textContent="Pontos a confrontar";
+
+  /* Documento é a informação principal; ID fica por último. */
+  var line=hub.querySelector(".ov-timeline");
+  if(line){
+    var items=timelineItemsV82(a).slice(0,7);
+    line.innerHTML=items.length
+      ?items.map(function(x){return timelineCardV82(x,true)}).join("")
+      :'<article class="ov-time timeline-v82"><div class="timeline-v82-title">Cronologia ainda não consolidada</div></article>';
+  }
+}
+function refinarCronologiaDetalhadaV82(a){
+  var timeline=acharSectionPorTitulo("Linha do tempo do processo");
+  if(!timeline||!a)return;
+  var items=timelineItemsV82(a);
+  var html='<div class="kicker">Cronologia dos autos · '+ovEsc(a.module_label||"Processo")+'</div>'+
+    '<h2>Linha do tempo do processo</h2>';
+  if(!items.length){
+    html+='<div class="empty">Nenhum marco específico foi localizado com segurança.</div>';
+  }else{
+    html+='<div class="timeline">'+items.map(function(x){return timelineCardV82(x,false)}).join("")+'</div>';
+  }
+  timeline.innerHTML=html;
+}
+function statusChipsV82(){
+  document.querySelectorAll("#result.system-result td.matrix-ok,#result.system-result td.matrix-limit").forEach(function(td){
+    if(td.querySelector(".status-chip-v82"))return;
+    var ok=td.classList.contains("matrix-ok");
+    td.innerHTML='<span class="status-chip-v82 '+(ok?"ok":"warn")+'">'+(ok?"✓ Confirmado":"! Conferir")+'</span>';
+  });
+
+  document.querySelectorAll("#result.system-result .check-ok,#result.system-result .check-miss").forEach(function(el){
+    if(el.querySelector(".status-chip-v82"))return;
+    var ok=el.classList.contains("check-ok");
+    el.innerHTML='<span class="status-chip-v82 '+(ok?"ok":"warn")+'">'+(ok?"✓ Confirmado":"! Conferir")+'</span>';
+  });
+}
+
+var _renderOverviewHubV82=renderOverviewHub;
+renderOverviewHub=function(a){
+  _renderOverviewHubV82(a);
+  setTimeout(function(){refinarVisaoGeralV82(a)},0);
+};
+
+var _ajustarResultadoModuloV82=ajustarResultadoModulo;
+ajustarResultadoModulo=function(a){
+  _ajustarResultadoModuloV82(a);
+  setTimeout(function(){
+    refinarCronologiaDetalhadaV82(a);
+    statusChipsV82();
+  },0);
+};
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _visual_final_v82_js + "</body>", 1)
