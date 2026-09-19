@@ -34,7 +34,7 @@ pages_pre_commission = [
     page(
         3,
         "NOTA DE EMPENHO Nº 400/2026",
-        "Ficha: 520 Unidade: Fundo Municipal de Saúde. Prazo de Entrega: Até 30 dias. Quantidade 40 UNIDADES."
+        "Ficha: 520 Unidade: Fundo Municipal de Saúde. Valor do Empenho R$ 8.480,00. Prazo de Entrega: Até 30 dias. Quantidade 40 UNIDADES."
     ),
     page(
         4,
@@ -69,6 +69,8 @@ rows1 = {x["control_id"]: x for x in a1["legal_matrix"]}
 assert rows1["cobranca_previa"]["ok"] is True
 assert rows1["cobranca_previa"]["pages"] == [5, 6], rows1["cobranca_previa"]
 assert a1["quantity"]["value"] == "40", a1["quantity"]
+assert a1["penalty_metadata"]["valor_empenho"] == "R$ 8.480,00", a1["penalty_metadata"]
+assert "30 dias" in a1["penalty_metadata"]["prazo_entrega"], a1["penalty_metadata"]
 assert rows1["notificacao_comissao"]["ok"] is False
 assert rows1["defesa_ou_decurso"]["status"] == "Não exigível nesta fase"
 assert a1["next_action"]["stage"] == "Instrução inicial pela Comissão"
