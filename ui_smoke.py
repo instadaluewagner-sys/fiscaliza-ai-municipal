@@ -59,14 +59,14 @@ def main():
                 assert "Documento de Formalização da Demanda" in text
                 assert "Estudo Técnico Preliminar" in text
                 assert "Termo de Referência" in text
-                assert "Documentos estruturantes" in text
-                assert "Controles complementares" in text
-                assert "Demanda" in text and "Aprovação" in text
+                expect(page.locator("#overviewHub .ov-evidence-block h4").nth(0)).to_have_text("Documentos estruturantes", timeout=10000)
+                expect(page.locator("#overviewHub .ov-evidence-block h4").nth(1)).to_have_text("Controles complementares", timeout=10000)
+                stage_text = page.locator("#overviewHub .ov-track").inner_text()
+                assert "Demanda" in stage_text and "Aprovação" in stage_text
 
-            # Navegação lateral existe e pode ser acionada sem quebrar.
-            for tab in ["Documentos", "Evidências", "Cronologia", "Pendências", "Perguntar", "Minutas", "Relatório"]:
-                btn = page.locator(".side-nav").get_by_role("button", name=lambda name: tab in name)
-                expect(btn).to_be_visible()
+            # Navegação lateral existe para todas as áreas operacionais.
+            for tab in ["documentos", "evidencias", "cronologia", "pendencias", "perguntar", "minutas", "relatorio"]:
+                expect(page.locator(f".side-nav .side-item[data-tab='{tab}']")).to_be_visible()
 
             if i < len(MODULES) - 1:
                 home(page)
