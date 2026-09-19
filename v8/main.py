@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from v8.modules.penalizacao import analyze_penalizacao
 from v8.services.document_segmenter import segment_documents
+from v8.services.demo import build_demo_pdf
 from v8.services.drafts import generate_draft
 from v8.services.pdf_reader import extract_pages
 from v8.services.report import build_audit_payload, build_pdf_report
@@ -56,6 +57,16 @@ def get_session(analysis_id: str) -> dict:
     if not item:
         raise HTTPException(404, "Análise expirada, excluída ou inexistente.")
     return item
+
+
+@app.get("/api/v8/demo.pdf")
+def demo_pdf():
+    data = build_demo_pdf()
+    headers = {
+        "Content-Disposition": 'inline; filename="fiscaliza-v8-processo-modelo.pdf"',
+        "Cache-Control": "no-store",
+    }
+    return Response(content=data, media_type="application/pdf", headers=headers)
 
 
 @app.get("/api/v8/health")
