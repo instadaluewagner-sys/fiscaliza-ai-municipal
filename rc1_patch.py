@@ -7214,3 +7214,198 @@ normalizarOverviewV96=function(a){
 """
 core.HTML=core.HTML.replace("</body>",_fiscalizacao_v120_js+"</body>",1)
 core.app.version="12.0"
+
+
+# --- Fiscalização: substituição efetiva da matriz legada v12.1 ---
+_old_module_overlay_v121=core._module_overlay
+def _module_overlay_v121(pages,a,module):
+    out=_old_module_overlay_v121(pages,a,module)
+    if module!="fiscalizacao":
+        return out
+
+    contract=_fisc_marker_pages(pages,[r"^contrato administrativo\b",r"^ata de registro de precos\b"])
+    designation=_fisc_marker_pages(pages,[r"portaria.{0,70}designa[cç][aã]o.{0,50}(?:fiscal|gestor)",r"designa[cç][aã]o de fiscal"])
+    service_order=_fisc_marker_pages(pages,[r"^ordem de servi[cç]o\b",r"^ordem de fornecimento\b",r"autoriza[cç][aã]o de execu[cç][aã]o"])
+    execution=_fisc_marker_pages(pages,[r"relat[oó]rio de fiscaliza[cç][aã]o e execu[cç][aã]o",r"relat[oó]rio de execu[cç][aã]o"])
+    measurement=_fisc_marker_pages(pages,[r"boletim de medi[cç][aã]o",r"\batesto\b"])
+    receipt=_fisc_marker_pages(pages,[r"termo de recebimento",r"recebimento provis[oó]rio",r"recebimento definitivo"])
+    occurrence=_fisc_marker_pages(pages,[r"registro de ocorr[eê]ncia contratual",r"registro de ocorr[eê]ncia",r"n[aã]o conformidade"])
+    notification=_fisc_marker_pages(pages,[r"notifica[cç][aã]o [àa] contratada",r"notifica[cç][aã]o de ocorr[eê]ncia",r"comunica[cç][aã]o [àa] contratada"])
+    manifestation=_fisc_marker_pages(pages,[r"manifesta[cç][aã]o e plano de corre[cç][aã]o",r"manifesta[cç][aã]o da contratada",r"plano de corre[cç][aã]o"])
+    final_report=_fisc_marker_pages(pages,[r"relat[oó]rio final de fiscaliza[cç][aã]o"])
+    penalty=_fisc_marker_pages(pages,[r"encaminhamento para penaliza[cç][aã]o",r"remessa [àa] comiss[aã]o de penaliza[cç][aã]o"])
+
+    regularization=sorted(set(manifestation+final_report))
+    specs=[
+        ("Há contrato ou instrumento vigente?","Contrato / instrumento vigente",contract),
+        ("Há designação formal de fiscal e gestor?","Designação formal de fiscal e gestor",designation),
+        ("Há ordem de serviço/fornecimento ou autorização de execução?","Ordem de serviço / fornecimento ou autorização de execução",service_order),
+        ("Há registro de acompanhamento ou relatório de fiscalização?","Registro de acompanhamento / relatório de fiscalização",execution),
+        ("Há medição ou atesto da execução?","Medição / atesto da execução",measurement),
+        ("Há recebimento provisório/definitivo ou aceite?","Recebimento provisório/definitivo ou aceite",receipt),
+        ("Há registro de ocorrência ou não conformidade?","Registro de ocorrência / não conformidade",occurrence),
+        ("Há notificação ou comunicação à contratada?","Notificação / comunicação à contratada",notification),
+        ("Há providência, manifestação ou regularização registrada?","Providência, manifestação ou regularização registrada",regularization),
+        ("Há encaminhamento para providência superior ou penalização quando necessário?","Encaminhamento para providência superior / penalização",penalty),
+    ]
+
+    matrix=[]
+    for question,label,pgs in specs:
+        matrix.append({
+            "question":question,
+            "answer":"Localizado" if pgs else "Não identificado",
+            "ok":bool(pgs),
+            "pages":pgs[:8],
+            "label":label,
+            "excerpt":_fisc_body(pages,pgs[0]) if pgs else "",
+        })
+
+    out["module_matrix"]=matrix
+    out["process_checklist"]=[{"label":x["label"],"ok":x["ok"],"pages":x["pages"]} for x in matrix]
+    out["module_summary"]=[
+        {"label":x["label"],"ok":x["ok"],"value":"Localizado" if x["ok"] else "Conferir"}
+        for x in matrix[:4]
+    ]
+
+    timeline_specs=[
+        ("Contrato",contract),
+        ("Designação do fiscal e gestor",designation),
+        ("Ordem de serviço",service_order),
+        ("Acompanhamento da execução",execution),
+        ("Medição / atesto",measurement),
+        ("Recebimento",receipt),
+        ("Registro de ocorrência",occurrence),
+        ("Notificação à contratada",notification),
+        ("Manifestação / regularização",manifestation),
+        ("Relatório final",final_report),
+        ("Encaminhamento para penalização",penalty),
+    ]
+    out["module_timeline"]=[
+        {"label":label,"pages":pgs[:4]}
+        for label,pgs in timeline_specs if pgs
+    ]
+
+    evidence_specs=[
+        ("Responsáveis pela fiscalização",designation),
+        ("Execução registrada",execution),
+        ("Medição e atesto",measurement),
+        ("Recebimento",receipt),
+        ("Ocorrência formalizada",occurrence),
+        ("Ciência da contratada",notification),
+        ("Providência / regularização",regularization),
+    ]
+    out["module_evidence"]=[
+        {"label":label,"page":pgs[0],"text":_fisc_body(pages,pgs[0])}
+        for label,pgs in evidence_specs if pgs
+    ]
+
+    # Reaplica a camada normativa sobre a matriz efetivamente usada.
+    out["normative_profile"]={
+        "id":PB_PROFILE["id"],
+        "label":PB_PROFILE["label"],
+        "version":PB_PROFILE["version"],
+        "review_notice":PB_PROFILE["review_notice"],
+    }
+    out["procedure"]={"key":"execucao_contratual","label":PB_PROCEDURES["execucao_contratual"]}
+
+    joined=core.norm("\n".join(p.get("text") or "" for p in pages))
+    occurrence_found=bool(occurrence)
+    regularization_found=bool(regularization)
+    unresolved_terms=[
+        "nao regularizou","nao solucionou","descumprimento persistente",
+        "permanece inadimplente","falha nao solucionada","inexecucao persistente"
+    ]
+    unresolved=any(t in joined for t in unresolved_terms)
+
+    legal=[]
+    for i,control in enumerate(PB_FISCALIZACAO_CONTROLS):
+        base=matrix[i]
+        found=bool(base["ok"])
+        cid=control["id"]
+
+        if cid=="ordem_execucao":
+            applicable=found
+            state="Localizado" if found else "Condicional"
+        elif cid=="ocorrencia":
+            applicable=occurrence_found
+            state="Localizado" if found else "Condicional"
+        elif cid in ("notificacao","providencia"):
+            applicable=occurrence_found
+            state="Localizado" if found else ("Não localizado" if applicable else "Condicional")
+        elif cid=="encaminhamento_penalizacao":
+            applicable=bool(occurrence_found and unresolved and not regularization_found)
+            state="Localizado" if found else ("Não localizado" if applicable else "Condicional")
+        else:
+            applicable=True
+            state="Localizado" if found else "Não localizado"
+
+        row={
+            "control_id":cid,
+            "label":control["label"],
+            "aliases":control.get("aliases") or [],
+            "responsible":control["responsible"],
+            "nature":control["nature"],
+            "criticality":control["criticality"],
+            "foundation":control["foundation"],
+            "absence_action":control["absence_action"],
+            "applicable":applicable,
+            "status":state,
+            "ok":found,
+            "pages":base["pages"],
+            "excerpt":base["excerpt"],
+        }
+        legal.append(row)
+        base.update({
+            "legal_control_id":cid,
+            "responsible":control["responsible"],
+            "nature":control["nature"],
+            "criticality":control["criticality"],
+            "foundation":control["foundation"],
+            "applicable":applicable,
+            "legal_status":state,
+        })
+
+    out["legal_matrix"]=legal
+    applicable_rows=[x for x in legal if x["applicable"]]
+    present=[x for x in applicable_rows if x["ok"]]
+    missing=[x for x in applicable_rows if not x["ok"]]
+    out["review_flags"]=[
+        {
+            "level":"alta" if x["criticality"]=="alta" else "media",
+            "text":x["label"]+" não localizado. "+x["absence_action"]
+        }
+        for x in missing[:5]
+    ]
+    out["pending"]=[x["text"] for x in out["review_flags"]]
+    out["metrics"]["checklist_ok"]=len(present)
+    out["metrics"]["checklist_total"]=len(applicable_rows)
+    out["metrics"]["evidence_points"]=len(out["module_evidence"])
+
+    if missing:
+        out["next_action"]={
+            "stage":"Fiscalização · Perfil Pimenta Bueno",
+            "action":"Conferir ou localizar: "+missing[0]["label"]+".",
+            "why":"O controle é aplicável à execução identificada e exige conferência humana."
+        }
+    elif occurrence_found and regularization_found:
+        out["next_action"]={
+            "stage":"Execução acompanhada · ocorrência regularizada",
+            "action":"Conferir o resultado da regularização, o recebimento e os reflexos na medição antes de prosseguir.",
+            "why":"A ocorrência foi formalizada, houve ciência da contratada e há providência/regularização documentada. O encaminhamento para penalização permanece condicional."
+        }
+    else:
+        out["next_action"]={
+            "stage":"Execução acompanhada",
+            "action":"Manter registros periódicos da execução, medições, recebimentos e ocorrências relevantes.",
+            "why":"Os controles aplicáveis foram localizados sem pendência automática de encaminhamento."
+        }
+
+    out["conclusion"]=(
+        "Perfil "+PB_PROFILE["label"]+" · Execução contratual: foram localizados "
+        +str(len(present))+" de "+str(len(applicable_rows))+
+        " controles aplicáveis. Os controles condicionais somente são exigidos quando os autos demonstram a situação correspondente."
+    )
+    return out
+
+core._module_overlay=_module_overlay_v121
+core.app.version="12.1"
