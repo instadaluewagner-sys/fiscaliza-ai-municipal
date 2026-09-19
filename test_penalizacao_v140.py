@@ -119,3 +119,38 @@ assert a3["next_action"]["stage"] == "Análise da defesa / instrução"
 assert "Notificação Extrajudicial" not in a3["next_action"]["action"]
 
 print("PENALIZACAO V14 OK — cobrança prévia ≠ notificação da Comissão; fase e próximo ato coerentes")
+
+
+# Caso 2B: texto antigo do edital sobre prazo/defesa não pode ser confundido
+# com certidão de decurso posterior à Notificação Extrajudicial da Comissão.
+legacy_edital = page(
+    0,
+    "EDITAL DO PREGÃO",
+    "Transcorreu o prazo para defesa em hipótese abstrata prevista no edital; texto normativo do certame."
+)
+a2b = analyze([legacy_edital] + pages_notified)
+rows2b = {x["control_id"]: x for x in a2b["legal_matrix"]}
+
+assert rows2b["defesa_ou_decurso"]["ok"] is False, rows2b["defesa_ou_decurso"]
+assert rows2b["defesa_ou_decurso"]["status"] == "Aguardando / conferir prazo", rows2b["defesa_ou_decurso"]
+assert a2b["next_action"]["stage"] == "Contraditório", a2b["next_action"]
+
+
+# Caso 4: divergência de número do processo em páginas distintas do mesmo ofício
+# precisa gerar alerta de conferência, sem o sistema escolher silenciosamente um número.
+pages_conflict = [
+    page(
+        1,
+        "OFÍCIO 63/2026",
+        "Assunto: Encaminhamento do Processo nº 1-1029/2026 para análise. "
+        "Encaminhamos o Processo Administrativo nº 1-1029/2026 à Comissão de Penalização."
+    ),
+    page(
+        2,
+        "CONTINUAÇÃO",
+        "Referência: Processo nº 1-10427/2026."
+    ),
+]
+a4 = analyze(pages_conflict)
+assert a4["process_number_conflicts"], a4.get("process_number_conflicts")
+assert set(a4["process_number_conflicts"][0]["numbers"]) == {"1-1029/2026", "1-10427/2026"}
