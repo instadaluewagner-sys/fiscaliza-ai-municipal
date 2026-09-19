@@ -657,3 +657,70 @@ button,input,textarea,select{font-size:13px!important}
 """
 
 core.HTML = core.HTML.replace("</head>", _readability_css + "</head>", 1)
+
+
+# --- Padrão tipográfico definitivo: Calibri 12 ---
+_calibri12_css = r"""
+<style id="fiscaliza-calibri12">
+:root{--font-ui:Calibri,"Segoe UI",Arial,sans-serif}
+
+/* Fonte padrão do produto */
+body,button,input,textarea,select{font-family:var(--font-ui)!important}
+
+/* Piso de leitura: 12pt para todo texto operacional */
+body,
+.side-item,
+.side-footer,
+.workspace-title span,
+.process-context span,
+.process-status,
+.dash-metric small,
+.dash-metric strong.text,
+.dash-metric .mini,
+.desc,.panel-desc,
+.ov-sub,.ov-chip,.ov-next p,
+.ov-progress-head span,.ov-stage,
+.ov-summary,.ov-evidence-item p,.ov-evidence-item span,
+.ov-time,.ov-time b,.ov-time small,
+.piece-name,.source,.file-name,.page-chip,
+.matrix th,.matrix td,.finding-text,.source-card,
+.dossier-label,.dossier-source,.dossier-status,.dossier-group-title,
+.process-fact small,.process-fact strong,
+.timeline-step b,.timeline-step .tp,
+.check-row,.review-flag,.warning,.warn,.empty,.result-empty,
+.qa input,.qa-input,.answer-text,#answer,
+.draft-text,.ov-draft-paper,.draft-toolbar strong,.draft-toolbar span,.draft-sources,
+.privacy-box p,.footnote,.footer-note,
+.btn,.workspace-back,.recent-open,.config-btn{
+  font-size:12pt!important;
+  line-height:1.45!important
+}
+
+/* Hierarquia */
+.kicker,.panel-kicker,.ov-eyebrow,.workspace-title small,
+.side-brand small{font-size:12pt!important}
+.side-brand strong{font-size:14pt!important}
+.brandtext strong{font-size:16pt!important}
+.brandtext span{font-size:12pt!important}
+.workspace-title strong{font-size:16pt!important}
+.title,.panel-title,#result.system-result .title,#result.system-result h2,
+.section h2,.ov-panel-head h3{font-size:15pt!important;line-height:1.25!important}
+.ov-title{font-size:17pt!important;line-height:1.2!important}
+h1{font-size:20pt!important}
+h2{font-size:16pt!important}
+h3{font-size:14pt!important}
+
+/* Ajustes de espaço para a nova escala tipográfica */
+.system-layout{grid-template-columns:250px minmax(0,1fr)!important}
+.side-item{padding:12px 11px!important}
+.dash-metric{min-height:76px!important}
+.matrix th,.matrix td{padding:10px 11px!important}
+.ov-panel,.section{overflow-wrap:anywhere}
+.timeline-step{min-width:170px!important}
+
+@media(max-width:980px){
+  .system-layout{grid-template-columns:1fr!important}
+}
+</style>
+"""
+core.HTML = core.HTML.replace("</head>", _calibri12_css + "</head>", 1)
