@@ -15,7 +15,7 @@ EXPECTED_MARKERS = {
     "planejamento": "documento oficial de demanda",
     "formalizacao": "fase externa",
     "fiscalizacao": "contrato ou instrumento vigente",
-    "alteracoes": "alteração contratual",
+    "alteracoes": "pedido e justificativa da alteração",
     "penalizacao": "contrato ou instrumento",
     "encerramento": "contrato ou instrumento a encerrar",
 }
@@ -69,16 +69,16 @@ def main():
         if int(profile.get("documents") or 0) < 4:
             fail(f"{module}: rastreabilidade documental insuficiente: {profile.get('documents')} docs")
 
-        if module in ("planejamento", "formalizacao", "fiscalizacao"):
+        if module in ("planejamento", "formalizacao", "fiscalizacao", "alteracoes"):
             np = analysis.get("normative_profile") or {}
             proc = analysis.get("procedure") or {}
             legal = analysis.get("legal_matrix") or []
             if np.get("id") != "pimenta_bueno_ro":
                 fail(f"{module}: perfil normativo de Pimenta Bueno ausente")
-            expected_proc = "execucao_contratual" if module == "fiscalizacao" else "pregao_bens"
+            expected_proc = {"fiscalizacao":"execucao_contratual","alteracoes":"reequilibrio"}.get(module,"pregao_bens")
             if proc.get("key") != expected_proc:
                 fail(f"{module}: procedimento classificado incorretamente: {proc}")
-            expected = {"planejamento": 6, "formalizacao": 11, "fiscalizacao": 10}[module]
+            expected = {"planejamento": 6, "formalizacao": 11, "fiscalizacao": 10, "alteracoes": 15}[module]
             if len(legal) != expected:
                 fail(f"{module}: matriz normativa deveria ter {expected} controles; encontrou {len(legal)}")
             if not all(x.get("foundation") for x in legal):
@@ -96,7 +96,7 @@ def main():
                         fail(f"formalizacao: controle normativo ausente: {rid}")
                 if not all(x.get("ok") for x in legal):
                     fail(f"formalizacao: processo modelo não localizou todos os controles: {[(x.get('control_id'),x.get('status')) for x in legal]}")
-            else:
+            elif module == "fiscalizacao":
                 by_id = {x.get("control_id"): x for x in legal}
                 required_ids = ["contrato_vigente","designacao","acompanhamento","medicao_atesto","recebimento","ocorrencia","notificacao","providencia"]
                 for rid in required_ids:
@@ -105,6 +105,25 @@ def main():
                 penalty = by_id.get("encaminhamento_penalizacao") or {}
                 if penalty.get("applicable") or penalty.get("status") != "Condicional":
                     fail(f"fiscalizacao: encaminhamento para penalização deveria ser condicional após regularização: {penalty}")
+            else:
+                by_id = {x.get("control_id"): x for x in legal}
+                required_ids = [
+                    "contrato_vigente","pedido_justificativa","relatorio_execucao",
+                    "vantajosidade","memoria_calculo","fato_superveniente_nexo",
+                    "matriz_riscos","dotacao","analise_tecnica","parecer_juridico",
+                    "decisao","formalizacao"
+                ]
+                for rid in required_ids:
+                    if not by_id.get(rid, {}).get("applicable"):
+                        fail(f"alteracoes: controle de reequilíbrio deveria ser aplicável: {rid}")
+                    if not by_id.get(rid, {}).get("ok"):
+                        fail(f"alteracoes: controle de reequilíbrio deveria estar localizado: {rid}")
+                for rid in ["indice_data_base","repactuacao_custos","limites_quantitativos"]:
+                    row = by_id.get(rid) or {}
+                    if row.get("applicable") or row.get("status") != "Condicional":
+                        fail(f"alteracoes: controle exclusivo de outro tipo deveria ser condicional: {rid} => {row}")
+                if (analysis.get("metrics") or {}).get("checklist_total") != 12:
+                    fail(f"alteracoes: reequilíbrio deveria ativar 12 controles, obteve {(analysis.get('metrics') or {}).get('checklist_total')}")
 
         results.append(
             (
