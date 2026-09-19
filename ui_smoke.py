@@ -79,7 +79,7 @@ def main():
 
             if key == "planejamento":
                 text = page.locator("#overviewHub").inner_text()
-                assert "Documento de Formalização da Demanda" in text
+                assert "DOD" in text or "Documento Oficial de Demanda" in text
                 assert "Estudo Técnico Preliminar" in text
                 assert "Termo de Referência" in text
                 expect(page.locator("#overviewHub .ov-evidence-block h4").nth(0)).to_have_text("Documentos estruturantes", timeout=10000)
@@ -90,6 +90,14 @@ def main():
                 assert "defesa administrativa" not in hub_text
                 assert "notificação/intimação como peça autônoma" not in hub_text
                 assert page.locator("#overviewHub .ov-time").count() <= 6
+                expect(page.locator(".pb-profile-chip").nth(0)).to_contain_text("Pimenta Bueno/RO")
+                expect(page.locator(".pb-profile-chip").nth(1)).to_contain_text("Pregão — aquisição de bens")
+                expect(page.locator("#legalMatrixPanelV100")).to_be_visible(timeout=10000)
+                assert page.locator("#legalMatrixPanelV100 tbody tr").count() == 6
+                legal_text = page.locator("#legalMatrixPanelV100").inner_text()
+                assert "Documento Oficial de Demanda" in legal_text
+                assert "Decreto Regulamentar" in legal_text
+                assert "Secretaria de Origem" in legal_text
 
             # Navegação lateral existe para todas as áreas operacionais.
             for tab in ["documentos", "evidencias", "cronologia", "pendencias", "perguntar", "minutas", "relatorio"]:
