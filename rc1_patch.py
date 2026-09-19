@@ -8427,6 +8427,32 @@ normalizarOverviewV96=function(a){
   if(a&&a.module_key==="penalizacao")renderPenalizacaoNormativaV140(a);
 };
 
+function dossierStatusClassV140(status,ok){
+  var s=String(status||"").toLowerCase();
+  if(ok)return "ok";
+  if(s.indexOf("não exigível")>=0||s.indexOf("nao exigivel")>=0||s.indexOf("condicional")>=0||s.indexOf("aguardando")>=0)return "conditional";
+  return "miss";
+}
+penaltyDossierHtml=function(a){
+  var groups=a.penalty_dossier||[],score=a.penalty_dossier_score||{ok:0,total:0};
+  var h='<div class="dossier-shell"><div class="dossier-head"><div><h3>Checklist documental do processo</h3><p>Os controles seguem a fase real do procedimento. Etapas futuras aparecem como condicionais ou não exigíveis, sem virar falsa pendência.</p></div><span class="dossier-score">'+esc(score.ok)+' de '+esc(score.total)+' controles aplicáveis localizados</span></div>';
+  groups.forEach(function(g){
+    h+='<div class="dossier-group"><div class="dossier-group-title">'+esc(g.group)+'</div>';
+    (g.rows||[]).forEach(function(r){
+      var cls=dossierStatusClassV140(r.status,r.ok);
+      var src=r.ok?documentRefHtml(r.documents||[],r.pages||[]):'<span>Sem evidência documental para este controle nesta fase</span>';
+      h+='<div class="dossier-row">'+
+        '<span class="dossier-state '+(r.ok?'ok':'miss')+'">'+(r.ok?'✓':(cls==="miss"?'!':'·'))+'</span>'+
+        '<div class="dossier-label">'+esc(r.label)+'</div>'+
+        '<div class="dossier-source">'+src+'</div>'+
+        '<div class="dossier-status '+(r.ok?'ok':'miss')+'">'+esc(r.status||(r.ok?'Localizado':'Conferir'))+'</div>'+
+      '</div>';
+    });
+    h+='</div>';
+  });
+  return h+'</div>';
+}
+
 var _penaltyMetadataFactsV140=window.penaltyMetadataFacts;
 penaltyMetadataFacts=function(a){
   var m=a.penalty_metadata||{},q=a.quantity||{};
