@@ -13,7 +13,7 @@ MODULES = [
 
 EXPECTED_MARKERS = {
     "planejamento": "documento oficial de demanda",
-    "formalizacao": "proposta vencedora",
+    "formalizacao": "fase externa",
     "fiscalizacao": "instrumento contratual",
     "alteracoes": "alteração contratual",
     "penalizacao": "contrato ou instrumento",
