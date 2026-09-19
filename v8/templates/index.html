@@ -3,51 +3,192 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Fiscaliza.AI V8</title>
+  <meta name="color-scheme" content="light">
+  <title>Fiscaliza.AI Municipal · Penalização</title>
   <link rel="stylesheet" href="/v8-static/app.css">
 </head>
 <body>
-  <main class="shell">
-    <header class="app-header">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
       <div>
-        <span class="tag">V8 RC · Penalização</span>
-        <h1>Penalização contratual</h1>
-        <p>Documentos → evidências → estágio processual → próximo ato.</p>
+        <strong>Fiscaliza.AI Municipal</strong>
+        <span>Inteligência processual para gestão pública</span>
       </div>
-      <div class="alpha-note">Versão candidata para validação antes da publicação.</div>
-    </header>
+    </div>
+    <div class="top-status">
+      <span class="release-chip">V8 RC1</span>
+      <span class="status-dot"><i></i> ambiente de validação</span>
+    </div>
+  </header>
 
-    <section class="panel upload-panel">
-      <div>
-        <h2>Novo processo</h2>
-        <p>Envie os autos em PDF. A análise separa as peças, identifica evidências, determina a fase e orienta o próximo ato.</p>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-context">
+        <small>Módulo ativo</small>
+        <strong>Penalização contratual</strong>
+        <span>Responsabilização de fornecedor</span>
       </div>
-      <form id="form">
-        <input id="files" type="file" accept="application/pdf" multiple required>
-        <button>Analisar processo</button>
-      </form>
-      <p class="note">Sessão temporária. Os arquivos permanecem apenas na memória desta instância durante a análise e expiram automaticamente.</p>
-    </section>
 
-    <section id="workspace" class="workspace hidden">
-      <div class="analysis-pane">
-        <section id="out" class="panel" aria-live="polite"></section>
+      <nav class="side-nav" aria-label="Navegação do processo">
+        <button class="side-item active" data-tab="overview" onclick="showTab('overview')">
+          <span class="side-icon">01</span><span>Visão geral</span>
+        </button>
+        <button class="side-item" data-tab="documents" onclick="showTab('documents')">
+          <span class="side-icon">02</span><span>Documentos</span>
+        </button>
+        <button class="side-item" data-tab="evidence" onclick="showTab('evidence')">
+          <span class="side-icon">03</span><span>Evidências</span>
+        </button>
+        <button class="side-item" data-tab="timeline" onclick="showTab('timeline')">
+          <span class="side-icon">04</span><span>Cronologia</span>
+        </button>
+        <button class="side-item" data-tab="pending" onclick="showTab('pending')">
+          <span class="side-icon">05</span><span>Pendências</span>
+        </button>
+        <button class="side-item" data-tab="drafts" onclick="showTab('drafts')">
+          <span class="side-icon">06</span><span>Minutas</span>
+        </button>
+        <button class="side-item" data-tab="reports" onclick="showTab('reports')">
+          <span class="side-icon">07</span><span>Relatório</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <strong>Rastreabilidade</strong>
+        <span>DOC-ID + página em cada conclusão relevante.</span>
       </div>
-      <aside class="viewer-pane">
-        <div class="viewer-head">
-          <div>
-            <small>Documento original</small>
-            <strong id="viewerTitle">Selecione uma peça</strong>
+    </aside>
+
+    <main class="main-area">
+      <section id="startState" class="start-state">
+        <div class="start-card">
+          <div class="start-copy">
+            <span class="eyebrow">Novo processo</span>
+            <h1>Carregue os autos para iniciar a análise.</h1>
+            <p>A V8 separa peças autônomas, identifica evidências, determina a fase processual e orienta o próximo ato sem substituir a revisão humana.</p>
+            <div class="start-points">
+              <span>Documentos segmentados</span>
+              <span>Fonte + página</span>
+              <span>Fase processual</span>
+              <span>Minuta compatível</span>
+            </div>
           </div>
-          <span id="viewerPage">—</span>
+          <form id="form" class="upload-card">
+            <label for="files">Autos em PDF</label>
+            <div class="file-control">
+              <input id="files" type="file" accept="application/pdf" multiple required>
+            </div>
+            <button type="submit" class="primary-btn">Analisar processo</button>
+            <small>Sessão temporária. Os PDFs ficam somente na memória da instância durante a análise e expiram automaticamente.</small>
+          </form>
         </div>
-        <div id="viewerEmpty" class="viewer-empty">
-          Clique em um documento ou evidência para abrir o PDF exatamente na página citada.
+      </section>
+
+      <section id="processWorkspace" class="process-workspace hidden">
+        <div class="process-header">
+          <div class="process-title">
+            <button class="back-action" type="button" onclick="deleteCurrentAnalysis(true)">← Novo processo</button>
+            <small>Processo em análise</small>
+            <h1 id="processNumber">—</h1>
+            <p id="processSubtitle">—</p>
+            <div id="processMeta" class="process-meta"></div>
+          </div>
+          <div class="process-actions">
+            <span id="stageBadge" class="stage-badge">—</span>
+            <div>
+              <button type="button" class="ghost-btn" onclick="downloadAuditReport('pdf')">Relatório PDF</button>
+              <button type="button" class="ghost-btn" onclick="downloadAuditReport('json')">JSON</button>
+              <button type="button" class="danger-ghost" onclick="deleteCurrentAnalysis(true)">Encerrar</button>
+            </div>
+          </div>
         </div>
-        <iframe id="pdfViewer" title="Visualizador do PDF original" class="pdf-viewer hidden"></iframe>
-      </aside>
-    </section>
-  </main>
+
+        <div class="process-tabs" role="tablist" aria-label="Seções do processo">
+          <button class="process-tab active" data-tab="overview" onclick="showTab('overview')">Visão geral</button>
+          <button class="process-tab" data-tab="documents" onclick="showTab('documents')">Documentos</button>
+          <button class="process-tab" data-tab="evidence" onclick="showTab('evidence')">Evidências</button>
+          <button class="process-tab" data-tab="timeline" onclick="showTab('timeline')">Cronologia</button>
+          <button class="process-tab" data-tab="pending" onclick="showTab('pending')">Pendências</button>
+          <button class="process-tab" data-tab="drafts" onclick="showTab('drafts')">Minutas</button>
+          <button class="process-tab" data-tab="reports" onclick="showTab('reports')">Relatório</button>
+        </div>
+
+        <div class="workspace-grid">
+          <section class="content-pane">
+            <div id="qualityAlert"></div>
+
+            <section id="tab-overview" class="tab-panel active" role="tabpanel">
+              <div id="overviewContent"></div>
+            </section>
+
+            <section id="tab-documents" class="tab-panel" role="tabpanel">
+              <div class="section-head">
+                <div><span class="eyebrow">Dossiê documental</span><h2>Documentos autônomos</h2><p>Peças segmentadas dos autos. Clique em qualquer linha para abrir o PDF na origem.</p></div>
+                <span id="documentCount" class="count-badge">0</span>
+              </div>
+              <div id="documentsContent"></div>
+            </section>
+
+            <section id="tab-evidence" class="tab-panel" role="tabpanel">
+              <div class="section-head">
+                <div><span class="eyebrow">Base probatória</span><h2>Evidências e rastreabilidade</h2><p>Fatos, atos processuais e conclusões com documento, página e grau de confiança.</p></div>
+                <span id="evidenceCount" class="count-badge">0</span>
+              </div>
+              <div id="evidenceContent"></div>
+            </section>
+
+            <section id="tab-timeline" class="tab-panel" role="tabpanel">
+              <div class="section-head">
+                <div><span class="eyebrow">Linha do tempo</span><h2>Cronologia essencial</h2><p>Marcos extraídos dos documentos em ordem temporal.</p></div>
+              </div>
+              <div id="timelineContent"></div>
+            </section>
+
+            <section id="tab-pending" class="tab-panel" role="tabpanel">
+              <div class="section-head">
+                <div><span class="eyebrow">Controle processual</span><h2>Pendências e próximo passo</h2><p>Ausência, inconclusão e providência futura são tratadas separadamente.</p></div>
+                <span id="pendingCount" class="count-badge">0</span>
+              </div>
+              <div id="pendingContent"></div>
+            </section>
+
+            <section id="tab-drafts" class="tab-panel" role="tabpanel">
+              <div class="section-head">
+                <div><span class="eyebrow">Documento assistido</span><h2>Minuta compatível com a fase</h2><p>O sistema bloqueia documentos incompatíveis com o estágio processual identificado.</p></div>
+              </div>
+              <div id="draftContent"></div>
+            </section>
+
+            <section id="tab-reports" class="tab-panel" role="tabpanel">
+              <div class="section-head">
+                <div><span class="eyebrow">Saída auditável</span><h2>Relatório da análise</h2><p>Exporte a análise com fontes, hashes, checklist, evidências e cronologia.</p></div>
+              </div>
+              <div id="reportContent"></div>
+            </section>
+          </section>
+
+          <aside class="viewer-pane">
+            <div class="viewer-head">
+              <div>
+                <small>Fonte documental</small>
+                <strong id="viewerTitle">Selecione um documento</strong>
+              </div>
+              <span id="viewerPage">—</span>
+            </div>
+            <div id="viewerEmpty" class="viewer-empty">
+              <div class="viewer-placeholder">
+                <strong>PDF original</strong>
+                <span>Clique em um DOC-ID, evidência, evento ou fonte para abrir exatamente na página citada.</span>
+              </div>
+            </div>
+            <iframe id="pdfViewer" title="Visualizador do PDF original" class="pdf-viewer hidden"></iframe>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
   <script src="/v8-static/app.js"></script>
 </body>
 </html>
