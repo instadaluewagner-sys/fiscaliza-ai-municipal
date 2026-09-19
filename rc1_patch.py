@@ -7882,7 +7882,7 @@ def _extract_origin_process_v140(pages):
         raw=re.sub(r"\s+"," ",p.get("text") or "")
         for pat,weight in patterns:
             for m in re.finditer(pat,raw,flags=re.I):
-                value=m.group(1).strip()
+                value=m.group(1).strip().rstrip(" .;,:")
                 if penalty_n and core.norm(value)==penalty_n:
                     continue
                 scores[value]=scores.get(value,0)+weight
@@ -8004,6 +8004,66 @@ def _prior_collection_pages_v140(pages, commission_pages):
     return sorted(set(x for x in hits if x))
 
 
+def _inadimplemento_pages_v141(pages):
+    """Localiza o fato material em peças de execução/apuração, não em cláusulas abstratas do edital/ARP."""
+    factual=[]
+    regs=[
+        re.compile(x,re.I) for x in [
+            r"nao houve entrega",r"nao fornec",r"nao promoveu a entrega",r"ausencia de entrega",
+            r"descumprimento.{0,100}(?:entrega|obrigacao)",r"inexecucao",r"permanencia do descumprimento"
+        ]
+    ]
+    for p in pages:
+        z=_pen_page_blob_v140(p)
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:1200])
+
+        # Edital, termo de referência e ARP descrevem hipóteses abstratas de infração;
+        # não provam, por si, que o fato ocorreu no caso concreto.
+        normative=any(x in marker or x in head for x in [
+            "edital","termo de referencia","ata de registro de precos"
+        ])
+        factual_context=any(x in marker or x in head or x in z for x in [
+            "notificacao","certidao","oficio","relatorio de fiscalizacao","relatorio tecnico",
+            "solicitacao de anulacao","nota de empenho - anulacao","anulacao de empenho",
+            "encaminha-se o presente processo","segue o processo para penalizacao",
+            "empresa fornecedora foi formalmente notificada"
+        ])
+        if normative and not factual_context:
+            continue
+        if factual_context and any(rx.search(z) for rx in regs):
+            factual.append(p.get("page"))
+    return sorted(set(x for x in factual if x))
+
+
+def _defense_lapse_pages_v141(pages, commission_pages):
+    """Decurso de defesa só existe depois da Notificação Extrajudicial da Comissão."""
+    if not commission_pages:
+        return []
+    notif=min(commission_pages)
+    hits=[]
+    for p in pages:
+        if p.get("page",0)<=notif:
+            continue
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:1600])
+        z=core.norm(p.get("text") or "")
+        autonomous=(
+            "certidao" in marker or "certidao" in head
+            or "termo de decurso" in marker or "termo de decurso" in head
+        )
+        if not autonomous:
+            continue
+        if any(re.search(rx,z,re.I) for rx in [
+            r"certidao.{0,220}(?:decurso|prazo).{0,220}defesa",
+            r"decorreu.{0,100}prazo.{0,100}defesa",
+            r"nao apresentou defesa",
+            r"transcorreu.{0,100}prazo.{0,100}defesa",
+        ]):
+            hits.append(p.get("page"))
+    return sorted(set(x for x in hits if x))
+
+
 def _penalty_opening_pages_v140(pages):
     hits=[]
     for p in pages:
@@ -8107,27 +8167,39 @@ def _defense_pages_v140(pages, commission_pages=None):
 
 def _process_id_conflicts_v140(pages):
     flags=[]
+    groups={}
     for p in pages:
-        raw=re.sub(r"\s+"," ",p.get("text") or "")
+        key=p.get("document_id") or ("page-"+str(p.get("page")))
+        groups.setdefault(key,[]).append(p)
+
+    for group in groups.values():
+        raw=re.sub(r"\\s+"," ","\\n".join(p.get("text") or "" for p in group))
         z=core.norm(raw)
         if "referencia: processo" not in z:
             continue
+
         subject=[]
         for pat in [
-            r"Assunto:\s*Encaminhamento do Processo\s*(?:n[ºo.]?)?\s*[:\-]?\s*([0-9][0-9.\-/]+)",
-            r"Encaminhamos[^.]{0,220}?Processo Administrativo\s*(?:n[ºo.]?)?\s*[:\-]?\s*([0-9][0-9.\-/]+)",
+            r"Assunto:\\s*Encaminhamento do Processo\\s*(?:n[ºo.]?)?\\s*[:\\-]?\\s*([0-9][0-9.\\-/]+)",
+            r"Encaminhamos[^.]{0,220}?Processo Administrativo\\s*(?:n[ºo.]?)?\\s*[:\\-]?\\s*([0-9][0-9.\\-/]+)",
         ]:
-            subject += [m.group(1) for m in re.finditer(pat,raw,flags=re.I)]
-        refs=[m.group(1) for m in re.finditer(r"Refer[eê]ncia:\s*Processo\s*(?:n[ºo.]?)?\s*[:\-]?\s*([0-9][0-9.\-/]+)",raw,flags=re.I)]
+            subject += [m.group(1).rstrip(" .;,:") for m in re.finditer(pat,raw,flags=re.I)]
+
+        refs=[
+            m.group(1).rstrip(" .;,:")
+            for m in re.finditer(
+                r"Refer[eê]ncia:\\s*Processo\\s*(?:n[ºo.]?)?\\s*[:\\-]?\\s*([0-9][0-9.\\-/]+)",
+                raw,flags=re.I
+            )
+        ]
         if subject and refs and any(core.norm(a)!=core.norm(b) for a in subject for b in refs):
             flags.append({
                 "level":"media",
-                "page":p.get("page"),
+                "page":min((p.get("page") for p in group if p.get("page")),default=None),
                 "text":"O mesmo documento menciona números de processo distintos entre o assunto/corpo e a referência eletrônica. Conferir a vinculação antes de usar o número em minuta ou decisão.",
                 "numbers":sorted(set(subject+refs))
             })
     return flags
-
 
 def _pen_status_row_v140(control, pages_found, applicable=True, status=None):
     found=bool(pages_found)
@@ -8166,10 +8238,7 @@ def _module_overlay_v140(pages,a,module):
     pgs["prazo_execucao"]=_pen_pages_v140(pages,[
         r"prazo de entrega",r"entrega.{0,80}\b\d{1,3}\s*\(?[a-z]*\)?\s*dias",r"dentro de\s+\d{1,3}.{0,20}dias"
     ])
-    pgs["fato_inadimplemento"]=_pen_pages_v140(pages,[
-        r"nao houve entrega",r"nao fornec",r"nao promoveu a entrega",r"ausencia de entrega",
-        r"descumprimento.{0,100}(?:entrega|obrigacao)",r"inexecucao",r"permanencia do descumprimento"
-    ])
+    pgs["fato_inadimplemento"]=_inadimplemento_pages_v141(pages)
 
     commission_notice=_commission_notification_pages_v140(pages)
     pgs["notificacao_comissao"]=commission_notice
@@ -8201,10 +8270,7 @@ def _module_overlay_v140(pages,a,module):
     # Não reutiliza a classificação genérica de "defesa": uma notificação que diz
     # "apresentar defesa" é comunicação processual, não a defesa da empresa.
     defense=_defense_pages_v140(pages,commission_notice)
-    lapse=_pen_pages_v140(pages,[
-        r"certidao.{0,160}(?:decurso|prazo)",r"decorreu.{0,80}prazo.{0,80}defesa",
-        r"nao apresentou defesa",r"transcorreu.{0,80}prazo"
-    ])
+    lapse=_defense_lapse_pages_v141(pages,commission_notice)
     pgs["defesa_ou_decurso"]=sorted(set(defense+lapse))
 
     pgs["instrucao_pos_defesa"]=_pen_pages_v140(pages,[
@@ -8594,4 +8660,4 @@ penaltyMetadataFacts=function(a){
 </script>
 """
 core.HTML=core.HTML.replace("</body>",_penalizacao_v140_js+"</body>",1)
-core.app.version="14.0"
+core.app.version="14.1"
