@@ -6881,3 +6881,336 @@ renderPerfilNormativoV100=function(a){
 """
 core.HTML=core.HTML.replace("</body>",_formalizacao_v110_js+"</body>",1)
 core.app.version="11.0"
+
+
+# --- Fiscalização e execução parametrizadas · Pimenta Bueno v12.0 ---
+from profile_pimenta_bueno import FISCALIZACAO_CONTROLS as PB_FISCALIZACAO_CONTROLS
+
+core.MODULE_AUDIT["fiscalizacao"] = [
+    ("Há contrato ou instrumento vigente?",[
+        r"\bcontrato administrativo\b",r"\bata de registro de precos\b",r"\binstrumento contratual\b"
+    ]),
+    ("Há designação formal de fiscal e gestor?",[
+        r"\bdesignacao de fiscal\b",r"\bdesignacao de gestor\b",r"\bfiscal e gestor\b",
+        r"\bportaria de designacao\b"
+    ]),
+    ("Há ordem de serviço/fornecimento ou autorização de execução?",[
+        r"\bordem de servico\b",r"\bordem de fornecimento\b",r"\bautorizacao de execucao\b"
+    ]),
+    ("Há registro de acompanhamento ou relatório de fiscalização?",[
+        r"\brelatorio de execucao\b",r"\brelatorio de fiscalizacao\b",
+        r"\bacompanhamento da execucao\b"
+    ]),
+    ("Há medição ou atesto da execução?",[
+        r"\bmedicao\b",r"\batesto\b",r"\bboletim de medicao\b"
+    ]),
+    ("Há recebimento provisório/definitivo ou aceite?",[
+        r"\btermo de recebimento\b",r"\brecebimento provisori\b",
+        r"\brecebimento definitiv\b",r"\baceite\b"
+    ]),
+    ("Há registro de ocorrência ou não conformidade?",[
+        r"\bregistro de ocorrencia\b",r"\bnao conformidade\b",
+        r"\bocorrencia contratual\b",r"\bpendencias? de execucao\b"
+    ]),
+    ("Há notificação ou comunicação à contratada?",[
+        r"\bnotificacao de ocorrencia\b",r"\bnotificacao a contratada\b",
+        r"\bcomunicacao a contratada\b"
+    ]),
+    ("Há providência, manifestação ou regularização registrada?",[
+        r"\bmanifestacao da contratada\b",r"\bplano de correcao\b",
+        r"\bregularizacao\b",r"\bprovidencia adotada\b"
+    ]),
+    ("Há encaminhamento para providência superior ou penalização quando necessário?",[
+        r"\bencaminhamento para penalizacao\b",r"\bremessa a comissao de penalizacao\b",
+        r"\bprovidencia superior\b"
+    ]),
+]
+
+core.MODEL_CASES["fiscalizacao"]={
+    "title":"Fiscalização e execução",
+    "pages":[
+        (
+            "PROCESSO DE FISCALIZAÇÃO CONTRATUAL Nº 1001/2026",
+            "CASO FICTÍCIO PARA DEMONSTRAÇÃO. Execução do Contrato nº 210/2026. Objeto: manutenção preventiva de aparelhos de ar-condicionado em unidades administrativas."
+        ),
+        (
+            "CONTRATO ADMINISTRATIVO Nº 210/2026",
+            "CONTRATANTE: MUNICÍPIO — CASO FICTÍCIO. CONTRATADA: EMPRESA MODELO LTDA. Objeto: manutenção preventiva mensal. Prazo: 12 meses. O contrato estabelece obrigações, cronograma, fiscalização, medição e recebimento."
+        ),
+        (
+            "PORTARIA DE DESIGNAÇÃO DE FISCAL E GESTOR Nº 55/2026",
+            "A autoridade competente designa FISCAL DO CONTRATO e GESTOR DO CONTRATO para acompanhar a execução do Contrato nº 210/2026, registrar ocorrências e adotar ou encaminhar providências."
+        ),
+        (
+            "ORDEM DE SERVIÇO Nº 03/2026",
+            "A unidade gestora autoriza a execução dos serviços referentes ao mês de junho de 2026, conforme cronograma e condições do Contrato nº 210/2026."
+        ),
+        (
+            "RELATÓRIO DE FISCALIZAÇÃO E EXECUÇÃO Nº 06/2026",
+            "O fiscal registra os serviços executados no período. Duas unidades apresentaram pendências de execução e três equipamentos exigiram correção antes do aceite."
+        ),
+        (
+            "BOLETIM DE MEDIÇÃO E ATESTO Nº 06/2026",
+            "A fiscalização mede e atesta apenas os serviços efetivamente executados, registrando glosa temporária dos itens ainda pendentes."
+        ),
+        (
+            "TERMO DE RECEBIMENTO PROVISÓRIO Nº 06/2026",
+            "A unidade registra recebimento provisório da parcela executada, condicionado à correção das pendências identificadas pela fiscalização."
+        ),
+        (
+            "REGISTRO DE OCORRÊNCIA CONTRATUAL Nº 02/2026",
+            "O fiscal formaliza ocorrência contratual referente às pendências de execução, identifica os itens afetados, as datas e as providências necessárias."
+        ),
+        (
+            "NOTIFICAÇÃO À CONTRATADA Nº 02/2026",
+            "A contratada é formalmente notificada sobre a ocorrência e recebe prazo para regularizar as pendências e apresentar manifestação."
+        ),
+        (
+            "MANIFESTAÇÃO E PLANO DE CORREÇÃO DA CONTRATADA",
+            "A EMPRESA MODELO LTDA. reconhece as pendências, apresenta plano de correção, reforça a equipe e informa cronograma de regularização."
+        ),
+        (
+            "RELATÓRIO FINAL DE FISCALIZAÇÃO E REGULARIZAÇÃO",
+            "A fiscalização verifica a regularização integral das pendências, registra o cumprimento das correções e recomenda o prosseguimento regular do contrato. Não há, neste momento, necessidade de encaminhamento para penalização."
+        ),
+    ]
+}
+
+_old_module_overlay_v120=core._module_overlay
+def _module_overlay_v120(pages,a,module):
+    out=_old_module_overlay_v120(pages,a,module)
+    if module!="fiscalizacao":
+        return out
+
+    out["normative_profile"]={
+        "id":PB_PROFILE["id"],
+        "label":PB_PROFILE["label"],
+        "version":PB_PROFILE["version"],
+        "review_notice":PB_PROFILE["review_notice"],
+    }
+    out["procedure"]={"key":"execucao_contratual","label":PB_PROCEDURES["execucao_contratual"]}
+
+    matrix=out.get("module_matrix") or []
+    joined=core.norm("\n".join(p.get("text") or "" for p in pages))
+    occurrence_found=bool(matrix[6].get("ok")) if len(matrix)>6 else False
+    notification_found=bool(matrix[7].get("ok")) if len(matrix)>7 else False
+    regularization_found=bool(matrix[8].get("ok")) if len(matrix)>8 else False
+    unresolved_terms=[
+        "nao regularizou","nao solucionou","descumprimento persistente",
+        "permanece inadimplente","falha nao solucionada","inexecucao persistente"
+    ]
+    unresolved=any(t in joined for t in unresolved_terms)
+
+    legal=[]
+    for i,control in enumerate(PB_FISCALIZACAO_CONTROLS):
+        base=matrix[i] if i<len(matrix) else {}
+        found=bool(base.get("ok"))
+        cid=control["id"]
+
+        if cid=="ordem_execucao":
+            applicable=found
+            state="Localizado" if found else "Condicional"
+        elif cid=="ocorrencia":
+            applicable=occurrence_found
+            state="Localizado" if found else "Condicional"
+        elif cid=="notificacao":
+            applicable=occurrence_found
+            state="Localizado" if found else ("Não localizado" if applicable else "Condicional")
+        elif cid=="providencia":
+            applicable=occurrence_found
+            state="Localizado" if found else ("Não localizado" if applicable else "Condicional")
+        elif cid=="encaminhamento_penalizacao":
+            applicable=bool(occurrence_found and unresolved and not regularization_found)
+            state="Localizado" if found else ("Não localizado" if applicable else "Condicional")
+        else:
+            applicable=True
+            state="Localizado" if found else "Não localizado"
+
+        legal.append({
+            "control_id":cid,
+            "label":control["label"],
+            "aliases":control.get("aliases") or [],
+            "responsible":control["responsible"],
+            "nature":control["nature"],
+            "criticality":control["criticality"],
+            "foundation":control["foundation"],
+            "absence_action":control["absence_action"],
+            "applicable":applicable,
+            "status":state,
+            "ok":found,
+            "pages":(base.get("pages") or [])[:8],
+            "excerpt":base.get("excerpt") or "",
+        })
+
+        if i<len(matrix):
+            matrix[i]["legal_control_id"]=cid
+            matrix[i]["responsible"]=control["responsible"]
+            matrix[i]["nature"]=control["nature"]
+            matrix[i]["criticality"]=control["criticality"]
+            matrix[i]["foundation"]=control["foundation"]
+            matrix[i]["applicable"]=applicable
+            matrix[i]["legal_status"]=state
+
+    out["legal_matrix"]=legal
+
+    applicable_rows=[x for x in legal if x["applicable"]]
+    present=[x for x in applicable_rows if x["ok"]]
+    missing=[x for x in applicable_rows if not x["ok"]]
+    out["metrics"]["checklist_ok"]=len(present)
+    out["metrics"]["checklist_total"]=len(applicable_rows)
+    out["review_flags"]=[
+        {
+            "level":"alta" if x["criticality"]=="alta" else "media",
+            "text":x["label"]+" não localizado. "+x["absence_action"]
+        }
+        for x in missing[:5]
+    ]
+
+    if missing:
+        out["next_action"]={
+            "stage":"Fiscalização · Perfil Pimenta Bueno",
+            "action":"Conferir ou localizar: "+missing[0]["label"]+".",
+            "why":"O controle é aplicável à execução identificada e exige conferência humana antes da conclusão."
+        }
+    elif occurrence_found and regularization_found:
+        out["next_action"]={
+            "stage":"Execução acompanhada · ocorrência regularizada",
+            "action":"Conferir o resultado da regularização, o recebimento e os reflexos na medição antes de prosseguir.",
+            "why":"A ocorrência foi registrada, a contratada foi cientificada e há providência/regularização documentada; o encaminhamento sancionador permanece condicional."
+        }
+    else:
+        out["next_action"]={
+            "stage":"Execução acompanhada",
+            "action":"Manter o registro periódico da execução, medições, recebimentos e ocorrências relevantes.",
+            "why":"Os controles aplicáveis da fiscalização foram localizados e não há pendência automática que determine encaminhamento."
+        }
+
+    out["conclusion"]=(
+        "Perfil "+PB_PROFILE["label"]+" · Execução contratual: foram localizados "
+        +str(len(present))+" de "+str(len(applicable_rows))+
+        " controles aplicáveis. Controles condicionais são ativados apenas quando os autos indicam a situação correspondente."
+    )
+    return out
+
+core._module_overlay=_module_overlay_v120
+
+
+_old_document_marker_v120=core._document_marker
+def _document_marker_v120(text):
+    raw=text or ""
+    lines=[re.sub(r"\s+"," ",x).strip() for x in raw.splitlines() if x.strip()]
+    heads=[
+        "PROCESSO DE FISCALIZAÇÃO CONTRATUAL",
+        "PROCESSO DE FISCALIZACAO CONTRATUAL",
+        "PORTARIA DE DESIGNAÇÃO DE FISCAL E GESTOR",
+        "PORTARIA DE DESIGNACAO DE FISCAL E GESTOR",
+        "RELATÓRIO DE FISCALIZAÇÃO E EXECUÇÃO",
+        "RELATORIO DE FISCALIZACAO E EXECUCAO",
+        "BOLETIM DE MEDIÇÃO E ATESTO",
+        "BOLETIM DE MEDICAO E ATESTO",
+        "REGISTRO DE OCORRÊNCIA CONTRATUAL",
+        "REGISTRO DE OCORRENCIA CONTRATUAL",
+        "MANIFESTAÇÃO E PLANO DE CORREÇÃO DA CONTRATADA",
+        "MANIFESTACAO E PLANO DE CORRECAO DA CONTRATADA",
+        "RELATÓRIO FINAL DE FISCALIZAÇÃO E REGULARIZAÇÃO",
+        "RELATORIO FINAL DE FISCALIZACAO E REGULARIZACAO",
+    ]
+    for line in lines[:10]:
+        up=line.upper()
+        if any(h in up for h in heads) and len(line)<=195:
+            return line
+    return _old_document_marker_v120(text)
+
+core._document_marker=_document_marker_v120
+
+
+_fiscalizacao_v120_js=r"""
+<script id="fiscaliza-fiscalizacao-v120-js">
+var _overviewEtapasV120=overviewEtapasV96;
+overviewEtapasV96=function(a){
+  if(a&&a.module_key==="fiscalizacao"){
+    var rows=(a.legal_matrix||[]);
+    var state=function(id){
+      return rows.find(function(x){return x.control_id===id});
+    };
+    var ok=function(id){
+      var r=state(id);return !!(r&&(r.ok||!r.applicable));
+    };
+    return [
+      ["Contrato / responsáveis",ok("contrato_vigente")&&ok("designacao")],
+      ["Início / execução",ok("ordem_execucao")&&ok("acompanhamento")],
+      ["Medição / recebimento",ok("medicao_atesto")&&ok("recebimento")],
+      ["Ocorrências / ciência",ok("ocorrencia")&&ok("notificacao")],
+      ["Providências",ok("providencia")&&ok("encaminhamento_penalizacao")]
+    ];
+  }
+  return _overviewEtapasV120(a);
+};
+
+var _renderPerfilNormativoV120=renderPerfilNormativoV100;
+renderPerfilNormativoV100=function(a){
+  if(!a||["planejamento","formalizacao","fiscalizacao"].indexOf(a.module_key)<0||!a.normative_profile)return;
+  return _renderPerfilNormativoV120(a);
+};
+
+/* A função anterior limita os módulos aceitos; replica a renderização para Fiscalização. */
+function renderFiscalizacaoNormativaV120(a){
+  if(!a||a.module_key!=="fiscalizacao"||!a.normative_profile)return;
+  var hub=document.getElementById("overviewHub");
+  if(!hub)return;
+
+  var meta=hub.querySelector(".ov-meta");
+  if(meta&&!meta.querySelector(".pb-profile-chip")){
+    var chip=document.createElement("span");
+    chip.className="pb-profile-chip";
+    chip.textContent="Perfil normativo: "+a.normative_profile.label+" · "+a.normative_profile.version;
+    meta.appendChild(chip);
+    var proc=document.createElement("span");
+    proc.className="pb-profile-chip";
+    proc.textContent="Procedimento: "+((a.procedure&&a.procedure.label)||"Execução contratual");
+    meta.appendChild(proc);
+  }
+
+  var old=document.getElementById("legalMatrixPanelV100");
+  if(old)old.remove();
+
+  var panel=document.createElement("section");
+  panel.id="legalMatrixPanelV100";
+  panel.className="ov-panel pb-legal-panel";
+  var rows=(a.legal_matrix||[]).map(function(r){
+    var source=(r.documents&&r.documents.length)
+      ? documentRefHtml(r.documents,r.pages||[])
+      : '<span class="pb-legal-source">Sem evidência documental rastreável</span>';
+    return '<tr>'+
+      '<td>'+ovEsc(r.label)+'</td>'+
+      '<td><span class="pb-legal-status '+legalStatusClassV100(r.status)+'">'+ovEsc(r.status)+'</span></td>'+
+      '<td>'+ovEsc(r.responsible)+'</td>'+
+      '<td>'+ovEsc(r.foundation)+'<div class="pb-legal-source">'+ovEsc(r.nature)+'</div></td>'+
+      '<td>'+source+'</td>'+
+    '</tr>';
+  }).join("");
+
+  panel.innerHTML=
+    '<div class="ov-panel-head"><div>'+
+      '<h3>Matriz normativa · Perfil Pimenta Bueno</h3>'+
+      '<p>Execução, fiscalização, recebimento, ocorrências e providências com incidência condicional quando cabível.</p>'+
+    '</div></div>'+
+    '<div class="pb-legal-table-wrap"><table class="pb-legal-table">'+
+      '<thead><tr><th>Controle</th><th>Status</th><th>Responsável</th><th>Fundamento / natureza</th><th>Evidência</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table></div>'+
+    '<div class="pb-legal-note">'+ovEsc(a.normative_profile.review_notice)+'</div>';
+
+  var grids=hub.querySelectorAll(".ov-grid");
+  if(grids.length)grids[0].insertAdjacentElement("afterend",panel);
+  else hub.appendChild(panel);
+}
+
+var _normalizarOverviewV120=normalizarOverviewV96;
+normalizarOverviewV96=function(a){
+  _normalizarOverviewV120(a);
+  if(a&&a.module_key==="fiscalizacao")renderFiscalizacaoNormativaV120(a);
+};
+</script>
+"""
+core.HTML=core.HTML.replace("</body>",_fiscalizacao_v120_js+"</body>",1)
+core.app.version="12.0"
