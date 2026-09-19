@@ -6272,3 +6272,277 @@ document.addEventListener("DOMContentLoaded",function(){
 """
 core.HTML = core.HTML.replace("</body>", _model_intent_v98_js + "</body>", 1)
 core.app.version="9.9"
+
+
+# --- Perfil normativo Pimenta Bueno v10.0 ---
+from profile_pimenta_bueno import (
+    PROFILE as PB_PROFILE,
+    PROCEDURES as PB_PROCEDURES,
+    PLANEJAMENTO_CONTROLS as PB_PLANEJAMENTO_CONTROLS,
+    classify_planning_procedure as pb_classify_planning_procedure,
+)
+
+# No perfil Pimenta Bueno, o rótulo principal é DOD; DFD continua aceito como sinônimo.
+core.MODULE_AUDIT["planejamento"] = [
+    ("Há DOD — Documento Oficial de Demanda?",[
+        r"\bdocumento oficial de demanda\b",r"\bdod\b",
+        r"\bdocumento de formalizacao da demanda\b",r"\bdfd\b"
+    ]),
+    ("Há Estudo Técnico Preliminar (ETP)?",[
+        r"\bestudo tecnico preliminar\b",r"\betp\b"
+    ]),
+    ("Há Termo de Referência ou Projeto Básico?",[
+        r"\btermo de referencia\b",r"\bprojeto basico\b"
+    ]),
+    ("Há pesquisa de preços ou orçamento estimado?",[
+        r"\bpesquisa de precos\b",r"\borcamento estimado\b"
+    ]),
+    ("Há análise, mapa ou matriz de riscos?",[
+        r"\banalise de riscos\b",r"\bmapa de riscos\b",r"\bmatriz de riscos\b"
+    ]),
+    ("Há autorização ou aprovação do planejamento?",[
+        r"\bautorizacao do planejamento\b",r"\baprovacao do planejamento\b",
+        r"\bautoriza.{0,80}prosseguimento\b"
+    ])
+]
+
+# Atualiza o caso fictício de Planejamento para a terminologia municipal e informa
+# o procedimento pretendido, permitindo ao classificador selecionar a matriz correta.
+if "planejamento" in core.MODEL_CASES:
+    core.MODEL_CASES["planejamento"]["pages"] = [
+        (
+            "PROCESSO DE PLANEJAMENTO DA CONTRATAÇÃO Nº 3101/2026",
+            "CASO FICTÍCIO. Procedimento pretendido: Pregão eletrônico para aquisição de bens. Aquisição de notebooks para modernização de unidades administrativas municipais."
+        ),
+        (
+            "DOCUMENTO OFICIAL DE DEMANDA — DOD",
+            "A Secretaria de Origem registra a necessidade de aquisição, problema a ser resolvido, quantitativo preliminar de 60 notebooks e resultados esperados. Documento Oficial de Demanda aprovado pela chefia da unidade."
+        ),
+        (
+            "ESTUDO TÉCNICO PRELIMINAR — ETP",
+            "O Estudo Técnico Preliminar descreve a necessidade, alternativas disponíveis, requisitos mínimos, estimativa de quantitativos e justificativa da solução escolhida."
+        ),
+        (
+            "ANÁLISE DE RISCOS",
+            "A análise de riscos identifica riscos de especificação inadequada, atraso no fornecimento, variação de preços e recebimento de equipamentos em desacordo, com medidas preventivas e responsáveis."
+        ),
+        (
+            "PESQUISA DE PREÇOS E ORÇAMENTO ESTIMADO",
+            "A pesquisa de preços reúne fontes de mercado e consolida orçamento estimado para 60 unidades, com memória da metodologia utilizada e tratamento dos valores coletados."
+        ),
+        (
+            "TERMO DE REFERÊNCIA",
+            "O Termo de Referência define objeto, 60 notebooks, requisitos técnicos, prazo de entrega, critérios de aceitação, obrigações, fiscalização, forma de pagamento e condições de recebimento."
+        ),
+        (
+            "AUTORIZAÇÃO DO PLANEJAMENTO",
+            "A autoridade competente registra autorização para prosseguimento da contratação após conferência do DOD, Estudo Técnico Preliminar, pesquisa de preços, análise de riscos e Termo de Referência."
+        )
+    ]
+
+_old_module_overlay_v100 = core._module_overlay
+def _module_overlay_v100(pages,a,module):
+    out=_old_module_overlay_v100(pages,a,module)
+    if module!="planejamento":
+        return out
+
+    joined=core.norm("\n".join(p.get("text") or "" for p in pages))
+    procedure=pb_classify_planning_procedure(joined)
+    proc_label=PB_PROCEDURES.get(procedure,PB_PROCEDURES["outro"])
+
+    out["normative_profile"]={
+        "id":PB_PROFILE["id"],
+        "label":PB_PROFILE["label"],
+        "version":PB_PROFILE["version"],
+        "review_notice":PB_PROFILE["review_notice"],
+    }
+    out["procedure"]={"key":procedure,"label":proc_label}
+
+    matrix=out.get("module_matrix") or []
+    legal=[]
+    for i,control in enumerate(PB_PLANEJAMENTO_CONTROLS):
+        base=matrix[i] if i<len(matrix) else {}
+        applicable=(procedure=="outro" or procedure in control["applies_to"])
+        found=bool(base.get("ok"))
+        if not applicable:
+            state="Condicional"
+        elif found:
+            state="Localizado"
+        else:
+            state="Não localizado"
+
+        legal.append({
+            "control_id":control["id"],
+            "label":control["label"],
+            "aliases":control.get("aliases") or [],
+            "responsible":control["responsible"],
+            "nature":control["nature"],
+            "criticality":control["criticality"],
+            "foundation":control["foundation"],
+            "absence_action":control["absence_action"],
+            "applicable":applicable,
+            "status":state,
+            "ok":found,
+            "pages":(base.get("pages") or [])[:8],
+            "excerpt":base.get("excerpt") or "",
+        })
+
+        if i<len(matrix):
+            matrix[i]["legal_control_id"]=control["id"]
+            matrix[i]["responsible"]=control["responsible"]
+            matrix[i]["nature"]=control["nature"]
+            matrix[i]["criticality"]=control["criticality"]
+            matrix[i]["foundation"]=control["foundation"]
+            matrix[i]["applicable"]=applicable
+            matrix[i]["legal_status"]=state
+
+    out["legal_matrix"]=legal
+
+    missing=[x for x in legal if x["applicable"] and not x["ok"]]
+    out["review_flags"]=[
+        {
+            "level":"alta" if x["criticality"]=="alta" else "media",
+            "text":x["label"]+" não localizado. "+x["absence_action"]
+        }
+        for x in missing[:5]
+    ]
+    if missing:
+        out["next_action"]={
+            "stage":"Planejamento · Perfil Pimenta Bueno",
+            "action":"Conferir ou localizar: "+missing[0]["label"]+".",
+            "why":"O controle é esperado no fluxo classificado como "+proc_label+"; a ausência deve ser conferida por revisão humana."
+        }
+    else:
+        out["next_action"]={
+            "stage":"Planejamento · controles localizados",
+            "action":"Confrontar a coerência entre DOD, ETP, Termo de Referência, quantitativos, pesquisa de preços e riscos antes do prosseguimento.",
+            "why":"Os controles parametrizados aplicáveis ao fluxo "+proc_label+" foram localizados automaticamente."
+        }
+
+    out["conclusion"]=(
+        "Perfil "+PB_PROFILE["label"]+" · "+proc_label+": o sistema localizou "
+        +str(sum(1 for x in legal if x["applicable"] and x["ok"]))+" de "
+        +str(sum(1 for x in legal if x["applicable"]))+
+        " controles normativos/documentais aplicáveis. A classificação e a incidência permanecem sujeitas à revisão humana."
+    )
+    return out
+
+core._module_overlay=_module_overlay_v100
+
+_old_enrich_doc_refs_v100=core._enrich_doc_refs
+def _enrich_doc_refs_v100(a,pages):
+    out=_old_enrich_doc_refs_v100(a,pages)
+    for x in out.get("legal_matrix",[]) or []:
+        x["documents"]=core._page_doc_refs(pages,None,x.get("pages",[]))
+    return out
+core._enrich_doc_refs=_enrich_doc_refs_v100
+
+
+_profile_v100_css = r"""
+<style id="fiscaliza-profile-v100">
+.pb-profile-chip{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 8px;
+  border:1px solid #bddbd6;border-radius:999px;background:#eef9f7;
+  color:#087b70;font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:16px!important;font-weight:700
+}
+.pb-legal-panel{margin-top:11px!important}
+.pb-legal-panel .ov-panel-head h3{font-size:18px!important}
+.pb-legal-panel .ov-panel-head p{font-size:16px!important;line-height:1.4!important}
+.pb-legal-table-wrap{overflow-x:auto}
+.pb-legal-table{
+  width:100%;border-collapse:collapse;min-width:980px;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif
+}
+.pb-legal-table th{
+  text-align:left;padding:9px 10px;border-bottom:2px solid #dbe5eb;
+  color:#5d7183;font-size:15px!important;font-weight:700
+}
+.pb-legal-table td{
+  vertical-align:top;padding:10px;border-bottom:1px solid #e8eef2;
+  color:#304b61;font-size:16px!important;line-height:1.35!important
+}
+.pb-legal-table td:first-child{font-weight:700;color:#17364f}
+.pb-legal-status{
+  display:inline-flex;padding:4px 7px;border-radius:999px;font-size:15px!important;font-weight:700;white-space:nowrap
+}
+.pb-legal-status.ok{background:#eaf7f4;color:#087b70}
+.pb-legal-status.warn{background:#fff2df;color:#966100}
+.pb-legal-status.conditional{background:#eef2f5;color:#5c7081}
+.pb-legal-source{margin-top:4px;color:#718698;font-size:14px!important}
+.pb-legal-note{
+  margin-top:10px;padding:9px 11px;border:1px solid #dce7ed;border-radius:9px;
+  background:#f8fafb;color:#647b8d;font-size:15px!important;line-height:1.4!important
+}
+</style>
+"""
+core.HTML=core.HTML.replace("</head>",_profile_v100_css+"</head>",1)
+
+_profile_v100_js = r"""
+<script id="fiscaliza-profile-v100-js">
+function legalStatusClassV100(status){
+  if(status==="Localizado")return "ok";
+  if(status==="Condicional")return "conditional";
+  return "warn";
+}
+function renderPerfilNormativoV100(a){
+  if(!a||a.module_key!=="planejamento"||!a.normative_profile)return;
+  var hub=document.getElementById("overviewHub");
+  if(!hub)return;
+
+  var meta=hub.querySelector(".ov-meta");
+  if(meta&&!meta.querySelector(".pb-profile-chip")){
+    var chip=document.createElement("span");
+    chip.className="pb-profile-chip";
+    chip.textContent="Perfil normativo: "+a.normative_profile.label+" · "+a.normative_profile.version;
+    meta.appendChild(chip);
+
+    var proc=document.createElement("span");
+    proc.className="pb-profile-chip";
+    proc.textContent="Procedimento: "+((a.procedure&&a.procedure.label)||"Não classificado");
+    meta.appendChild(proc);
+  }
+
+  var old=document.getElementById("legalMatrixPanelV100");
+  if(old)old.remove();
+
+  var panel=document.createElement("section");
+  panel.id="legalMatrixPanelV100";
+  panel.className="ov-panel pb-legal-panel";
+  var rows=(a.legal_matrix||[]).map(function(r){
+    var source=(r.documents&&r.documents.length)
+      ? documentRefHtml(r.documents,r.pages||[])
+      : '<span class="pb-legal-source">Sem evidência documental rastreável</span>';
+    return '<tr>'+
+      '<td>'+ovEsc(r.label)+'</td>'+
+      '<td><span class="pb-legal-status '+legalStatusClassV100(r.status)+'">'+ovEsc(r.status)+'</span></td>'+
+      '<td>'+ovEsc(r.responsible)+'</td>'+
+      '<td>'+ovEsc(r.foundation)+'<div class="pb-legal-source">'+ovEsc(r.nature)+'</div></td>'+
+      '<td>'+source+'</td>'+
+    '</tr>';
+  }).join("");
+
+  panel.innerHTML=
+    '<div class="ov-panel-head"><div>'+
+      '<h3>Matriz normativa · Perfil Pimenta Bueno</h3>'+
+      '<p>Controle esperado, responsável, fundamento parametrizado e evidência localizada nos autos.</p>'+
+    '</div></div>'+
+    '<div class="pb-legal-table-wrap"><table class="pb-legal-table">'+
+      '<thead><tr><th>Controle</th><th>Status</th><th>Responsável</th><th>Fundamento / natureza</th><th>Evidência</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table></div>'+
+    '<div class="pb-legal-note">'+ovEsc(a.normative_profile.review_notice)+'</div>';
+
+  var grids=hub.querySelectorAll(".ov-grid");
+  if(grids.length)grids[0].insertAdjacentElement("afterend",panel);
+  else hub.appendChild(panel);
+}
+
+var _normalizarOverviewV100=normalizarOverviewV96;
+normalizarOverviewV96=function(a){
+  _normalizarOverviewV100(a);
+  renderPerfilNormativoV100(a);
+};
+</script>
+"""
+core.HTML=core.HTML.replace("</body>",_profile_v100_js+"</body>",1)
+core.app.version="10.0"
