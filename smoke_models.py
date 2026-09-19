@@ -14,7 +14,7 @@ MODULES = [
 EXPECTED_MARKERS = {
     "planejamento": "documento oficial de demanda",
     "formalizacao": "fase externa",
-    "fiscalizacao": "instrumento contratual",
+    "fiscalizacao": "contrato ou instrumento vigente",
     "alteracoes": "alteração contratual",
     "penalizacao": "contrato ou instrumento",
     "encerramento": "contrato ou instrumento a encerrar",
@@ -69,15 +69,16 @@ def main():
         if int(profile.get("documents") or 0) < 4:
             fail(f"{module}: rastreabilidade documental insuficiente: {profile.get('documents')} docs")
 
-        if module in ("planejamento", "formalizacao"):
+        if module in ("planejamento", "formalizacao", "fiscalizacao"):
             np = analysis.get("normative_profile") or {}
             proc = analysis.get("procedure") or {}
             legal = analysis.get("legal_matrix") or []
             if np.get("id") != "pimenta_bueno_ro":
                 fail(f"{module}: perfil normativo de Pimenta Bueno ausente")
-            if proc.get("key") != "pregao_bens":
+            expected_proc = "execucao_contratual" if module == "fiscalizacao" else "pregao_bens"
+            if proc.get("key") != expected_proc:
                 fail(f"{module}: procedimento classificado incorretamente: {proc}")
-            expected = 6 if module == "planejamento" else 11
+            expected = {"planejamento": 6, "formalizacao": 11, "fiscalizacao": 10}[module]
             if len(legal) != expected:
                 fail(f"{module}: matriz normativa deveria ter {expected} controles; encontrou {len(legal)}")
             if not all(x.get("foundation") for x in legal):
@@ -87,7 +88,7 @@ def main():
             if module == "planejamento":
                 if legal[0].get("control_id") != "dod" or not legal[0].get("ok"):
                     fail(f"planejamento: DOD não foi parametrizado/localizado corretamente: {legal[0] if legal else None}")
-            else:
+            elif module == "formalizacao":
                 ids = [x.get("control_id") for x in legal]
                 required_ids = ["conferencia_fase_preparatoria","parecer_pgm","manifestacao_cgm","adjudicacao_homologacao","empenho","contrato","designacao_fiscal_gestor","publicacao_registro"]
                 for rid in required_ids:
@@ -95,6 +96,15 @@ def main():
                         fail(f"formalizacao: controle normativo ausente: {rid}")
                 if not all(x.get("ok") for x in legal):
                     fail(f"formalizacao: processo modelo não localizou todos os controles: {[(x.get('control_id'),x.get('status')) for x in legal]}")
+            else:
+                by_id = {x.get("control_id"): x for x in legal}
+                required_ids = ["contrato_vigente","designacao","acompanhamento","medicao_atesto","recebimento","ocorrencia","notificacao","providencia"]
+                for rid in required_ids:
+                    if not by_id.get(rid, {}).get("ok"):
+                        fail(f"fiscalizacao: controle deveria estar localizado: {rid}")
+                penalty = by_id.get("encaminhamento_penalizacao") or {}
+                if penalty.get("applicable") or penalty.get("status") != "Condicional":
+                    fail(f"fiscalizacao: encaminhamento para penalização deveria ser condicional após regularização: {penalty}")
 
         results.append(
             (
