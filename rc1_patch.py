@@ -8154,8 +8154,12 @@ def _module_overlay_v140(pages,a,module):
                 status="Aguardando / conferir prazo"
         elif cid=="instrucao_pos_defesa":
             applicable=defense_or_lapse
+            if defense_or_lapse and not pgs[cid] and (pgs["relatorio_comissao"] or decision_found):
+                status="Superado por ato conclusivo posterior"
         elif cid=="relatorio_comissao":
-            applicable=defense_or_lapse or instruction_found or decision_found
+            applicable=bool(pgs[cid])
+            if not pgs[cid]:
+                status="Condicional — conforme fluxo aplicável"
         elif cid=="decisao":
             applicable=instruction_found or decision_found
         elif cid=="ciencia_decisao":
