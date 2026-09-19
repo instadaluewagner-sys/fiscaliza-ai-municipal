@@ -7,13 +7,14 @@ on:
       - "app_v33.py"
       - "rc1_patch.py"
       - "smoke_models.py"
+      - "ui_smoke.py"
       - ".github/workflows/smoke-models.yml"
   workflow_dispatch:
 
 jobs:
   smoke-models:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -27,7 +28,30 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install fastapi uvicorn pymupdf python-multipart reportlab pytesseract pillow httpx
+          pip install fastapi uvicorn pymupdf python-multipart reportlab pytesseract pillow httpx playwright
 
-      - name: Run six-module smoke test
+      - name: Install Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run six-module API smoke test
         run: python smoke_models.py
+
+      - name: Start application
+        run: |
+          uvicorn rc1_patch:app --host 127.0.0.1 --port 8000 > /tmp/fiscaliza.log 2>&1 &
+          echo $! > /tmp/fiscaliza.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8000/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/fiscaliza.log
+          exit 1
+
+      - name: Run UI navigation simulation
+        run: python ui_smoke.py
+
+      - name: Show server log on failure
+        if: failure()
+        run: cat /tmp/fiscaliza.log || true
