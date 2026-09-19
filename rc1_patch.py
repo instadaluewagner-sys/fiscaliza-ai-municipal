@@ -5483,3 +5483,184 @@ document.addEventListener("DOMContentLoaded",function(){
 """
 core.HTML = core.HTML.replace("</body>", _model_flow_v92_js + "</body>", 1)
 core.app.version="9.2"
+
+
+# --- Especialização real dos novos módulos v9.3 ---
+# Corrige fallback genérico, identificação do processo e segmentação documental.
+
+core.MODULE_AUDIT.update({
+    "planejamento":[
+        ("Há Documento de Formalização da Demanda (DFD)?",[
+            r"\bdocumento de formalizacao da demanda\b",r"\bdfd\b"
+        ]),
+        ("Há Estudo Técnico Preliminar (ETP)?",[
+            r"\bestudo tecnico preliminar\b",r"\betp\b"
+        ]),
+        ("Há Termo de Referência ou Projeto Básico?",[
+            r"\btermo de referencia\b",r"\bprojeto basico\b"
+        ]),
+        ("Há pesquisa de preços ou orçamento estimado?",[
+            r"\bpesquisa de precos\b",r"\borcamento estimado\b"
+        ]),
+        ("Há mapa ou matriz de riscos?",[
+            r"\bmapa de riscos\b",r"\bmatriz de riscos\b"
+        ]),
+        ("Há autorização ou aprovação do planejamento?",[
+            r"\bautorizacao do planejamento\b",r"\baprovacao do planejamento\b",
+            r"\bautoriza.{0,80}prosseguimento\b"
+        ])
+    ],
+    "formalizacao":[
+        ("Há edital ou instrumento de seleção?",[
+            r"\bedital\b",r"\binstrumento de selecao\b"
+        ]),
+        ("Há proposta vencedora?",[
+            r"\bproposta vencedora\b",r"\bempresa vencedora\b"
+        ]),
+        ("Há ata da sessão ou registro do resultado?",[
+            r"\bata da sessao\b",r"\bregistro do resultado\b"
+        ]),
+        ("Há adjudicação e homologação?",[
+            r"\badjudic",r"\bhomolog"
+        ]),
+        ("Há contrato ou instrumento equivalente?",[
+            r"\bcontrato administrativo\b",r"\binstrumento equivalente\b"
+        ]),
+        ("Há designação de fiscal e/ou gestor?",[
+            r"\bdesignacao de fiscal\b",r"\bfiscal e gestor\b",r"\bgestor do contrato\b"
+        ])
+    ],
+    "alteracoes":[
+        ("Há pedido ou justificativa da alteração contratual?",[
+            r"\bpedido.{0,100}alteracao contratual\b",
+            r"\bjustificativa.{0,100}alteracao contratual\b",
+            r"\bpedido.{0,100}reequilibrio\b",
+            r"\bprorrogacao\b"
+        ]),
+        ("Há contrato vigente vinculado?",[
+            r"\bcontrato administrativo\b",r"\bcontrato vigente\b"
+        ]),
+        ("Há planilha, memória de cálculo ou pesquisa de preços?",[
+            r"\bplanilha\b",r"\bmemoria de calculo\b",r"\bpesquisa de precos\b"
+        ]),
+        ("Há disponibilidade orçamentária?",[
+            r"\bdotacao\b",r"\bdisponibilidade orcamentaria\b"
+        ]),
+        ("Há análise técnica ou parecer jurídico?",[
+            r"\bnota tecnica\b",r"\bparecer juridico\b",r"\banalise tecnica\b"
+        ]),
+        ("Há termo aditivo, apostilamento ou decisão?",[
+            r"\btermo aditivo\b",r"\bapostilamento\b",r"\bdecisao administrativa\b"
+        ])
+    ],
+    "encerramento":[
+        ("Há contrato ou instrumento a encerrar?",[
+            r"\bcontrato administrativo\b",r"\binstrumento contratual\b"
+        ]),
+        ("Há motivação da extinção ou encerramento?",[
+            r"\bmotivacao.{0,100}(?:extincao|encerramento)\b",
+            r"\brelatorio de motivacao da extincao\b"
+        ]),
+        ("Houve notificação ou ciência da contratada?",[
+            r"\bnotificacao\b",r"\bciencia da contratada\b"
+        ]),
+        ("Há manifestação ou contraditório quando cabível?",[
+            r"\bmanifestacao da contratada\b",r"\bcontraditorio\b"
+        ]),
+        ("Há parecer ou análise final?",[
+            r"\bparecer juridico\b",r"\banalise final\b"
+        ]),
+        ("Há decisão e registro de encerramento?",[
+            r"\bdecisao de extincao contratual\b",
+            r"\btermo de encerramento\b",
+            r"\bregistros finais\b"
+        ])
+    ]
+})
+
+# Número de processo específico por novo fluxo.
+_old_module_process_number_v93 = core._module_process_number
+def _module_process_number_v93(pages,module):
+    joined="\n".join(p.get("text") or "" for p in pages)
+    pats={
+        "planejamento":[
+            r"Processo de Planejamento da Contrata[cç][aã]o\s*n[ºo.]?\s*([0-9.\-\/]+)"
+        ],
+        "formalizacao":[
+            r"Processo de Formaliza[cç][aã]o da Contrata[cç][aã]o\s*n[ºo.]?\s*([0-9.\-\/]+)"
+        ],
+        "alteracoes":[
+            r"Processo de Altera[cç][aã]o Contratual\s*n[ºo.]?\s*([0-9.\-\/]+)"
+        ],
+        "encerramento":[
+            r"Processo de Extin[cç][aã]o e Encerramento\s*n[ºo.]?\s*([0-9.\-\/]+)",
+            r"Processo de Encerramento Contratual\s*n[ºo.]?\s*([0-9.\-\/]+)"
+        ]
+    }
+    if module in pats:
+        for pat in pats[module]:
+            m=re.search(pat,joined,flags=re.I)
+            if m:
+                return m.group(1).strip()
+    return _old_module_process_number_v93(pages,module)
+
+core._module_process_number = _module_process_number_v93
+
+# O gerador de ID documental reconhece as peças próprias do novo ciclo.
+_old_document_marker_v93 = core._document_marker
+def _document_marker_v93(text):
+    raw=text or ""
+    lines=[re.sub(r"\s+"," ",x).strip() for x in raw.splitlines() if x.strip()]
+    new_heads=[
+        "DOCUMENTO DE FORMALIZAÇÃO DA DEMANDA",
+        "DOCUMENTO DE FORMALIZACAO DA DEMANDA",
+        "ESTUDO TÉCNICO PRELIMINAR",
+        "ESTUDO TECNICO PRELIMINAR",
+        "TERMO DE REFERÊNCIA",
+        "TERMO DE REFERENCIA",
+        "PROJETO BÁSICO",
+        "PROJETO BASICO",
+        "PESQUISA DE PREÇOS",
+        "PESQUISA DE PRECOS",
+        "ORÇAMENTO ESTIMADO",
+        "ORCAMENTO ESTIMADO",
+        "MAPA DE RISCOS",
+        "MATRIZ DE RISCOS",
+        "AUTORIZAÇÃO DO PLANEJAMENTO",
+        "AUTORIZACAO DO PLANEJAMENTO",
+        "EDITAL DO PREGÃO",
+        "EDITAL DO PREGAO",
+        "PROPOSTA VENCEDORA",
+        "ATA DA SESSÃO",
+        "ATA DA SESSAO",
+        "ADJUDICAÇÃO E HOMOLOGAÇÃO",
+        "ADJUDICACAO E HOMOLOGACAO",
+        "PUBLICAÇÃO E REGISTRO DA CONTRATAÇÃO",
+        "PUBLICACAO E REGISTRO DA CONTRATACAO",
+        "PEDIDO E JUSTIFICATIVA DE ALTERAÇÃO CONTRATUAL",
+        "PEDIDO E JUSTIFICATIVA DE ALTERACAO CONTRATUAL",
+        "PLANILHA, MEMÓRIA DE CÁLCULO E PESQUISA DE PREÇOS",
+        "PLANILHA, MEMORIA DE CALCULO E PESQUISA DE PRECOS",
+        "DECLARAÇÃO DE DOTAÇÃO E DISPONIBILIDADE ORÇAMENTÁRIA",
+        "DECLARACAO DE DOTACAO E DISPONIBILIDADE ORCAMENTARIA",
+        "NOTA TÉCNICA DA UNIDADE GESTORA",
+        "NOTA TECNICA DA UNIDADE GESTORA",
+        "TERMO ADITIVO",
+        "RELATÓRIO DE MOTIVAÇÃO DA EXTINÇÃO",
+        "RELATORIO DE MOTIVACAO DA EXTINCAO",
+        "MANIFESTAÇÃO DA CONTRATADA",
+        "MANIFESTACAO DA CONTRATADA",
+        "DECISÃO DE EXTINÇÃO CONTRATUAL",
+        "DECISAO DE EXTINCAO CONTRATUAL",
+        "TERMO DE ENCERRAMENTO E REGISTROS FINAIS"
+    ]
+    for line in lines[:10]:
+        up=line.upper()
+        if any(h in up for h in new_heads) and len(line)<=170:
+            return line
+    return _old_document_marker_v93(text)
+
+core._document_marker = _document_marker_v93
+
+# Rótulos de cronologia mais legíveis para Planejamento.
+core.app.version="9.3"
