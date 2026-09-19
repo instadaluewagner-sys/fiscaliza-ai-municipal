@@ -66,7 +66,9 @@ pages_pre_commission = [
 a1 = analyze(pages_pre_commission)
 rows1 = {x["control_id"]: x for x in a1["legal_matrix"]}
 
-assert rows1["cobranca_previa"]["ok"] is True\nassert rows1["cobranca_previa"]["pages"] == [5, 6], rows1["cobranca_previa"]\nassert a1["quantity"]["value"] == "40", a1["quantity"]
+assert rows1["cobranca_previa"]["ok"] is True
+assert rows1["cobranca_previa"]["pages"] == [5, 6], rows1["cobranca_previa"]
+assert a1["quantity"]["value"] == "40", a1["quantity"]
 assert rows1["notificacao_comissao"]["ok"] is False
 assert rows1["defesa_ou_decurso"]["status"] == "Não exigível nesta fase"
 assert a1["next_action"]["stage"] == "Instrução inicial pela Comissão"
