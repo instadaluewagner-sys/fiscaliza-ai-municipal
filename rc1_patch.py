@@ -5976,3 +5976,86 @@ ativarProcessoNoSistema=function(a){
 """
 core.HTML = core.HTML.replace("</body>", _overview_normalize_v96_js + "</body>", 1)
 core.app.version="9.6"
+
+
+# --- Isolamento de estado e pendências por módulo v9.7 ---
+_old_module_overlay_v97 = core._module_overlay
+def _module_overlay_v97(pages,a,module):
+    out=_old_module_overlay_v97(pages,a,module)
+    if module!="penalizacao":
+        # Pendências herdadas do analisador sancionador não pertencem aos demais fluxos.
+        flags=out.get("review_flags") or []
+        out["pending"]=[x.get("text","") for x in flags if x.get("text")]
+
+        # A cronologia deve apontar o primeiro documento que materializa cada marco,
+        # não todas as páginas que apenas voltam a mencioná-lo.
+        for item in out.get("module_timeline") or []:
+            pgs=item.get("pages") or []
+            if pgs:
+                item["pages"]=[pgs[0]]
+    return out
+
+core._module_overlay=_module_overlay_v97
+core.app.version="9.7"
+
+
+_workspace_reset_v97_js = r"""
+<script id="fiscaliza-workspace-reset-v97-js">
+function emptyWorkspaceHtmlV97(){
+  return '<div style="display:flex;gap:14px;align-items:flex-start">'+
+    '<div class="empty-icon">+</div>'+
+    '<div><h3>Nenhum processo aberto</h3>'+
+    '<p>Inicie um novo processo para carregar os autos ou use um caso fictício pronto para conhecer este fluxo.</p>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">'+
+      '<button class="btn btn-primary" onclick="novoProcessoModulo()">+ Novo processo</button>'+
+      '<button class="btn btn-blue" onclick="usarProcessoModeloV92()">Usar processo modelo</button>'+
+    '</div></div></div>';
+}
+
+var _prepararInicioModuloV97=prepararInicioModulo;
+prepararInicioModulo=function(){
+  _prepararInicioModuloV97();
+
+  /* Nunca reaproveitar visão geral ou loading de outro módulo. */
+  var hub=document.getElementById("overviewHub");
+  if(hub){
+    hub.classList.remove("visible");
+    hub.innerHTML="";
+    hub.style.display="none";
+  }
+
+  var empty=document.getElementById("systemEmpty");
+  if(empty){
+    empty.innerHTML=emptyWorkspaceHtmlV97();
+    empty.style.display="flex";
+  }
+
+  var result=document.getElementById("result");
+  if(result){
+    result.innerHTML="";
+    result.style.display="none";
+  }
+
+  var dash=document.getElementById("dashDocs");
+  if(dash)dash.textContent="0";
+};
+
+var _ativarProcessoNoSistemaV97=ativarProcessoNoSistema;
+ativarProcessoNoSistema=function(a){
+  var hub=document.getElementById("overviewHub");
+  if(hub)hub.style.display="";
+  _ativarProcessoNoSistemaV97(a);
+  normalizarOverviewV96(a);
+};
+
+/* Para os demais módulos, pendência = controle específico ausente. */
+var _ovPendingV97=ovPending;
+ovPending=function(a){
+  if(a&&a.module_key!=="penalizacao"){
+    return (a.review_flags||[]).map(function(x){return x.text}).filter(Boolean).slice(0,5);
+  }
+  return _ovPendingV97(a);
+};
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _workspace_reset_v97_js + "</body>", 1)
