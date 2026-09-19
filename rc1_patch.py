@@ -1143,3 +1143,125 @@ renderOverviewHub=function(a){
 </script>
 """
 core.HTML = core.HTML.replace("</body>", _fiscal_exec_js + "</body>", 1)
+
+
+# --- Piso tipográfico absoluto nas telas internas v7.9 ---
+_internal_text_floor_css = r"""
+<style id="fiscaliza-internal-text-floor-v79">
+/*
+  Regra definitiva:
+  todo texto informativo nas telas internas >= 16px (~12pt).
+  Ícones decorativos ficam fora dessa regra.
+*/
+
+/* Visão geral: inclusive alertas/pontos de atenção */
+#overviewHub p,
+#overviewHub small,
+#overviewHub b,
+#overviewHub strong,
+#overviewHub span:not(.ov-row-icon):not(.fisc-exec-icon),
+#overviewHub button,
+#overviewHub a{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;
+  line-height:1.5!important
+}
+
+/* Ponto de atenção que ainda aparecia minúsculo */
+#overviewHub .ov-row b{
+  font-size:17px!important;
+  line-height:1.4!important
+}
+#overviewHub .ov-row p{
+  font-size:16px!important;
+  line-height:1.55!important;
+  margin-top:4px!important
+}
+#overviewHub .ov-row .ov-source{
+  font-size:16px!important;
+  line-height:1.4!important;
+  white-space:normal!important
+}
+#overviewHub .ov-note,
+#overviewHub .ov-draft-loading{
+  font-size:16px!important;
+  line-height:1.5!important
+}
+
+/* Telas detalhadas: Documentos, Evidências, Cronologia e Pendências */
+#result.system-result p,
+#result.system-result small,
+#result.system-result label,
+#result.system-result span:not(.piece-icon):not(.flag-dot),
+#result.system-result b,
+#result.system-result strong,
+#result.system-result td,
+#result.system-result th,
+#result.system-result button,
+#result.system-result a,
+#result.system-result summary{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;
+  line-height:1.5!important
+}
+
+/* Checklist de fiscalização */
+#result.system-result .check-row,
+#result.system-result .check-row span,
+#result.system-result .check-ok,
+#result.system-result .check-miss{
+  font-size:16px!important;
+  line-height:1.5!important
+}
+#result.system-result .check-row{
+  padding:12px 0!important;
+  gap:18px!important
+}
+
+/* Revisão/pontos antes da conclusão */
+#result.system-result .review-flag,
+#result.system-result .review-flag span{
+  font-size:16px!important;
+  line-height:1.55!important
+}
+
+/* Referências e rastreabilidade também devem ser lidas sem esforço */
+#result.system-result .trace-row,
+#result.system-result .trace-row b,
+#result.system-result .trace-row span,
+#result.system-result .source,
+#result.system-result .source-card,
+#result.system-result .page-chip,
+#result.system-result .finding-foot{
+  font-size:16px!important;
+  line-height:1.5!important
+}
+
+/* Títulos preservam hierarquia maior */
+#overviewHub h2,
+#result.system-result h2{
+  font-size:22px!important;
+  line-height:1.3!important
+}
+#overviewHub h3,
+#result.system-result h3{
+  font-size:20px!important;
+  line-height:1.3!important
+}
+#overviewHub h4,
+#result.system-result h4{
+  font-size:18px!important;
+  line-height:1.35!important
+}
+
+/* Rótulos superiores permanecem legíveis, mas discretos */
+#overviewHub .ov-eyebrow,
+#result.system-result .kicker{
+  font-size:16px!important;
+  line-height:1.4!important;
+  letter-spacing:.06em!important
+}
+</style>
+"""
+
+core.HTML = core.HTML.replace("</head>", _internal_text_floor_css + "</head>", 1)
