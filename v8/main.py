@@ -21,6 +21,8 @@ from v8.services.report import build_audit_payload, build_pdf_report
 BASE_DIR = Path(__file__).resolve().parent
 SESSION_TTL_SECONDS = int(os.getenv("V8_SESSION_TTL_SECONDS", "1800"))
 MAX_PDF_BYTES = int(os.getenv("V8_MAX_PDF_BYTES", str(30 * 1024 * 1024)))
+MAX_TOTAL_UPLOAD_BYTES = int(os.getenv("V8_MAX_TOTAL_UPLOAD_BYTES", str(60 * 1024 * 1024)))
+MAX_FILES = int(os.getenv("V8_MAX_FILES", "5"))
 V8_ANALYSES: dict[str, dict] = {}
 
 app = FastAPI(title="Fiscaliza.AI V8", version="8.0.0-rc.1")
@@ -79,6 +81,8 @@ def health():
         "temporary_sessions": len(V8_ANALYSES),
         "session_ttl_seconds": SESSION_TTL_SECONDS,
         "max_pdf_bytes": MAX_PDF_BYTES,
+        "max_total_upload_bytes": MAX_TOTAL_UPLOAD_BYTES,
+        "max_files": MAX_FILES,
     }
 
 
@@ -88,17 +92,34 @@ async def analyze(module: str = "penalizacao", files: List[UploadFile] = File(..
     if module != "penalizacao":
         raise HTTPException(400, "Na V8 RC, apenas Penalização contratual está habilitada.")
 
+    pdf_uploads = [
+        upload for upload in files
+        if (upload.filename or "").lower().endswith(".pdf")
+    ]
+    if len(pdf_uploads) > MAX_FILES:
+        raise HTTPException(
+            413,
+            f"Envie no máximo {MAX_FILES} PDFs por análise.",
+        )
+
     pages = []
     ocr_pages = 0
     names = []
     stored_files = []
+    total_upload_bytes = 0
 
-    for upload in files:
+    for upload in pdf_uploads:
         filename = Path(upload.filename or "processo.pdf").name
         filename = "".join(ch for ch in filename if ch >= " " and ch not in {'"', "\r", "\n"}) or "processo.pdf"
         if not filename.lower().endswith(".pdf"):
             continue
         data = await upload.read()
+        total_upload_bytes += len(data)
+        if total_upload_bytes > MAX_TOTAL_UPLOAD_BYTES:
+            raise HTTPException(
+                413,
+                f"O conjunto de arquivos excede o limite de {MAX_TOTAL_UPLOAD_BYTES // (1024 * 1024)} MB por análise.",
+            )
         if len(data) > MAX_PDF_BYTES:
             raise HTTPException(
                 413,
