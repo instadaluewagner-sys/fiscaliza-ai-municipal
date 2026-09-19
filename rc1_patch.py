@@ -933,3 +933,213 @@ body{font-family:var(--font-ui)!important;font-size:16px!important}
 """
 
 core.HTML = core.HTML.replace("</head>", _calibri12_strict_css + "</head>", 1)
+
+
+# --- Fiscalização: leitura executiva em cards e hierarquia visual v7.8 ---
+_fiscal_exec_css = r"""
+<style id="fiscalizacao-executiva-v78">
+/* Títulos e subtítulos realmente legíveis */
+#overviewHub .ov-panel-head h3{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:22px!important;
+  line-height:1.25!important;
+  margin:0!important
+}
+#overviewHub .ov-panel-head p{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;
+  line-height:1.5!important;
+  margin:5px 0 0!important;
+  color:#65788b!important
+}
+#overviewHub .ov-link{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;
+  line-height:1.35!important
+}
+
+/* Resumo executivo: curto e com respiro */
+#overviewHub .ov-summary{
+  font-size:17px!important;
+  line-height:1.65!important;
+  margin:0 0 16px!important;
+  color:#29445a!important;
+  max-width:980px
+}
+
+/* Grade visual da Fiscalização */
+.fisc-exec-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  margin-top:8px
+}
+.fisc-exec-card{
+  border:1px solid #dbe5ec;
+  border-left:5px solid #7da7c4;
+  border-radius:12px;
+  padding:15px 16px;
+  min-height:150px;
+  background:#f7fbfe
+}
+.fisc-exec-card.execution{
+  background:#f2f8fc;
+  border-left-color:#5f95b8
+}
+.fisc-exec-card.measurement{
+  background:#f2faf7;
+  border-left-color:#55a58c
+}
+.fisc-exec-card.occurrence{
+  background:#fff9ed;
+  border-left-color:#d39a3b
+}
+.fisc-exec-card.action{
+  background:#f5f7fb;
+  border-left-color:#778fa8
+}
+.fisc-exec-head{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  margin-bottom:9px
+}
+.fisc-exec-icon{
+  width:30px;height:30px;
+  border-radius:8px;
+  display:grid;
+  place-items:center;
+  font-size:16px;
+  font-weight:800;
+  background:rgba(255,255,255,.78);
+  border:1px solid rgba(17,49,73,.08)
+}
+.fisc-exec-card h4{
+  margin:0!important;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:18px!important;
+  line-height:1.3!important;
+  color:#17364e!important;
+  text-transform:none!important;
+  letter-spacing:0!important
+}
+.fisc-exec-card p{
+  margin:0!important;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;
+  line-height:1.55!important;
+  color:#354e63!important
+}
+.fisc-exec-source{
+  display:inline-flex;
+  margin-top:11px;
+  padding:5px 8px;
+  border-radius:999px;
+  background:rgba(255,255,255,.82);
+  border:1px solid #d8e2e9;
+  color:#61798c;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:14px!important;
+  line-height:1.25!important
+}
+
+/* Dossiê ao lado: títulos e dados sem mini-fontes */
+#overviewHub .ov-dossier-num{
+  font-size:15px!important
+}
+#overviewHub .ov-dossier-group b{
+  font-size:16px!important;
+  line-height:1.4!important
+}
+#overviewHub .ov-dossier-group span{
+  font-size:15px!important;
+  line-height:1.4!important
+}
+#overviewHub .ov-dossier-group{
+  padding:12px!important
+}
+
+/* Em notebook, mantém leitura sem comprimir os cards */
+@media(max-width:1180px){
+  #overviewHub .ov-grid{grid-template-columns:1fr!important}
+}
+@media(max-width:760px){
+  .fisc-exec-grid{grid-template-columns:1fr}
+}
+</style>
+"""
+core.HTML = core.HTML.replace("</head>", _fiscal_exec_css + "</head>", 1)
+
+_fiscal_exec_js = r"""
+<script id="fiscalizacao-executiva-v78-js">
+function fiscShortText(txt,max){
+  txt=String(txt||"").replace(/\s+/g," ").trim();
+  max=max||210;
+  if(txt.length<=max)return txt;
+  var cut=txt.slice(0,max);
+  var end=Math.max(cut.lastIndexOf(". "),cut.lastIndexOf("; "));
+  if(end>110)cut=cut.slice(0,end+1);
+  else cut=cut.replace(/\s+\S*$/,"")+"…";
+  return cut;
+}
+function fiscFindEvidence(a,terms){
+  var ev=a.module_evidence||[];
+  terms=terms||[];
+  for(var i=0;i<ev.length;i++){
+    var lab=String(ev[i].label||"").toLowerCase();
+    if(terms.some(function(t){return lab.indexOf(t)>=0}))return ev[i];
+  }
+  return null;
+}
+function fiscExecCard(cls,icon,title,item,fallback){
+  var text=item&&item.text?fiscShortText(item.text,220):fallback;
+  var src=item?ovPageSource(item):"";
+  return '<article class="fisc-exec-card '+cls+'">'+
+    '<div class="fisc-exec-head"><span class="fisc-exec-icon">'+icon+'</span><h4>'+ovEsc(title)+'</h4></div>'+
+    '<p>'+ovEsc(text||"Nenhum registro prioritário localizado automaticamente.")+'</p>'+
+    (src?'<span class="fisc-exec-source">'+ovEsc(src)+'</span>':'')+
+  '</article>';
+}
+function refinarLeituraExecutivaFiscalizacao(a){
+  if(!a||a.module_key!=="fiscalizacao")return;
+  var hub=document.getElementById("overviewHub");if(!hub)return;
+  var panels=hub.querySelectorAll(".ov-panel");
+  var panel=null;
+  for(var i=0;i<panels.length;i++){
+    var h=panels[i].querySelector(".ov-panel-head h3");
+    if(h&&h.textContent.trim()==="Leitura executiva"){panel=panels[i];break}
+  }
+  if(!panel)return;
+
+  var subtitle=panel.querySelector(".ov-panel-head p");
+  if(subtitle)subtitle.textContent="Síntese dos fatos essenciais da execução contratual.";
+
+  var summary=panel.querySelector(".ov-summary");
+  if(summary){
+    summary.textContent="Os autos apresentam os controles essenciais da fiscalização. Abaixo estão os quatro pontos que merecem leitura imediata antes de abrir os documentos detalhados.";
+  }
+
+  var execution=fiscFindEvidence(a,["execução verificada","responsabilidade do fiscal"]);
+  var measurement=fiscFindEvidence(a,["medição","recebimento"]);
+  var occurrence=fiscFindEvidence(a,["ocorrência"]);
+  var action=fiscFindEvidence(a,["manifestação","plano de correção","resultado do acompanhamento"]);
+
+  var old=panel.querySelector(".ov-evidence-columns");
+  if(old){
+    old.outerHTML='<div class="fisc-exec-grid">'+
+      fiscExecCard("execution","↗","Execução",execution,"A execução contratual foi acompanhada e registrada pela fiscalização.")+
+      fiscExecCard("measurement","✓","Medição / recebimento",measurement,"Conferir medição, recebimento e eventual glosa dos itens não executados.")+
+      fiscExecCard("occurrence","!","Ocorrências",occurrence,"Conferir as ocorrências registradas e as comunicações encaminhadas à contratada.")+
+      fiscExecCard("action","→","Providências / regularização",action,"Conferir as providências adotadas e o resultado da regularização.")+
+    '</div>';
+  }
+}
+
+var _renderOverviewHubExecV78=renderOverviewHub;
+renderOverviewHub=function(a){
+  _renderOverviewHubExecV78(a);
+  if(a&&a.module_key==="fiscalizacao")refinarLeituraExecutivaFiscalizacao(a);
+};
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _fiscal_exec_js + "</body>", 1)
