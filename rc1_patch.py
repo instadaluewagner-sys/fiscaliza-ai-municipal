@@ -528,10 +528,10 @@ function customizarMinutasFiscalizacao(){
   var chain=panel.querySelector(".doc-chain");
   if(chain){
     chain.innerHTML=
-      '<button class="btn btn-blue" onclick="gerarDocumento(\\'registro_ocorrencia\\')">Registro de ocorrência</button>'+
-      '<button class="btn btn-blue" onclick="gerarDocumento(\\'notificacao_ocorrencia\\')">Notificação de ocorrência</button>'+
-      '<button class="btn btn-blue" onclick="gerarDocumento(\\'despacho_regularizacao\\')">Despacho de providências</button>'+
-      '<button class="btn btn-primary" onclick="gerarDocumento(\\'relatorio_fiscalizacao\\')">Relatório de fiscalização</button>';
+      '<button class="btn btn-blue" onclick="gerarDocumento(\'registro_ocorrencia\')">Registro de ocorrência</button>'+
+      '<button class="btn btn-blue" onclick="gerarDocumento(\'notificacao_ocorrencia\')">Notificação de ocorrência</button>'+
+      '<button class="btn btn-blue" onclick="gerarDocumento(\'despacho_regularizacao\')">Despacho de providências</button>'+
+      '<button class="btn btn-primary" onclick="gerarDocumento(\'relatorio_fiscalizacao\')">Relatório de fiscalização</button>';
   }
 }
 
