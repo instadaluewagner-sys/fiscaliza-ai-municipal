@@ -5777,3 +5777,121 @@ modelLoaderV90State=function(mode,key,msg){
 </script>
 """
 core.HTML = core.HTML.replace("</body>", _model_context_v94_js + "</body>", 1)
+
+
+# --- Coerência executiva dos seis módulos v9.5 ---
+_overview_semantics_v95_js = r"""
+<script id="fiscaliza-overview-semantics-v95-js">
+/* Contagem no painel = documentos rastreáveis reais, não quantidade de controles. */
+var _ativarProcessoNoSistemaV95=ativarProcessoNoSistema;
+ativarProcessoNoSistema=function(a){
+  _ativarProcessoNoSistemaV95(a);
+  var docs=(a&&a.process_profile&&a.process_profile.documents);
+  var dash=document.getElementById("dashDocs");
+  if(dash&&docs!=null)dash.textContent=String(docs);
+
+  var footer=document.querySelector(".side-footer");
+  if(footer)footer.innerHTML="Rastreabilidade por documento e página<br>VERSÃO 9.5 · CICLO CONTRATUAL";
+};
+
+/* Etapas próprias por fluxo: elimina a régua genérica onde ela não faz sentido. */
+var _ovStagesV95=ovStages;
+ovStages=function(a){
+  var m=a&&a.module_key;
+  var rows=(a&&a.module_matrix)||[];
+  var ok=function(i){return !!(rows[i]&&rows[i].ok)};
+  if(m==="planejamento"){
+    return [
+      {label:"Demanda",done:ok(0)},
+      {label:"Estudos",done:ok(1)},
+      {label:"Especificação",done:ok(2)},
+      {label:"Preços e riscos",done:ok(3)&&ok(4)},
+      {label:"Aprovação",done:ok(5)}
+    ];
+  }
+  if(m==="formalizacao"){
+    return [
+      {label:"Seleção",done:ok(0)},
+      {label:"Proposta",done:ok(1)},
+      {label:"Resultado",done:ok(2)&&ok(3)},
+      {label:"Contrato",done:ok(4)},
+      {label:"Designação",done:ok(5)}
+    ];
+  }
+  if(m==="fiscalizacao"){
+    return [
+      {label:"Contrato",done:ok(0)},
+      {label:"Fiscal designado",done:ok(1)},
+      {label:"Execução",done:ok(2)},
+      {label:"Medição / recebimento",done:ok(3)},
+      {label:"Providências",done:ok(4)&&ok(5)}
+    ];
+  }
+  if(m==="alteracoes"){
+    return [
+      {label:"Pedido / justificativa",done:ok(0)},
+      {label:"Contrato vigente",done:ok(1)},
+      {label:"Cálculos e orçamento",done:ok(2)&&ok(3)},
+      {label:"Análise",done:ok(4)},
+      {label:"Formalização",done:ok(5)}
+    ];
+  }
+  if(m==="encerramento"){
+    return [
+      {label:"Contrato",done:ok(0)},
+      {label:"Motivação",done:ok(1)},
+      {label:"Ciência / manifestação",done:ok(2)&&ok(3)},
+      {label:"Análise final",done:ok(4)},
+      {label:"Encerramento",done:ok(5)}
+    ];
+  }
+  return _ovStagesV95(a);
+};
+
+function titulosEvidenciaV95(moduleKey){
+  var map={
+    planejamento:["Documentos estruturantes","Controles complementares"],
+    formalizacao:["Seleção e resultado","Contrato e designações"],
+    fiscalizacao:["Execução e acompanhamento","Ocorrências e providências"],
+    alteracoes:["Fundamentos da alteração","Análises e formalização"],
+    encerramento:["Motivação e contraditório","Decisão e encerramento"]
+  };
+  return map[moduleKey]||["Elementos localizados","Pontos para revisão"];
+}
+
+/* Pós-processa somente textos de interface; Penalização preserva o desenho já validado. */
+var _renderOverviewHubV95=renderOverviewHub;
+renderOverviewHub=function(a){
+  _renderOverviewHubV95(a);
+  if(!a||a.module_key==="penalizacao")return;
+
+  var hub=document.getElementById("overviewHub");
+  if(!hub)return;
+
+  var panelHeads=hub.querySelectorAll(".ov-panel-head");
+  panelHeads.forEach(function(head){
+    var h=head.querySelector("h3");
+    if(h&&h.textContent.trim()==="Leitura executiva"){
+      var p=head.querySelector("p");
+      if(p)p.textContent="Síntese dos documentos, controles localizados e pontos para revisão.";
+    }
+  });
+
+  var titles=titulosEvidenciaV95(a.module_key);
+  var blocks=hub.querySelectorAll(".ov-evidence-block h4");
+  if(blocks[0])blocks[0].textContent=titles[0];
+  if(blocks[1])blocks[1].textContent=titles[1];
+};
+
+/* Minutas coerentes com os novos nomes de módulo. */
+var _ovDefaultDraftKindV95=ovDefaultDraftKind;
+ovDefaultDraftKind=function(a){
+  var m=(a&&a.module_key)||selectedModule;
+  if(m==="alteracoes"||m==="encerramento")return "decisao";
+  if(m==="planejamento"||m==="formalizacao"||m==="fiscalizacao")return "relatorio";
+  return _ovDefaultDraftKindV95(a);
+};
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _overview_semantics_v95_js + "</body>", 1)
+core.app.version="9.5"
