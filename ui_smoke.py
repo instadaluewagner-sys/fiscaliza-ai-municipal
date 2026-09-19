@@ -25,6 +25,16 @@ def main():
 
         page.goto(BASE, wait_until="networkidle")
         page.locator("#homeV86").wait_for(state="visible")
+
+        # Abrir diretamente a URL de um módulo nunca pode iniciar demonstração.
+        page.goto(BASE + "/?module=planejamento", wait_until="networkidle")
+        expect(page.locator("#sideModuleName")).to_have_text("Planejamento da contratação")
+        expect(page.get_by_text("Nenhum processo aberto", exact=True)).to_be_visible(timeout=10000)
+        assert "Carregando processo modelo" not in page.locator("body").inner_text()
+        assert page.locator("#overviewHub .ov-title").count() == 0
+
+        page.goto(BASE, wait_until="networkidle")
+        page.locator("#homeV86").wait_for(state="visible")
         cards = page.locator("#homeV86 .home-v86-card")
         assert cards.count() == 6, f"Home deveria ter 6 módulos; encontrou {cards.count()}"
 
@@ -39,6 +49,19 @@ def main():
             expect(page.get_by_text("Nenhum processo aberto", exact=True)).to_be_visible(timeout=10000)
 
             home(page)
+
+            # No Planejamento, testa também a corrida: iniciar modelo e imediatamente
+            # escolher "Abrir módulo" precisa cancelar a demonstração por completo.
+            if key == "planejamento":
+                card = page.locator("#homeV86 .home-v86-card[data-module='planejamento']")
+                card.get_by_role("button", name="Processo modelo").click()
+                page.wait_for_url("**?module=planejamento")
+                page.evaluate("abrirModuloV92('planejamento')")
+                expect(page.get_by_text("Nenhum processo aberto", exact=True)).to_be_visible(timeout=10000)
+                page.wait_for_timeout(1500)
+                assert "Carregando processo modelo" not in page.locator("body").inner_text()
+                assert page.locator("#overviewHub .ov-title").count() == 0
+                home(page)
 
             # Processo modelo deve carregar somente o modelo do módulo escolhido.
             card = page.locator(f"#homeV86 .home-v86-card[data-module='{key}']")
@@ -77,7 +100,7 @@ def main():
 
         browser.close()
 
-    print("UI SMOKE OK — Home + 6 módulos + abertura vazia + 6 processos modelo")
+    print("UI SMOKE OK — URL direta + cancelamento de modelo + 6 módulos + 6 processos modelo")
 
 
 if __name__ == "__main__":
