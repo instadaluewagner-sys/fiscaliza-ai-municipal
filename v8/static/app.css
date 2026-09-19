@@ -60,6 +60,8 @@ button{cursor:pointer}
 .file-control input{width:100%;font-size:10.5px;color:#5f7385}
 .primary-btn{width:100%;border:0;background:var(--navy);color:#fff;border-radius:9px;padding:10px 13px;font-size:11px;font-weight:850;margin-top:10px}
 .primary-btn:hover{background:var(--navy-2)}
+.demo-btn{width:100%;border:1px solid var(--line-strong);background:#fff;color:var(--navy);border-radius:9px;padding:9px 13px;font-size:10.5px;font-weight:800;margin-top:7px}
+.demo-btn:hover{background:#f4f8fa}.demo-btn:disabled{opacity:.6;cursor:wait}
 .upload-card small{display:block;color:#7b8d9d;font-size:9.5px;line-height:1.45;margin-top:9px}
 
 .process-workspace{max-width:1540px;margin:0 auto}
