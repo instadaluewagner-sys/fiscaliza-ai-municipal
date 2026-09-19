@@ -1265,3 +1265,460 @@ _internal_text_floor_css = r"""
 """
 
 core.HTML = core.HTML.replace("</head>", _internal_text_floor_css + "</head>", 1)
+
+
+# --- Home aprovada: visual premium institucional v8.0 ---
+_home_v80_css = r"""
+<style id="fiscaliza-home-approved-v80">
+/* Página inicial aprovada: institucional, moderna e legível */
+.screen-home{padding-bottom:20px!important}
+.screen-home .home-welcome{margin-bottom:18px!important}
+
+.home-commercial-hero.home-approved-v80{
+  display:grid!important;
+  grid-template-columns:minmax(0,1.35fr) minmax(220px,.52fr) minmax(330px,.63fr)!important;
+  gap:22px!important;
+  align-items:center!important;
+  min-height:330px!important;
+  padding:30px 32px!important;
+  border-radius:20px!important;
+  background:
+    radial-gradient(circle at 74% 20%,rgba(24,199,189,.20),transparent 28%),
+    radial-gradient(circle at 95% 80%,rgba(15,164,157,.16),transparent 30%),
+    linear-gradient(118deg,#0d3150 0%,#104366 55%,#087b7e 100%)!important;
+  box-shadow:0 18px 44px rgba(12,47,74,.16)!important;
+  overflow:hidden!important;
+  position:relative!important
+}
+.home-commercial-hero.home-approved-v80:before{
+  content:"";position:absolute;inset:auto -90px -150px auto;width:420px;height:420px;border-radius:50%;
+  border:70px solid rgba(255,255,255,.035);pointer-events:none
+}
+.home-commercial-hero.home-approved-v80:after{
+  content:"";position:absolute;left:42%;top:-120px;width:380px;height:380px;
+  background:linear-gradient(140deg,rgba(255,255,255,.05),rgba(255,255,255,0));
+  transform:rotate(18deg);border-radius:90px;pointer-events:none
+}
+.home-approved-v80 .home-copy{z-index:2}
+.home-approved-v80 .home-badge{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;
+  font-weight:700!important;
+  letter-spacing:.08em!important;
+  padding:8px 12px!important;
+  border:1px solid rgba(255,255,255,.18)!important;
+  background:rgba(255,255,255,.09)!important;
+  color:#dff7f4!important
+}
+.home-approved-v80 h1{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  margin:15px 0 0!important;
+  font-size:38px!important;
+  line-height:1.08!important;
+  letter-spacing:-.7px!important;
+  color:#fff!important;
+  max-width:760px!important
+}
+.home-approved-v80 h1 .hero-accent{color:#55d8d2!important}
+.home-approved-v80 .home-copy>p{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  margin:14px 0 0!important;
+  font-size:17px!important;
+  line-height:1.6!important;
+  color:#e2edf3!important;
+  max-width:760px!important
+}
+.home-approved-v80 .home-benefits{
+  display:flex!important;gap:9px!important;flex-wrap:wrap!important;margin-top:20px!important
+}
+.home-approved-v80 .home-benefits span{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;
+  line-height:1.25!important;
+  padding:9px 12px!important;
+  border-radius:999px!important;
+  border:1px solid rgba(255,255,255,.18)!important;
+  background:rgba(255,255,255,.08)!important;
+  color:#f4fbfd!important
+}
+.home-approved-v80 .home-benefits span:before{
+  content:"✓"!important;color:#65e3d6!important;font-weight:900!important;margin-right:3px
+}
+
+/* Ilustração vetorial sem dependência externa */
+.home-visual{
+  position:relative;z-index:2;min-height:230px;display:flex;align-items:center;justify-content:center
+}
+.home-visual-card{
+  width:190px;height:190px;border-radius:28px;
+  background:linear-gradient(145deg,rgba(255,255,255,.18),rgba(255,255,255,.05));
+  border:1px solid rgba(255,255,255,.16);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 24px 54px rgba(4,34,54,.20);
+  transform:rotate(-3deg)
+}
+.home-visual-card svg{width:138px;height:138px;display:block}
+.home-visual-note{
+  position:absolute;right:-4px;bottom:5px;
+  width:150px;color:#ecffff;font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:16px;line-height:1.35;font-weight:700
+}
+
+/* Card de fluxo */
+.home-approved-v80 .home-side-card{
+  z-index:3!important;
+  background:rgba(255,255,255,.98)!important;
+  border:1px solid rgba(255,255,255,.46)!important;
+  border-radius:17px!important;
+  padding:20px!important;
+  box-shadow:0 16px 36px rgba(2,35,55,.14)!important;
+  min-height:270px!important
+}
+.home-approved-v80 .home-side-card small{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;color:#087f77!important;font-weight:800!important;
+  text-transform:uppercase!important;letter-spacing:.06em!important
+}
+.home-approved-v80 .home-side-card strong{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:22px!important;line-height:1.2!important;color:#102f49!important;margin-top:7px!important
+}
+.home-approved-v80 .home-side-card p{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;line-height:1.55!important;color:#5e7488!important;margin:10px 0 0!important
+}
+.home-approved-v80 .home-stats{
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;margin-top:16px!important
+}
+.home-approved-v80 .home-stat{
+  padding:10px!important;border:1px solid #dbe5ec!important;border-radius:11px!important;background:#f8fbfd!important
+}
+.home-approved-v80 .home-stat b{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:18px!important;color:#0f3150!important
+}
+.home-approved-v80 .home-stat span{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;line-height:1.35!important;color:#6b8092!important
+}
+.home-flow-foot{
+  margin-top:14px;padding-top:12px;border-top:1px solid #e1e8ee;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;font-size:16px;line-height:1.35;
+  color:#147c77;text-transform:uppercase;letter-spacing:.05em;font-weight:700
+}
+
+/* Módulos */
+.screen-home .module-panel.home-only{
+  background:#fff!important;border:1px solid #dfe8ee!important;
+  box-shadow:0 10px 28px rgba(13,48,74,.06)!important;
+  padding:22px 24px 24px!important;border-radius:18px!important
+}
+.screen-home .module-toolbar{margin-bottom:18px!important}
+.screen-home .module-toolbar-copy h2{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:25px!important;line-height:1.2!important;color:#102f49!important
+}
+.screen-home .module-toolbar-copy p{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;line-height:1.55!important;color:#657a8d!important
+}
+.screen-home .module-grid{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:12px!important
+}
+.screen-home .module-card{
+  min-height:150px!important;
+  padding:16px 18px 18px!important;
+  border-radius:14px!important;
+  border:1px solid #d7e2ea!important;
+  background:#fff!important;
+  box-shadow:0 3px 10px rgba(15,47,73,.025)!important;
+  overflow:hidden!important
+}
+.screen-home .module-card:hover{
+  transform:translateY(-2px)!important;
+  box-shadow:0 12px 26px rgba(15,47,73,.09)!important
+}
+.screen-home .module-icon{
+  width:44px!important;height:44px!important;border-radius:11px!important;
+  display:grid!important;place-items:center!important;margin-bottom:12px!important
+}
+.screen-home .module-icon svg{width:24px;height:24px;display:block}
+.screen-home .module-name{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:18px!important;line-height:1.3!important;font-weight:700!important;color:#102f49!important
+}
+.screen-home .module-desc{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;line-height:1.45!important;color:#667c8f!important;margin-top:6px!important;padding-right:70px!important
+}
+.screen-home .module-category{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:15px!important;line-height:1.2!important;
+  padding:5px 9px!important;border-radius:999px!important;
+  background:#eef4f7!important;color:#5f7487!important;
+  top:14px!important;right:14px!important
+}
+.screen-home .module-card:after{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;line-height:1.2!important;
+  right:15px!important;bottom:16px!important;font-weight:700!important
+}
+
+/* Cores por fluxo */
+.screen-home .module-card[data-module="penalizacao"] .module-icon{background:#e9f2ff!important;color:#1767c7!important}
+.screen-home .module-card[data-module="penalizacao"]:after{color:#1767c7!important}
+.screen-home .module-card[data-module="fiscalizacao"] .module-icon{background:#e6f6f1!important;color:#087d72!important}
+.screen-home .module-card[data-module="fiscalizacao"]:after{color:#087d72!important}
+.screen-home .module-card[data-module="reequilibrio"] .module-icon{background:#fff0df!important;color:#c46818!important}
+.screen-home .module-card[data-module="reequilibrio"]:after{color:#c46818!important}
+.screen-home .module-card[data-module="rescisao"] .module-icon{background:#fdecee!important;color:#b62939!important}
+.screen-home .module-card[data-module="rescisao"]:after{color:#b62939!important}
+.screen-home .module-card[data-module="disciplinar"] .module-icon{background:#f0edff!important;color:#6246c7!important}
+.screen-home .module-card[data-module="disciplinar"]:after{color:#6246c7!important}
+.screen-home .module-card[data-module="sindicancia"] .module-icon{background:#e5f6f4!important;color:#087a74!important}
+.screen-home .module-card[data-module="sindicancia"]:after{color:#087a74!important}
+
+/* Processos recentes: cards executivos */
+.recent-panel.home-approved-recent{
+  margin-top:14px!important;
+  padding:20px 22px!important;
+  border:1px solid #dfe8ee!important;border-radius:17px!important;
+  background:#fff!important;
+  box-shadow:0 9px 24px rgba(13,48,74,.05)!important
+}
+.home-approved-recent .recent-head{margin-bottom:14px!important;align-items:flex-end!important}
+.home-approved-recent .recent-head h3{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:24px!important;color:#102f49!important
+}
+.home-approved-recent .recent-head p{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;line-height:1.5!important;color:#657a8d!important
+}
+.recent-session-label{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:16px;color:#1768b7;font-weight:700;white-space:nowrap
+}
+.home-approved-recent .recent-list{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:12px!important
+}
+.home-approved-recent .recent-row{
+  display:grid!important;
+  grid-template-columns:52px minmax(0,1fr)!important;
+  grid-template-areas:
+    "icon main"
+    "icon status"
+    "icon action"!important;
+  gap:7px 12px!important;
+  min-height:132px!important;
+  padding:14px!important;
+  border:1px solid #dce6ed!important;border-radius:13px!important;background:#fbfdfe!important
+}
+.recent-icon{
+  grid-area:icon;width:48px;height:48px;border-radius:11px;
+  display:grid;place-items:center;background:#eaf2f8;color:#1767c7
+}
+.recent-icon svg{width:25px;height:25px}
+.home-approved-recent .recent-main{grid-area:main}
+.home-approved-recent .recent-main b{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:17px!important;color:#102f49!important
+}
+.home-approved-recent .recent-main span{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;line-height:1.4!important;color:#667c8f!important
+}
+.recent-meta{
+  margin-top:4px;font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:16px;line-height:1.4;color:#7a8d9d
+}
+.recent-status-wrap{grid-area:status;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.home-approved-recent .recent-status{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:15px!important;line-height:1.25!important;
+  display:inline-flex!important;padding:5px 9px!important;border-radius:999px!important;
+  background:#e8f5f2!important;color:#08776e!important
+}
+.home-approved-recent .recent-status:before{width:7px!important;height:7px!important}
+.home-approved-recent .recent-open{
+  grid-area:action;justify-self:end;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;padding:8px 12px!important;border-radius:9px!important;
+  background:#edf4f8!important;color:#10314e!important
+}
+.home-approved-recent .recent-empty{
+  grid-column:1/-1;font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;line-height:1.5!important
+}
+
+/* Rodapé */
+.fiscaliza-home-footer{
+  margin-top:14px;padding:14px 4px 4px;
+  display:flex;justify-content:space-between;gap:20px;align-items:center;
+  border-top:1px solid #dce5eb;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;font-size:16px;line-height:1.4;color:#718597
+}
+.fiscaliza-home-footer strong{color:#14334d}
+
+@media(max-width:1180px){
+  .home-commercial-hero.home-approved-v80{
+    grid-template-columns:minmax(0,1.25fr) minmax(180px,.45fr)!important
+  }
+  .home-approved-v80 .home-side-card{grid-column:1/-1!important;min-height:auto!important}
+  .home-visual-note{display:none}
+}
+@media(max-width:980px){
+  .home-commercial-hero.home-approved-v80{grid-template-columns:1fr!important}
+  .home-visual{display:none!important}
+  .screen-home .module-grid,
+  .home-approved-recent .recent-list{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:660px){
+  .home-approved-v80 h1{font-size:31px!important}
+  .screen-home .module-grid,
+  .home-approved-recent .recent-list{grid-template-columns:1fr!important}
+  .fiscaliza-home-footer{flex-direction:column;align-items:flex-start}
+}
+</style>
+"""
+
+core.HTML = core.HTML.replace("</head>", _home_v80_css + "</head>", 1)
+
+_home_v80_js = r"""
+<script id="fiscaliza-home-approved-v80-js">
+function homeIconSvg(key){
+  var base='fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+  var map={
+    penalizacao:'<svg viewBox="0 0 24 24"><path '+base+' d="M14 4l6 6M12 6l6 6M5 19l7-7M4 20l3-3M15 3l6 6-3 3-6-6z"/></svg>',
+    fiscalizacao:'<svg viewBox="0 0 24 24"><path '+base+' d="M6 3h9l3 3v15H6z"/><path '+base+' d="M15 3v4h4M9 11h6M9 15h6"/></svg>',
+    reequilibrio:'<svg viewBox="0 0 24 24"><path '+base+' d="M5 20V11M10 20V5M15 20v-7M20 20V8"/></svg>',
+    rescisao:'<svg viewBox="0 0 24 24"><path '+base+' d="M6 6l12 12M18 6L6 18"/></svg>',
+    disciplinar:'<svg viewBox="0 0 24 24"><circle '+base+' cx="9" cy="8" r="3"/><circle '+base+' cx="17" cy="8" r="2.5"/><path '+base+' d="M3 19c.8-3.2 3-5 6-5s5.2 1.8 6 5M14 14c3.2 0 5.3 1.8 6 5"/></svg>',
+    sindicancia:'<svg viewBox="0 0 24 24"><circle '+base+' cx="10" cy="10" r="6"/><path '+base+' d="M14.5 14.5L20 20"/></svg>'
+  };
+  return map[key]||'<svg viewBox="0 0 24 24"><circle '+base+' cx="12" cy="12" r="8"/></svg>';
+}
+function homeShieldSvg(){
+  return '<svg viewBox="0 0 160 160" aria-hidden="true">'+
+    '<rect x="27" y="18" width="76" height="105" rx="10" fill="#d8edf7" opacity=".82" transform="rotate(-8 65 70)"/>'+
+    '<rect x="47" y="24" width="78" height="108" rx="10" fill="#b9ddec" opacity=".9" transform="rotate(5 86 78)"/>'+
+    '<path d="M98 53l30 12v25c0 23-15 37-30 45-15-8-30-22-30-45V65z" fill="#0d5875" stroke="#79e0d8" stroke-width="4"/>'+
+    '<path d="M84 91l9 9 18-22" fill="none" stroke="#7af1e3" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<path d="M43 47h39M40 62h36M38 77h25" stroke="#6fa9c3" stroke-width="5" stroke-linecap="round"/>'+
+  '</svg>';
+}
+function moduloCategoriaCor(key){
+  return {
+    penalizacao:"#1767c7",fiscalizacao:"#087d72",reequilibrio:"#c46818",
+    rescisao:"#b62939",disciplinar:"#6246c7",sindicancia:"#087a74"
+  }[key]||"#1767c7";
+}
+function aplicarHomeAprovadaV80(){
+  var hero=document.querySelector(".home-commercial-hero");
+  if(hero){
+    hero.classList.add("home-approved-v80");
+    var copy=hero.querySelector(".home-copy");
+    if(copy){
+      var badge=copy.querySelector(".home-badge");
+      if(badge)badge.textContent="Inteligência processual para gestão pública";
+      var h=copy.querySelector("h1");
+      if(h)h.innerHTML='Inteligência processual com <span class="hero-accent">evidência rastreável.</span>';
+      var p=copy.querySelector("p");
+      if(p)p.textContent="Organize autos, acompanhe pendências e produza documentos assistidos em fluxos especializados para gestão contratual e responsabilização administrativa.";
+    }
+    if(!hero.querySelector(".home-visual")){
+      var visual=document.createElement("div");
+      visual.className="home-visual";
+      visual.innerHTML='<div class="home-visual-card">'+homeShieldSvg()+'</div><div class="home-visual-note">Mais transparência para uma gestão mais eficiente.</div>';
+      var side=hero.querySelector(".home-side-card");
+      if(side)hero.insertBefore(visual,side);else hero.appendChild(visual);
+    }
+    var side=hero.querySelector(".home-side-card");
+    if(side){
+      side.innerHTML=
+        '<div><small>Fluxo de trabalho</small><strong>Do documento à decisão humana</strong>'+
+        '<p>Um ambiente único para organizar gestão contratual e responsabilização administrativa com rastreabilidade e padrão de trabalho.</p></div>'+
+        '<div class="home-stats">'+
+          '<div class="home-stat"><b>6</b><span>fluxos</span></div>'+
+          '<div class="home-stat"><b>ID + p.</b><span>rastreabilidade</span></div>'+
+          '<div class="home-stat"><b>Humana</b><span>decisão final</span></div>'+
+        '</div>'+
+        '<div class="home-flow-foot">Tecnologia a serviço do interesse público</div>';
+    }
+  }
+
+  document.querySelectorAll(".module-card").forEach(function(card){
+    var key=card.getAttribute("data-module");
+    if(!commercialModuleMeta[key])return;
+    var icon=card.querySelector(".module-icon");
+    if(icon)icon.innerHTML=homeIconSvg(key);
+    var tag=card.querySelector(".module-category");
+    if(tag){
+      tag.style.border="1px solid "+moduloCategoriaCor(key)+"22";
+      tag.style.color=moduloCategoriaCor(key);
+    }
+  });
+
+  var recent=document.getElementById("recentPanel");
+  if(recent)recent.classList.add("home-approved-recent");
+
+  if(!document.getElementById("fiscalizaHomeFooter")){
+    var home=document.getElementById("screenHome");
+    if(home){
+      var footer=document.createElement("footer");
+      footer.id="fiscalizaHomeFooter";
+      footer.className="fiscaliza-home-footer";
+      footer.innerHTML='<div><strong>Fiscaliza.AI Municipal</strong> &nbsp;|&nbsp; Prefeitura Municipal · Unidade Administrativa</div><div>Gestão pública mais eficiente, transparente e responsável.</div>';
+      home.appendChild(footer);
+    }
+  }
+}
+
+var _deixarHomeMaisProdutoV80=deixarHomeMaisProduto;
+deixarHomeMaisProduto=function(){
+  _deixarHomeMaisProdutoV80();
+  setTimeout(aplicarHomeAprovadaV80,0);
+};
+
+renderProcessosRecentes=function(){
+  var listEl=document.getElementById("recentList");if(!listEl)return;
+  var panel=document.getElementById("recentPanel");
+  if(panel){
+    panel.classList.add("home-approved-recent");
+    var head=panel.querySelector(".recent-head");
+    if(head)head.innerHTML='<div><div class="kicker">Continuidade do trabalho</div><h3>Processos recentes</h3><p>Seus últimos acessos desta sessão. Retome de onde parou.</p></div><div class="recent-session-label">Sessão atual</div>';
+  }
+  var list=recentStore();
+  if(!list.length){
+    listEl.innerHTML='<div class="recent-empty">Quando você analisar um processo, ele aparecerá aqui para acesso rápido durante esta sessão.</div>';
+    return;
+  }
+  listEl.innerHTML=list.slice(0,3).map(function(x){
+    var dt=new Date(x.updated);
+    var when=isNaN(dt)?"":dt.toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+    var key=x.module||"geral";
+    return '<article class="recent-row">'+
+      '<div class="recent-icon" style="color:'+moduloCategoriaCor(key)+'">'+homeIconSvg(key)+'</div>'+
+      '<div class="recent-main"><b>'+esc(x.number)+'</b><span>'+esc(x.module_label||"Processo")+'</span><div class="recent-meta">'+esc(x.interested||"Interessado não informado")+(when?' · último acesso em '+esc(when):'')+'</div></div>'+
+      '<div class="recent-status-wrap"><span class="recent-status">'+esc(x.stage||"Analisado")+'</span></div>'+
+      '<button class="recent-open" onclick="abrirProcessoRecente(\''+esc(x.id)+'\')">Abrir ↗</button>'+
+    '</article>';
+  }).join("");
+};
+
+var _prepararHomeComercialV80=prepararHomeComercial;
+prepararHomeComercial=function(){
+  _prepararHomeComercialV80();
+  setTimeout(function(){aplicarHomeAprovadaV80();renderProcessosRecentes()},0);
+};
+
+document.addEventListener("DOMContentLoaded",function(){
+  setTimeout(function(){aplicarHomeAprovadaV80();renderProcessosRecentes()},220);
+});
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _home_v80_js + "</body>", 1)
