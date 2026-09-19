@@ -207,3 +207,346 @@ function ovDraftLabel(kind){
 
 core.HTML = core.HTML.replace("</head>", _rc1_css + "</head>", 1)
 core.HTML = core.HTML.replace("</body>", _rc1_js + "</body>", 1)
+
+
+# --- Fiscalizacao de contratos: refinamento observado no preview real ---
+
+def _fisc_marker_pages(pages, patterns):
+    regs=[re.compile(p,re.I) for p in patterns]
+    hits=[]
+    for p in pages:
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:260])
+        if any(rx.search(marker) for rx in regs) or (not marker and any(rx.search(head) for rx in regs)):
+            hits.append(p.get("page"))
+    return sorted(set(x for x in hits if x))
+
+def _fisc_page(pages, page_no):
+    for p in pages:
+        if p.get("page")==page_no:return p
+    return None
+
+def _fisc_body(pages, page_no, limit=360):
+    p=_fisc_page(pages,page_no)
+    if not p:return ""
+    raw=p.get("text") or ""
+    lines=[re.sub(r"\s+"," ",x).strip() for x in raw.splitlines() if x.strip()]
+    marker=re.sub(r"\s+"," ",p.get("source_document_id") or "").strip()
+    clean=[]
+    for i,line in enumerate(lines):
+        if i==0 and marker and core.norm(line)==core.norm(marker):
+            continue
+        if "FISCALIZA.AI" in line.upper() and "PROCESSO MODELO" in line.upper():
+            continue
+        if re.fullmatch(r"P[aá]gina\s+\d+\s+de\s+\d+",line,flags=re.I):
+            continue
+        clean.append(line)
+    text=" ".join(clean)
+    text=re.sub(r"\bCASO FICT[IÍ]CIO\.?\s*","",text,flags=re.I)
+    return core.clip(re.sub(r"\s+"," ",text).strip(),limit)
+
+_old_module_overlay_fiscal_rc1=core._module_overlay
+def _module_overlay_fiscal_rc1(pages,a,module):
+    a=_old_module_overlay_fiscal_rc1(pages,a,module)
+    if module!="fiscalizacao":
+        return a
+
+    contract=_fisc_marker_pages(pages,[r"^contrato administrativo\b",r"^contrato\b"])
+    designation=_fisc_marker_pages(pages,[r"portaria.{0,50}designa[cç][aã]o.{0,40}fiscal",r"designa[cç][aã]o de fiscal"])
+    execution=_fisc_marker_pages(pages,[r"relat[oó]rio de execu[cç][aã]o",r"relat[oó]rio final de fiscaliza[cç][aã]o"])
+    receipt=_fisc_marker_pages(pages,[r"termo de recebimento",r"\bmedi[cç][aã]o\b",r"\batesto\b"])
+    occurrence=_fisc_marker_pages(pages,[r"notifica[cç][aã]o de ocorr[eê]ncia",r"comunica[cç][aã]o de ocorr[eê]ncia"])
+    manifestation=_fisc_marker_pages(pages,[r"manifesta[cç][aã]o da contratada",r"resposta da contratada"])
+    final_report=_fisc_marker_pages(pages,[r"relat[oó]rio final de fiscaliza[cç][aã]o"])
+    service_order=_fisc_marker_pages(pages,[r"ordem de servi[cç]o"])
+
+    regularization=sorted(set(manifestation+final_report))
+    specs=[
+        ("Há instrumento contratual?","instrumento contratual",contract),
+        ("Há designação de fiscal ou gestor?","designação de fiscal ou gestor",designation),
+        ("Há relatório de execução/fiscalização?","relatório de execução/fiscalização",execution),
+        ("Há entrega, medição ou recebimento?","entrega, medição ou recebimento",receipt),
+        ("Há ocorrência ou comunicação à contratada?","ocorrência ou comunicação à contratada",occurrence),
+        ("Há providência ou regularização registrada?","providência ou regularização registrada",regularization),
+    ]
+    matrix=[]
+    for question,label,pgs in specs:
+        ex=_fisc_body(pages,pgs[0]) if pgs else ""
+        matrix.append({
+            "question":question,
+            "answer":"Localizado" if pgs else "Não identificado",
+            "ok":bool(pgs),
+            "pages":pgs[:8],
+            "label":label,
+            "excerpt":ex
+        })
+
+    timeline=[]
+    timeline_specs=[
+        ("Contrato",contract),
+        ("Designação do fiscal",designation),
+        ("Ordem de serviço",service_order),
+        ("Relatório de execução",_fisc_marker_pages(pages,[r"relat[oó]rio de execu[cç][aã]o"])),
+        ("Medição / recebimento",receipt),
+        ("Notificação de ocorrência",occurrence),
+        ("Manifestação da contratada",manifestation),
+        ("Relatório final de fiscalização",final_report),
+    ]
+    for label,pgs in timeline_specs:
+        if pgs:timeline.append({"label":label,"pages":pgs[:4]})
+    timeline.sort(key=lambda x:(x["pages"][0] if x.get("pages") else 999999))
+
+    evidence=[]
+    evidence_specs=[
+        ("Designação e responsabilidade do fiscal",designation),
+        ("Execução verificada",_fisc_marker_pages(pages,[r"relat[oó]rio de execu[cç][aã]o"])),
+        ("Medição / recebimento",receipt),
+        ("Ocorrência comunicada à contratada",occurrence),
+        ("Manifestação e plano de correção",manifestation),
+        ("Resultado do acompanhamento",final_report),
+    ]
+    for label,pgs in evidence_specs:
+        if pgs:
+            evidence.append({"label":label,"page":pgs[0],"text":_fisc_body(pages,pgs[0])})
+
+    missing=[x for x in matrix if not x["ok"]]
+    a["module_matrix"]=matrix
+    a["module_timeline"]=timeline
+    a["module_evidence"]=evidence
+    a["process_checklist"]=[{"label":x["label"],"ok":x["ok"],"pages":x["pages"]} for x in matrix]
+    a["module_summary"]=[
+        {"label":x["label"],"ok":x["ok"],"value":"Localizado" if x["ok"] else "Conferir"}
+        for x in matrix[:4]
+    ]
+    a["review_flags"]=[
+        {"level":"media","text":"Não identificado com segurança: "+x["label"]+"."}
+        for x in missing
+    ][:5]
+    # Remove cautelas herdadas da lógica sancionadora; neste módulo valem os controles próprios.
+    a["pending"]=[]
+    a["contradictions"]=[]
+
+    if missing:
+        a["next_action"]={
+            "stage":"Fiscalização em instrução",
+            "action":"Conferir ou localizar: "+missing[0]["label"]+".",
+            "why":"Foram localizados "+str(len(matrix)-len(missing))+" de "+str(len(matrix))+" controles essenciais de fiscalização."
+        }
+    elif final_report:
+        a["next_action"]={
+            "stage":"Acompanhamento regular",
+            "action":"Conferir o relatório final, registrar as correções verificadas e manter o acompanhamento do contrato conforme o cronograma.",
+            "why":"Os controles essenciais foram localizados e há relatório final de fiscalização nos autos."
+        }
+    else:
+        a["next_action"]={
+            "stage":"Acompanhamento contratual",
+            "action":"Manter o registro da execução, das ocorrências, das comunicações e das providências adotadas até o encerramento do período fiscalizado.",
+            "why":"Os controles essenciais de fiscalização foram localizados."
+        }
+
+    if final_report:
+        a["conclusion"]="A fiscalização possui instrumento contratual, fiscal designado, registro de execução, medição/recebimento, comunicação de ocorrência e providências de regularização. O relatório final localizado deve ser conferido antes do encerramento do acompanhamento."
+    else:
+        a["conclusion"]="Os autos contêm os principais controles de fiscalização contratual identificados na leitura automática. A conferência humana permanece necessária antes de qualquer encaminhamento."
+
+    a["traceability"]=[
+        {
+            "claim":x["label"],
+            "status":"Evidência localizada" if x["ok"] else "Conferir",
+            "source":(_fisc_page(pages,x["pages"][0]) or {}).get("file","Processo") if x["pages"] else "Processo",
+            "pages":x["pages"][:4]
+        }
+        for x in matrix
+    ]
+    doc_ids=set(p.get("document_id") for p in pages if p.get("document_id"))
+    a.setdefault("metrics",{})
+    a["metrics"]["pieces"]=len(doc_ids)
+    a["metrics"]["evidence_points"]=len(evidence)
+    a["metrics"]["checklist_ok"]=sum(1 for x in matrix if x["ok"])
+    a["metrics"]["checklist_total"]=len(matrix)
+    return a
+
+core._module_overlay=_module_overlay_fiscal_rc1
+
+
+_old_generic_document_draft_fiscal_rc1=core._generic_document_draft
+def _generic_document_draft_fiscal_rc1(item,kind):
+    if item.get("module")!="fiscalizacao":
+        return _old_generic_document_draft_fiscal_rc1(item,kind)
+
+    pages=item["pages"]
+    profile=item.get("profile") or {}
+    process_no=core._module_process_number(pages,"fiscalizacao")
+    contract_no=core._first_match("\n".join(p.get("text") or "" for p in pages),[
+        r"Contrato(?: Administrativo)?\s*(?:n[ºo.]?)?\s*[:\-]?\s*([0-9.\-\/]+)"
+    ],default="[CONTRATO — CONFERIR]")
+    company=profile.get("interested") or core._derive_interested(pages,"fiscalizacao") or "[CONTRATADA — CONFERIR]"
+
+    exec_p=_fisc_marker_pages(pages,[r"relat[oó]rio de execu[cç][aã]o"])
+    rec_p=_fisc_marker_pages(pages,[r"termo de recebimento",r"\bmedi[cç][aã]o\b"])
+    occ_p=_fisc_marker_pages(pages,[r"notifica[cç][aã]o de ocorr[eê]ncia"])
+    man_p=_fisc_marker_pages(pages,[r"manifesta[cç][aã]o da contratada"])
+    fin_p=_fisc_marker_pages(pages,[r"relat[oó]rio final de fiscaliza[cç][aã]o"])
+
+    execution=_fisc_body(pages,exec_p[0],520) if exec_p else "[EXECUÇÃO VERIFICADA — CONFERIR AUTOS]"
+    receipt=_fisc_body(pages,rec_p[0],420) if rec_p else "[MEDIÇÃO/RECEBIMENTO — CONFERIR AUTOS]"
+    occurrence=_fisc_body(pages,occ_p[0],420) if occ_p else "[OCORRÊNCIA — CONFERIR AUTOS]"
+    manifestation=_fisc_body(pages,man_p[0],420) if man_p else "[MANIFESTAÇÃO DA CONTRATADA — CONFERIR AUTOS]"
+    final=_fisc_body(pages,fin_p[0],520) if fin_p else "[RESULTADO DO ACOMPANHAMENTO — CONFERIR AUTOS]"
+
+    header=[
+        "Processo de Fiscalização Contratual: nº "+process_no,
+        "Contrato: nº "+contract_no,
+        "Contratada: "+company,
+        ""
+    ]
+
+    if kind in ("relatorio","relatorio_fiscalizacao"):
+        lines=["MINUTA — RELATÓRIO DE FISCALIZAÇÃO CONTRATUAL",""]+header+[
+            "I — EXECUÇÃO ACOMPANHADA","",execution,"",
+            "II — MEDIÇÃO / RECEBIMENTO","",receipt,"",
+            "III — OCORRÊNCIAS REGISTRADAS","",occurrence,"",
+            "IV — MANIFESTAÇÃO E PROVIDÊNCIAS DA CONTRATADA","",manifestation,"",
+            "V — RESULTADO DO ACOMPANHAMENTO","",final,"",
+            "VI — ENCAMINHAMENTO",
+            "[REGISTRAR, APÓS CONFERÊNCIA DOS AUTOS, AS PROVIDÊNCIAS DE ACOMPANHAMENTO, GLOSA, ACEITE, CORREÇÃO OU OUTRO ENCAMINHAMENTO CABÍVEL.]"
+        ]
+    elif kind in ("notificacao","notificacao_ocorrencia"):
+        lines=["MINUTA — NOTIFICAÇÃO DE OCORRÊNCIA CONTRATUAL",""]+header+[
+            "Fica a contratada NOTIFICADA acerca das ocorrências registradas durante a fiscalização do contrato.","",
+            "Ocorrência identificada para conferência: "+(execution if exec_p else occurrence),"",
+            "A contratada deverá adotar as providências necessárias à regularização e apresentar manifestação/documentos comprobatórios no prazo e pelo canal oficial indicados abaixo.","",
+            "Prazo: [CONFERIR PRAZO APLICÁVEL].",
+            "Canal oficial: [INFORMAR CANAL]."
+        ]
+    elif kind in ("diligencia","despacho_regularizacao"):
+        lines=["MINUTA — DESPACHO DE PROVIDÊNCIAS DE FISCALIZAÇÃO",""]+header+[
+            "Considerando os registros da fiscalização e a necessidade de acompanhamento da execução contratual, DETERMINO:","",
+            "1. conferir a execução e a medição registradas nos autos;",
+            "2. acompanhar o cumprimento das providências comunicadas à contratada;",
+            "3. registrar documentalmente eventual regularização, glosa, pendência remanescente ou necessidade de nova comunicação;",
+            "4. encaminhar o processo à unidade competente caso os fatos exijam providência além da fiscalização ordinária.","",
+            "Elementos localizados para conferência: "+occurrence+" "+manifestation
+        ]
+    elif kind=="registro_ocorrencia":
+        lines=["MINUTA — REGISTRO DE OCORRÊNCIA DA FISCALIZAÇÃO",""]+header+[
+            "Durante o acompanhamento da execução contratual, foi registrada a seguinte ocorrência:","",
+            occurrence if occ_p else execution,"",
+            "Providência adotada ou proposta: [DESCREVER PROVIDÊNCIA].",
+            "Prazo para regularização, se aplicável: [CONFERIR].",
+            "Documentos comprobatórios: [INDICAR]."
+        ]
+    else:
+        return _old_generic_document_draft_fiscal_rc1(item,kind)
+
+    lines += ["","[LOCAL], [DATA].","","[FISCAL/GESTOR OU RESPONSÁVEL]","",
+              "MINUTA ASSISTIDA — REVISÃO HUMANA OBRIGATÓRIA."]
+    src=[]
+    for label,pgs in [
+        ("Execução",exec_p),("Medição/recebimento",rec_p),("Ocorrência",occ_p),
+        ("Manifestação",man_p),("Relatório final",fin_p)
+    ]:
+        if pgs:src.append(label+" · p. "+", ".join(str(x) for x in pgs))
+    return {"draft":"\n".join(lines),"sources":src}
+
+core._generic_document_draft=_generic_document_draft_fiscal_rc1
+
+
+_fiscal_ui_js = r"""
+<script id="fiscalizacao-final-fixes-js">
+var _grupoSecaoFiscal=grupoSecao;
+grupoSecao=function(titulo){
+  var t=String(titulo||"").toLowerCase();
+  if(t.indexOf("checklist da fiscalização")>=0 || t.indexOf("checklist da fiscalizacao")>=0)return "pendencias";
+  return _grupoSecaoFiscal(titulo);
+};
+
+var _ovStagesFiscal=ovStages;
+ovStages=function(a){
+  if(a&&a.module_key==="fiscalizacao"){
+    var rows=a.module_matrix||[];
+    function ok(term){return rows.some(function(r){return String(r.label||"").toLowerCase().indexOf(term)>=0 && r.ok})}
+    return [
+      {label:"Contrato",done:ok("instrumento contratual")},
+      {label:"Fiscal designado",done:ok("designação")},
+      {label:"Execução",done:ok("relatório de execução")},
+      {label:"Ocorrências",done:ok("ocorrência")},
+      {label:"Regularização",done:ok("regularização")}
+    ];
+  }
+  return _ovStagesFiscal(a);
+};
+
+var _ovDefaultDraftKindFiscal=ovDefaultDraftKind;
+ovDefaultDraftKind=function(a){
+  if(a&&a.module_key==="fiscalizacao")return "relatorio_fiscalizacao";
+  return _ovDefaultDraftKindFiscal(a);
+};
+
+var _ovDraftLabelFiscal=ovDraftLabel;
+ovDraftLabel=function(kind){
+  if(kind==="relatorio_fiscalizacao")return "Relatório de fiscalização";
+  return _ovDraftLabelFiscal(kind);
+};
+
+var _renderOverviewHubFiscal=renderOverviewHub;
+renderOverviewHub=function(a){
+  _renderOverviewHubFiscal(a);
+  if(!a||a.module_key!=="fiscalizacao")return;
+  var hs=document.querySelectorAll("#overviewHub .ov-evidence-block h4");
+  if(hs[0])hs[0].textContent="Execução e acompanhamento";
+  if(hs[1])hs[1].textContent="Ocorrências e providências";
+};
+
+var _ajustarResultadoModuloFiscal=ajustarResultadoModulo;
+ajustarResultadoModulo=function(a){
+  _ajustarResultadoModuloFiscal(a);
+  if(!a||a.module_key!=="fiscalizacao")return;
+
+  var map=acharSectionPorTitulo("Mapa de pendências");
+  if(map){
+    var h=map.querySelector("h2");if(h)h.textContent="Checklist da fiscalização";
+    var k=map.querySelector(".kicker");if(k)k.textContent="Controle da execução";
+  }
+
+  var genericPending=acharSectionPorTitulo("Pendências e limites");
+  if(genericPending)genericPending.style.display="none";
+};
+
+function customizarMinutasFiscalizacao(){
+  var notification=document.getElementById("notificationPanel");
+  if(notification){notification.style.display="none";notification.classList.remove("tab-visible")}
+
+  var panel=document.getElementById("docsPanel");
+  if(!panel)return;
+  panel.style.display="block";panel.classList.add("tab-visible");
+
+  var kicker=panel.querySelector(".kicker");if(kicker)kicker.textContent="Fluxo documental · Fiscalização contratual";
+  var title=panel.querySelector(".title");if(title)title.textContent="Gerar documento de fiscalização";
+  var desc=panel.querySelector(".desc");if(desc)desc.textContent="Minutas próprias do acompanhamento contratual, preenchidas somente com informações localizadas nos autos.";
+  var chain=panel.querySelector(".doc-chain");
+  if(chain){
+    chain.innerHTML=
+      '<button class="btn btn-blue" onclick="gerarDocumento(\\'registro_ocorrencia\\')">Registro de ocorrência</button>'+
+      '<button class="btn btn-blue" onclick="gerarDocumento(\\'notificacao_ocorrencia\\')">Notificação de ocorrência</button>'+
+      '<button class="btn btn-blue" onclick="gerarDocumento(\\'despacho_regularizacao\\')">Despacho de providências</button>'+
+      '<button class="btn btn-primary" onclick="gerarDocumento(\\'relatorio_fiscalizacao\\')">Relatório de fiscalização</button>';
+  }
+}
+
+var _mostrarAbaProcessoFiscal=mostrarAbaProcesso;
+mostrarAbaProcesso=function(tab,btn){
+  _mostrarAbaProcessoFiscal(tab,btn);
+  if(selectedModule==="fiscalizacao"){
+    if(tab==="perguntar"){
+      var q=document.getElementById("q");
+      if(q)q.placeholder="Ex.: Quais ocorrências foram registradas pela fiscalização e quais providências a contratada apresentou?";
+    }
+    if(tab==="minutas")customizarMinutasFiscalizacao();
+  }
+};
+</script>
+"""
+
+core.HTML=core.HTML.replace("</body>",_fiscal_ui_js+"</body>",1)
