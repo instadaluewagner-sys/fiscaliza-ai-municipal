@@ -95,7 +95,7 @@ rows2 = {x["control_id"]: x for x in a2["legal_matrix"]}
 
 assert rows2["notificacao_comissao"]["ok"] is True
 assert rows2["ciencia_notificacao_comissao"]["ok"] is True
-assert rows2["defesa_ou_decurso"]["status"] == "Aguardando / conferir prazo"
+assert rows2["defesa_ou_decurso"]["status"] == "Aguardando / conferir prazo", rows2["defesa_ou_decurso"]
 assert a2["next_action"]["stage"] == "Contraditório"
 assert "prazo de defesa" in a2["next_action"]["action"].lower()
 
