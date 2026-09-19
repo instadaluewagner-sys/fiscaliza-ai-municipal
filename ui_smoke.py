@@ -77,16 +77,22 @@ def main():
             assert page.locator("#overviewHub .ov-stage").count() == 5
             assert "Não foi possível carregar o processo modelo" not in page.locator("body").inner_text()
 
-            if key in ("planejamento", "formalizacao", "fiscalizacao", "alteracoes"):
+            if key in ("planejamento", "formalizacao", "fiscalizacao", "alteracoes", "penalizacao"):
                 expect(page.locator(".pb-profile-chip").nth(0)).to_contain_text("Pimenta Bueno/RO")
                 if key == "fiscalizacao":
                     expect(page.locator(".pb-profile-chip").nth(1)).to_contain_text("Execução contratual")
                 elif key == "alteracoes":
                     expect(page.locator(".pb-profile-chip").nth(1)).to_contain_text("Restabelecimento do equilíbrio econômico-financeiro")
+                elif key == "penalizacao":
+                    expect(page.locator(".pb-profile-chip").nth(1)).to_contain_text("Penalização contratual")
                 else:
                     expect(page.locator(".pb-profile-chip").nth(1)).to_contain_text("Pregão — aquisição de bens")
-                expect(page.locator("#legalMatrixPanelV100")).to_be_visible(timeout=10000)
-                legal_text = page.locator("#legalMatrixPanelV100").inner_text()
+                if key == "penalizacao":
+                    expect(page.locator("#penaltyLegalMatrixV140")).to_be_visible(timeout=10000)
+                    legal_text = page.locator("#penaltyLegalMatrixV140").inner_text()
+                else:
+                    expect(page.locator("#legalMatrixPanelV100")).to_be_visible(timeout=10000)
+                    legal_text = page.locator("#legalMatrixPanelV100").inner_text()
 
             if key == "planejamento":
                 text = page.locator("#overviewHub").inner_text()
@@ -133,6 +139,19 @@ def main():
                 assert "Medição / recebimento" in stage_text
                 assert "Ocorrências / ciência" in stage_text
                 assert "Providências" in stage_text
+
+            if key == "penalizacao":
+                assert page.locator("#penaltyLegalMatrixV140 tbody tr").count() == 17
+                assert "Cobranças ou notificações prévias da unidade responsável" in legal_text
+                assert "Notificação Extrajudicial da Comissão de Penalização" in legal_text
+                assert "Defesa administrativa ou certidão de decurso do prazo" in legal_text
+                assert "Notificações de cobrança anteriores" not in legal_text
+                stage_text = page.locator("#overviewHub .ov-track").inner_text()
+                assert "Contratação / obrigação" in stage_text
+                assert "Descumprimento / cobrança" in stage_text
+                assert "Remessa / Comissão" in stage_text
+                assert "Notificação / defesa" in stage_text
+                assert "Instrução / decisão" in stage_text
 
             if key == "alteracoes":
                 assert page.locator("#legalMatrixPanelV100 tbody tr").count() == 12

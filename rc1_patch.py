@@ -7783,3 +7783,963 @@ normalizarOverviewV96=function(a){
 """
 core.HTML=core.HTML.replace("</body>",_alteracoes_v130_js+"</body>",1)
 core.app.version="13.0"
+
+
+# --- Penalização contratual por função processual · v14.0 ---
+from profile_pimenta_bueno import PENALIZACAO_CONTROLS as PB_PENALIZACAO_CONTROLS
+
+
+def _pen_page_blob_v140(p):
+    return core.norm(
+        (p.get("source_document_id") or "") + "\n" +
+        (p.get("text") or "")
+    )
+
+
+def _pen_pages_v140(pages, patterns, require_all=None, exclude=None):
+    regs=[re.compile(x,re.I) for x in patterns]
+    req=[core.norm(x) for x in (require_all or [])]
+    exc=[core.norm(x) for x in (exclude or [])]
+    hits=[]
+    for p in pages:
+        z=_pen_page_blob_v140(p)
+        if req and not all(x in z for x in req):
+            continue
+        if exc and any(x in z for x in exc):
+            continue
+        if any(rx.search(z) for rx in regs):
+            hits.append(p.get("page"))
+    return sorted(set(x for x in hits if x))
+
+
+def _pen_first_excerpt_v140(pages, pgs, limit=360):
+    if not pgs:
+        return ""
+    target=pgs[0]
+    for p in pages:
+        if p.get("page")!=target:
+            continue
+        raw=re.sub(r"\s+"," ",p.get("text") or "").strip()
+        return core.clip(raw,limit)
+    return ""
+
+
+_old_extract_penalization_process_v140=core._extract_penalization_process
+def _extract_penalization_process_v140(pages):
+    # 1) identificação expressa do processo sancionador.
+    value=_old_extract_penalization_process_v140(pages)
+    if value and not str(value).startswith("["):
+        return value
+
+    # 2) municípios podem autuar como "APLICAÇÃO DE PENALIDADE" sem escrever
+    # "Processo Administrativo de Penalização nº ..." no cabeçalho.
+    for p in pages:
+        raw=re.sub(r"\s+"," ",p.get("text") or "")
+        raw=re.sub(r"(?<=\d)\s*-\s*(?=\d)","-",raw)
+        raw=re.sub(r"(?<=\d)\s*/\s*(?=\d)","/",raw)
+        z=core.norm(raw)
+        if not (
+            ("termo de abertura de processo" in z and "aplicacao de penalidade" in z)
+            or ("ficha do processo eletronico" in z and "aplicacao de penalidade" in z)
+        ):
+            continue
+        pats=[
+            r"TERMO DE ABERTURA DE PROCESSO\s*([0-9][0-9.\-/]+)",
+            r"FICHA DO PROCESSO ELETR[ÔO]NICO\s*([0-9][0-9.\-/]+)",
+            r"APLICA[CÇ][AÃ]O DE PENALIDADE[^0-9]{0,180}([0-9][0-9.\-/]+)",
+        ]
+        for pat in pats:
+            m=re.search(pat,raw,flags=re.I)
+            if m:
+                return m.group(1).strip()
+
+    # 3) termo de atribuição da Comissão também identifica com segurança o processo.
+    for p in pages:
+        raw=re.sub(r"\s+"," ",p.get("text") or "")
+        raw=re.sub(r"(?<=\d)\s*-\s*(?=\d)","-",raw)
+        raw=re.sub(r"(?<=\d)\s*/\s*(?=\d)","/",raw)
+        z=core.norm(raw)
+        if "termo de atribuicao" not in z or "comissao" not in z or "penalizacao" not in z:
+            continue
+        m=re.search(r"(?:PROCESSO|n[uú]mero)\s*(?:n[ºo.]?)?\s*[:\-]?\s*([0-9][0-9.\-/]+)",raw,flags=re.I)
+        if m:
+            return m.group(1).strip()
+    return value
+
+
+core._extract_penalization_process=_extract_penalization_process_v140
+
+
+_old_extract_origin_process_v140=core._extract_origin_process
+def _extract_origin_process_v140(pages):
+    penalty=core._extract_penalization_process(pages)
+    penalty_n=core.norm(penalty) if penalty and not str(penalty).startswith("[") else ""
+    scores={}
+    patterns=[
+        (r"Refer[eê]ncia:\s*Processo\s*(?:n[ºo.]?)?\s*[:\-]?\s*([0-9][0-9.\-/]+)",3),
+        (r"Processo Documento\s*[^0-9]{0,50}([0-9][0-9.\-/]+)",3),
+        (r"Processo Administrativo\s*(?:n[ºo.]?)?\s*[:\-]?\s*([0-9][0-9.\-/]+)",2),
+        (r"Encaminhamento do Processo\s*(?:n[ºo.]?)?\s*[:\-]?\s*([0-9][0-9.\-/]+)",2),
+        (r"Processo:\s*([0-9][0-9.\-/]+)",1),
+    ]
+    for p in pages:
+        raw=re.sub(r"\s+"," ",p.get("text") or "")
+        raw=re.sub(r"(?<=\d)\s*-\s*(?=\d)","-",raw)
+        raw=re.sub(r"(?<=\d)\s*/\s*(?=\d)","/",raw)
+        for pat,weight in patterns:
+            for m in re.finditer(pat,raw,flags=re.I):
+                value=m.group(1).strip().rstrip(" .;,:")
+                if penalty_n and core.norm(value)==penalty_n:
+                    continue
+                scores[value]=scores.get(value,0)+weight
+    if scores:
+        return sorted(scores.items(),key=lambda kv:(-kv[1],kv[0]))[0][0]
+    return _old_extract_origin_process_v140(pages)
+
+
+core._extract_origin_process=_extract_origin_process_v140
+
+
+_old_quantity_context_v140=getattr(core,"_quantity_context",None)
+def _quantity_context_v140(pages):
+    # Quantidade só é aceita quando se comporta como quantidade de ITEM.
+    # Campos administrativos como "Ficha: 520 Unidade: ..." são excluídos.
+    ordered=sorted(
+        pages,
+        key=lambda p:(0 if ("empenho" in _pen_page_blob_v140(p) or "pedido de empenho" in _pen_page_blob_v140(p)) else 1,p.get("page",999999))
+    )
+    unit_rx=re.compile(r"\b(\d{1,7})(?:[.,]00)?\s+(UN|UND|UNID|UNIDADE(?:S)?|CX|CAIXA(?:S)?|KIT(?:S)?|PC|PE[CÇ]A(?:S)?)\b",re.I)
+
+    for p in ordered:
+        raw=re.sub(r"\s+"," ",p.get("text") or "")
+        z=core.norm(raw)
+        if not any(x in z for x in ["nota de empenho","pedido de empenho","detalhamento dos itens","descricao completa"]):
+            continue
+
+        for m in unit_rx.finditer(raw):
+            prefix=core.norm(raw[max(0,m.start()-90):m.start()])
+            suffix=raw[m.end():m.end()+12]
+
+            if re.search(r"(?:ficha|unidade|funcional|classificacao|centro de custo|codigo de aplicacao|reserva de saldo)\s*:\s*$",prefix,re.I):
+                continue
+            if m.group(2).upper().startswith("UNIDADE") and re.match(r"\s*:",suffix):
+                continue
+
+            try:
+                value=int(m.group(1))
+            except Exception:
+                continue
+            if not (1<=value<=10000000):
+                continue
+
+            unit=m.group(2).upper()
+            obj=""
+            before=raw[max(0,m.start()-900):m.start()]
+            item_matches=list(re.finditer(
+                r"\b\d{1,4}\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9 /\-]{4,90})(?:;|\s{2,})",
+                before
+            ))
+            if item_matches:
+                obj=re.sub(r"\s+"," ",item_matches[-1].group(1)).strip(" ;:-")
+
+            display=str(value)+" "+unit
+            if obj:
+                display+=" · "+obj[:80]
+
+            refs=core._page_doc_refs(pages,p.get("file"),[p.get("page")]) if hasattr(core,"_page_doc_refs") else []
+            source={"file":p.get("file"),"page":p.get("page")}
+            if refs:
+                source["document_id"]=refs[0].get("document_id")
+                source["source_document_id"]=refs[0].get("source_document_id")
+
+            return {
+                "value":str(value),
+                "unit_object":unit,
+                "item_description":obj,
+                "display":display,
+                "source":source,
+                "context":core.clip(raw[max(0,m.start()-180):min(len(raw),m.end()+220)],360),
+            }
+
+    if _old_quantity_context_v140:
+        return _old_quantity_context_v140(pages)
+    return {"value":"Não identificado com segurança","unit_object":"","display":"Não identificado com segurança","source":None,"context":""}
+
+
+core._quantity_context=_quantity_context_v140
+core.total_quantity=_quantity_context_v140
+
+
+def _penalty_deadline_v142(pages):
+    """Extrai o prazo de entrega da ordem/empenho, sem confundir prazo de defesa ou pagamento."""
+    ordered=sorted(pages,key=lambda p:p.get("page",999999))
+    for p in ordered:
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:1000])
+        if not any(x in marker or x in head for x in ["pedido de empenho","nota de empenho"]):
+            continue
+        raw=re.sub(r"\s+"," ",p.get("text") or "")
+        m=re.search(r"Prazo\s+de\s+Entrega\s*:\s*([^.;\n]{1,120})",raw,flags=re.I)
+        if m:
+            value=re.sub(r"\s+"," ",m.group(1)).strip(" .;,:")
+            return {"value":value,"page":p.get("page")}
+    return {"value":"Não identificado com segurança","page":None}
+
+
+def _penalty_value_v142(pages):
+    """Prefere o valor positivo da NE original e ignora a nota de anulação."""
+    candidates=[]
+    for p in pages:
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:1200])
+        raw=re.sub(r"\s+"," ",p.get("text") or "")
+        doc_head=marker+" "+head
+        if "anulacao" in doc_head:
+            continue
+
+        priority=9
+        if "nota de empenho" in doc_head:
+            priority=0
+        elif "pedido de empenho" in doc_head:
+            priority=1
+        else:
+            continue
+
+        for rx in [
+            r"Valor\s+do\s+Empenho\s*[:\s]*R?\$?\s*([0-9.]+,[0-9]{2})",
+            r"Valor\s+Total\s*:\s*R?\$?\s*([0-9.]+,[0-9]{2})",
+        ]:
+            m=re.search(rx,raw,flags=re.I)
+            if m:
+                candidates.append((priority,p.get("page",999999),m.group(1)))
+                break
+
+    if candidates:
+        _,page,value=sorted(candidates)[0]
+        return {"value":value,"display":"R$ "+value,"page":page}
+    return {"value":"Não identificado com segurança","display":"Não identificado com segurança","page":None}
+
+
+def _commission_notification_pages_v140(pages):
+    hits=[]
+    for p in pages:
+        marker=core.norm(p.get("source_document_id") or "")
+        z=core.norm(p.get("text") or "")
+        title=(marker+" "+core.norm((p.get("text") or "")[:1000]))
+        explicit=("notificacao extrajudicial" in title and "comissao" in title and "penalizacao" in title)
+        functional=(
+            "processo administrativo de penalizacao" in z
+            and ("notifica e intima" in z or "fica a empresa notificada" in z)
+            and ("defesa" in z or "contraditorio" in z)
+        )
+        if explicit or functional:
+            hits.append(p.get("page"))
+    return sorted(set(x for x in hits if x))
+
+
+def _prior_collection_pages_v140(pages, commission_pages):
+    commission=set(commission_pages or [])
+    hits=[]
+    for p in pages:
+        if p.get("page") in commission:
+            continue
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:900])
+        z=core.norm(p.get("text") or "")
+
+        is_notice=(
+            "notificacao" in marker
+            or head.startswith("notificacao")
+        )
+        pre_context=any(x in z for x in [
+            "almoxarifado","prazo de entrega","proceder a entrega","regularizar a obrigacao",
+            "informacoes quanto a entrega","cumprimento contratual","previsao de entrega"
+        ])
+        if is_notice and pre_context:
+            hits.append(p.get("page"))
+    return sorted(set(x for x in hits if x))
+
+
+def _inadimplemento_pages_v141(pages):
+    """Localiza o fato material em peças de execução/apuração, não em cláusulas abstratas do edital/ARP."""
+    factual=[]
+    regs=[
+        re.compile(x,re.I) for x in [
+            r"nao houve entrega",r"nao fornec",r"nao promoveu a entrega",r"ausencia de entrega",
+            r"descumprimento.{0,100}(?:entrega|obrigacao)",r"inexecucao",r"permanencia do descumprimento"
+        ]
+    ]
+    for p in pages:
+        z=_pen_page_blob_v140(p)
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:1400])
+        doc_head=marker+" "+head
+
+        normative_content=any(x in z for x in [
+            "das infracoes administrativas e sancoes",
+            "comete infracao administrativa",
+            "clausula decima primeira",
+            "clausula decima - das penalidades",
+        ])
+        factual_phrase=any(x in z for x in [
+            "nao houve entrega","nao promoveu a entrega","ausencia de entrega",
+            "empresa fornecedora foi formalmente notificada",
+            "nao tendo atendido as solicitacoes",
+            "permanencia do descumprimento",
+            "segue o processo para penalizacao",
+            "encaminha-se o presente processo",
+            "nao houve retorno ou apresentacao de justificativa",
+        ])
+        execution_doc=any(x in doc_head for x in [
+            "notificacao","certidao","oficio","relatorio de fiscalizacao","relatorio tecnico",
+            "solicitacao de anulacao","nota de empenho - anulacao","anulacao de empenho",
+            "termo de ocorrencia","registro de ocorrencia"
+        ])
+
+        if normative_content and not factual_phrase:
+            continue
+        if (execution_doc or factual_phrase) and any(rx.search(z) for rx in regs):
+            factual.append(p.get("page"))
+    return sorted(set(x for x in factual if x))
+
+def _defense_lapse_pages_v141(pages, commission_pages):
+    """Decurso de defesa só existe depois da Notificação Extrajudicial da Comissão."""
+    if not commission_pages:
+        return []
+    notif=min(commission_pages)
+    hits=[]
+    for p in pages:
+        if p.get("page",0)<=notif:
+            continue
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:1600])
+        z=core.norm(p.get("text") or "")
+        autonomous=(
+            "certidao" in marker or "certidao" in head
+            or "termo de decurso" in marker or "termo de decurso" in head
+        )
+        if not autonomous:
+            continue
+        if any(re.search(rx,z,re.I) for rx in [
+            r"certidao.{0,220}(?:decurso|prazo).{0,220}defesa",
+            r"decorreu.{0,100}prazo.{0,100}defesa",
+            r"nao apresentou defesa",
+            r"transcorreu.{0,100}prazo.{0,100}defesa",
+        ]):
+            hits.append(p.get("page"))
+    return sorted(set(x for x in hits if x))
+
+
+def _penalty_opening_pages_v140(pages):
+    hits=[]
+    for p in pages:
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:1400])
+        z=core.norm(p.get("text") or "")
+        title=marker+" "+head
+        opening=(
+            ("termo de abertura de processo" in title and "aplicacao de penalidade" in z)
+            or ("ficha do processo eletronico" in title and "aplicacao de penalidade" in z)
+            or (
+                "processo administrativo de penalizacao" in head
+                and any(x in head for x in ["instaurado","instauracao","termo de abertura"])
+            )
+        )
+        if opening:
+            hits.append(p.get("page"))
+    return sorted(set(x for x in hits if x))
+
+
+def _penalty_assignment_pages_v140(pages):
+    hits=[]
+    for p in pages:
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:1600])
+        title=marker+" "+head
+        assigned=(
+            "termo de atribuicao/designacao" in title
+            or "termo de atribuicao / designacao" in title
+            or (
+                "termo de atribuicao" in title
+                and "comissao" in head
+                and "penalizacao" in head
+            )
+            or (
+                re.search(r"atribui.{0,100}membro da comissao",head,re.I)
+                and "penalizacao" in head
+            )
+        )
+        if assigned:
+            hits.append(p.get("page"))
+    return sorted(set(x for x in hits if x))
+
+
+def _defense_pages_v140(pages, commission_pages=None):
+    """Reconhece defesa como PEÇA AUTÔNOMA, não como mera menção ao direito de defesa."""
+    commission=set(commission_pages or [])
+    primary=[]
+    primary_doc_ids=set()
+
+    title_patterns=[
+        r"^defesa administrativa\b",
+        r"^defesa previa\b",
+        r"^razoes de defesa\b",
+        r"^manifestacao em defesa\b",
+        r"^manifestacao de defesa\b",
+        r"^alegacoes de defesa\b",
+    ]
+
+    for p in pages:
+        page_no=p.get("page")
+        if page_no in commission:
+            continue
+
+        marker=core.norm(p.get("source_document_id") or "")
+        raw=p.get("text") or ""
+        head=core.norm(raw[:1800])
+
+        # Ato que convoca a empresa a apresentar defesa é comunicação, nunca a defesa.
+        if any(x in marker for x in [
+            "notificacao","intimacao","ato de instauracao","termo de abertura",
+        ]):
+            continue
+        if (
+            ("notifica e intima" in head or "fica a empresa notificada" in head or "fica a empresa intimada" in head)
+            and "apresentar defesa" in head
+        ):
+            continue
+
+        autonomous=any(re.search(rx,marker,re.I) for rx in title_patterns)
+        if not autonomous:
+            first=core.norm(raw[:700])
+            autonomous=any(re.search(rx,first,re.I) for rx in title_patterns)
+
+        if not autonomous:
+            autonomous=bool(
+                re.search(r"\b(?:vem|comparece).{0,140}\bapresentar\s+(?:a\s+|sua\s+)?defesa\b",head,re.I)
+            )
+
+        if autonomous:
+            primary.append(page_no)
+            if p.get("document_id"):
+                primary_doc_ids.add(p.get("document_id"))
+
+    hits=set(x for x in primary if x)
+    if primary_doc_ids:
+        for p in pages:
+            if p.get("document_id") in primary_doc_ids and p.get("page"):
+                hits.add(p.get("page"))
+    return sorted(hits)
+
+def _process_id_conflicts_v140(pages):
+    flags=[]
+    groups={}
+    for p in pages:
+        key=p.get("document_id") or ("page-"+str(p.get("page")))
+        groups.setdefault(key,[]).append(p)
+
+    proc_rx=r"([0-9][0-9.\-\s]*\/\s*[0-9]{4})"
+    def clean_no(v):
+        return re.sub(r"\s+","",v or "").rstrip(" .;,:")
+
+    for group in groups.values():
+        raw=re.sub(r"\s+"," ","\n".join(p.get("text") or "" for p in group))
+        raw=re.sub(r"(?<=\d)\s*-\s*(?=\d)","-",raw)
+        raw=re.sub(r"(?<=\d)\s*/\s*(?=\d)","/",raw)
+        z=core.norm(raw)
+        if "referencia: processo" not in z:
+            continue
+
+        subject=[]
+        for prefix in [
+            r"Assunto:\s*Encaminhamento do Processo\s*(?:n[ºo.]?)?\s*[:\-]?\s*",
+            r"Encaminhamos[^.]{0,220}?Processo Administrativo\s*(?:n[ºo.]?)?\s*[:\-]?\s*",
+        ]:
+            subject += [clean_no(m.group(1)) for m in re.finditer(prefix+proc_rx,raw,flags=re.I)]
+
+        refs=[
+            clean_no(m.group(1))
+            for m in re.finditer(
+                r"Refer[eê]ncia:\s*Processo\s*(?:n[ºo.]?)?\s*[:\-]?\s*"+proc_rx,
+                raw,flags=re.I
+            )
+        ]
+        subject=[x for x in subject if x]
+        refs=[x for x in refs if x]
+        if subject and refs and any(core.norm(a)!=core.norm(b) for a in subject for b in refs):
+            flags.append({
+                "level":"media",
+                "page":min((p.get("page") for p in group if p.get("page")),default=None),
+                "text":"O mesmo documento menciona números de processo distintos entre o assunto/corpo e a referência eletrônica. Conferir a vinculação antes de usar o número em minuta ou decisão.",
+                "numbers":sorted(set(subject+refs))
+            })
+    return flags
+
+def _pen_status_row_v140(control, pages_found, applicable=True, status=None):
+    found=bool(pages_found)
+    if status is None:
+        status="Localizado" if found else ("Não localizado" if applicable else "Não exigível nesta fase")
+    return {
+        "control_id":control["id"],
+        "label":control["label"],
+        "responsible":control["responsible"],
+        "nature":control["nature"],
+        "criticality":control["criticality"],
+        "foundation":control["foundation"],
+        "absence_action":control["absence_action"],
+        "applicable":applicable,
+        "status":status,
+        "ok":found,
+        "pages":pages_found[:8],
+        "excerpt":"",
+    }
+
+
+_old_module_overlay_v140=core._module_overlay
+def _module_overlay_v140(pages,a,module):
+    out=_old_module_overlay_v140(pages,a,module)
+    if module!="penalizacao":
+        return out
+
+    # Tipos documentais por FUNÇÃO processual — não por simples ocorrência da palavra "notificação".
+    pgs={}
+    pgs["vinculo_contratacao"]=_pen_pages_v140(pages,[
+        r"ata de registro de precos",r"contrato administrativo",r"instrumento equivalente",r"nota de empenho"
+    ])
+    pgs["obrigacao_exigivel"]=_pen_pages_v140(pages,[
+        r"nota de empenho",r"ordem de fornecimento",r"requisicao",r"comprovante.{0,60}(?:envio|recebimento)",r"confirmacao.{0,40}recebimento"
+    ])
+    pgs["prazo_execucao"]=_pen_pages_v140(pages,[
+        r"prazo de entrega",r"entrega.{0,80}\b\d{1,3}\s*\(?[a-z]*\)?\s*dias",r"dentro de\s+\d{1,3}.{0,20}dias"
+    ])
+    pgs["fato_inadimplemento"]=_inadimplemento_pages_v141(pages)
+
+    commission_notice=_commission_notification_pages_v140(pages)
+    pgs["notificacao_comissao"]=commission_notice
+    pgs["cobranca_previa"]=_prior_collection_pages_v140(pages,commission_notice)
+
+    pgs["encaminhamento_comissao"]=_pen_pages_v140(pages,[
+        r"encaminha.{0,180}comissao de penalizacao",r"remessa.{0,120}comissao de penalizacao",
+        r"segue o processo para penalizacao",r"comissao.{0,120}apuracao.{0,120}infracao"
+    ])
+    pgs["instauracao"]=_penalty_opening_pages_v140(pages)
+    pgs["designacao_comissao"]=_penalty_assignment_pages_v140(pages)
+
+    notif_page=min(commission_notice) if commission_notice else None
+    science=[]
+    if notif_page:
+        for p in pages:
+            if p.get("page",0)<notif_page:
+                continue
+            z=_pen_page_blob_v140(p)
+            if any(re.search(rx,z,re.I) for rx in [
+                r"comprovante.{0,60}(?:envio|recebimento|ciencia)",
+                r"confirmacao.{0,60}(?:recebimento|ciencia)",
+                r"recebido.{0,100}notificacao",
+                r"ciente.{0,100}notificacao",
+            ]):
+                science.append(p.get("page"))
+    pgs["ciencia_notificacao_comissao"]=sorted(set(x for x in science if x))
+
+    # Não reutiliza a classificação genérica de "defesa": uma notificação que diz
+    # "apresentar defesa" é comunicação processual, não a defesa da empresa.
+    defense=_defense_pages_v140(pages,commission_notice)
+    lapse=_defense_lapse_pages_v141(pages,commission_notice)
+    pgs["defesa_ou_decurso"]=sorted(set(defense+lapse))
+
+    pgs["instrucao_pos_defesa"]=_pen_pages_v140(pages,[
+        r"diligencia",r"prova complementar",r"relatorio tecnico apos defesa",
+        r"analise da defesa",r"manifestacao tecnica.{0,100}defesa"
+    ])
+    pgs["relatorio_comissao"]=_pen_pages_v140(pages,[
+        r"relatorio conclusivo.{0,80}comissao",r"relatorio da comissao",r"manifestacao conclusiva.{0,80}comissao"
+    ])
+    decision=sorted(set(core.piece_pages(out,"decisao") if hasattr(core,"piece_pages") else []))
+    if not decision:
+        decision=_pen_pages_v140(pages,[r"decisao administrativa final",r"decisao administrativa",r"\bdecido\b"])
+    pgs["decisao"]=decision
+
+    science_dec=[]
+    if decision:
+        d0=min(decision)
+        for p in pages:
+            if p.get("page",0)<d0:
+                continue
+            z=_pen_page_blob_v140(p)
+            if any(re.search(rx,z,re.I) for rx in [
+                r"ciencia.{0,100}decisao",r"comunicacao.{0,80}decisao",
+                r"notificacao.{0,80}decisao",r"comprovante.{0,80}(?:envio|recebimento).{0,80}decisao"
+            ]):
+                science_dec.append(p.get("page"))
+    pgs["ciencia_decisao"]=sorted(set(x for x in science_dec if x))
+    pgs["recurso"]=_pen_pages_v140(pages,[r"recurso administrativo",r"pedido de reconsideracao",r"interposicao de recurso"])
+    pgs["encerramento"]=_pen_pages_v140(pages,[
+        r"encerramento do processo",r"arquivamento",r"registro.{0,60}(?:sancao|penalidade)",
+        r"publicacao.{0,80}(?:decisao|sancao)",r"cumprimento da decisao"
+    ])
+
+    commission_assumed=bool(pgs["instauracao"] or pgs["designacao_comissao"] or pgs["encaminhamento_comissao"])
+    notif_found=bool(pgs["notificacao_comissao"])
+    science_notif_found=bool(pgs["ciencia_notificacao_comissao"])
+    defense_or_lapse=bool(pgs["defesa_ou_decurso"])
+    instruction_found=bool(pgs["instrucao_pos_defesa"] or pgs["relatorio_comissao"])
+    decision_found=bool(pgs["decisao"])
+
+    controls={x["id"]:x for x in PB_PENALIZACAO_CONTROLS}
+    rows=[]
+    for control in PB_PENALIZACAO_CONTROLS:
+        cid=control["id"]
+        applicable=True
+        status=None
+
+        if cid=="cobranca_previa":
+            applicable=bool(pgs[cid])
+            status="Localizado" if pgs[cid] else "Condicional"
+        elif cid in ("encaminhamento_comissao","instauracao","designacao_comissao"):
+            applicable=commission_assumed
+        elif cid=="notificacao_comissao":
+            applicable=commission_assumed
+        elif cid=="ciencia_notificacao_comissao":
+            applicable=notif_found
+        elif cid=="defesa_ou_decurso":
+            applicable=notif_found
+            if not notif_found:
+                status="Não exigível nesta fase"
+            elif pgs[cid]:
+                status="Localizado"
+            elif not science_notif_found:
+                status="Aguardando comprovação de ciência"
+            else:
+                status="Aguardando / conferir prazo"
+        elif cid=="instrucao_pos_defesa":
+            applicable=defense_or_lapse
+            if defense_or_lapse and not pgs[cid] and (pgs["relatorio_comissao"] or decision_found):
+                status="Superado por ato conclusivo posterior"
+        elif cid=="relatorio_comissao":
+            applicable=bool(pgs[cid])
+            if not pgs[cid]:
+                status="Condicional — conforme fluxo aplicável"
+        elif cid=="decisao":
+            applicable=instruction_found or decision_found
+        elif cid=="ciencia_decisao":
+            applicable=decision_found
+        elif cid=="recurso":
+            applicable=decision_found and bool(pgs["ciencia_decisao"])
+            if decision_found and not pgs["ciencia_decisao"]:
+                status="Não exigível antes da ciência da decisão"
+            elif applicable and not pgs[cid]:
+                status="Condicional / acompanhar prazo"
+        elif cid=="encerramento":
+            applicable=decision_found
+            if decision_found and not pgs[cid]:
+                status="Condicional / após decisão definitiva"
+
+        row=_pen_status_row_v140(control,pgs.get(cid,[]),applicable,status)
+        row["excerpt"]=_pen_first_excerpt_v140(pages,row["pages"])
+        if hasattr(core,"_page_doc_refs"):
+            row["documents"]=core._page_doc_refs(pages,None,row["pages"])
+        rows.append(row)
+
+    out["legal_matrix"]=rows
+    out["process_checklist"]=[
+        {"label":x["label"],"ok":x["ok"],"pages":x["pages"]}
+        for x in rows
+        if x["applicable"] and x["status"] not in ("Aguardando / conferir prazo","Aguardando comprovação de ciência")
+    ]
+    out["module_matrix"]=[
+        {
+            "question":x["label"],
+            "answer":x["status"],
+            "ok":x["ok"],
+            "pages":x["pages"],
+            "label":x["label"],
+            "excerpt":x["excerpt"],
+            "legal_control_id":x["control_id"],
+            "responsible":x["responsible"],
+            "nature":x["nature"],
+            "criticality":x["criticality"],
+            "foundation":x["foundation"],
+            "applicable":x["applicable"],
+            "legal_status":x["status"],
+        }
+        for x in rows
+    ]
+
+    out["normative_profile"]={
+        "id":PB_PROFILE["id"],
+        "label":PB_PROFILE["label"],
+        "version":PB_PROFILE["version"],
+        "review_notice":PB_PROFILE["review_notice"],
+    }
+    out["procedure"]={"key":"penalizacao_contratual","label":"Penalização contratual · fluxo por fase"}
+
+    # Dossiê passa a refletir a função processual correta das peças.
+    group_ids=[
+        ("Contratação e fato",["vinculo_contratacao","obrigacao_exigivel","prazo_execucao","fato_inadimplemento","cobranca_previa"]),
+        ("Remessa e atuação da Comissão",["encaminhamento_comissao","instauracao","designacao_comissao"]),
+        ("Contraditório",["notificacao_comissao","ciencia_notificacao_comissao","defesa_ou_decurso"]),
+        ("Instrução, julgamento e encerramento",["instrucao_pos_defesa","relatorio_comissao","decisao","ciencia_decisao","recurso","encerramento"]),
+    ]
+    row_by_id={x["control_id"]:x for x in rows}
+    out["penalty_dossier"]=[]
+    for group,ids in group_ids:
+        grows=[]
+        for cid in ids:
+            x=row_by_id[cid]
+            grows.append({
+                "label":x["label"],
+                "ok":x["ok"],
+                "status":x["status"],
+                "pages":x["pages"],
+                "documents":x.get("documents") or [],
+            })
+        out["penalty_dossier"].append({"group":group,"rows":grows})
+    out["penalty_dossier_score"]={
+        "ok":sum(1 for x in rows if x["applicable"] and x["ok"]),
+        "total":sum(1 for x in rows if x["applicable"])
+    }
+
+    # Metadados do cabeçalho: instrumento equivalente é suficiente; contrato isolado não é.
+    md=core._validated_metadata(pages)
+    contract=core._clean_profile_value(md.get("contrato")) if hasattr(core,"_clean_profile_value") else str(md.get("contrato") or "")
+    ata=core._clean_profile_value(md.get("ata")) if hasattr(core,"_clean_profile_value") else str(md.get("ata") or "")
+    empenho=core._clean_profile_value(md.get("empenho")) if hasattr(core,"_clean_profile_value") else str(md.get("empenho") or "")
+    instrument=contract
+    if not instrument:
+        parts=[]
+        if ata: parts.append("ARP "+ata)
+        if empenho: parts.append("NE "+empenho)
+        instrument=" / ".join(parts) or "Não identificado"
+    deadline=_penalty_deadline_v142(pages)
+    contract_value=_penalty_value_v142(pages)
+    out["penalty_metadata"]={
+        "penalizacao":core._clean_profile_value(md.get("penalizacao")) or "Não identificado",
+        "origem":core._clean_profile_value(md.get("origem")) or "Não identificado",
+        "pregao":core._clean_profile_value(md.get("pregao")) or "Não identificado",
+        "ata":ata or "Não identificada",
+        "contrato":contract or "Não aplicável / não localizado",
+        "instrumento":instrument,
+        "empenho":empenho or "Não identificado",
+        "empresa":core._clean_profile_value(md.get("empresa")) or "Não identificada",
+        "cnpj":core._clean_profile_value(md.get("cnpj")) or "Não identificado",
+        "prazo_entrega":deadline.get("value") or "Não identificado",
+        "prazo_entrega_page":deadline.get("page"),
+        "valor_empenho":contract_value.get("display") or "Não identificado",
+        "valor_empenho_page":contract_value.get("page"),
+    }
+
+    out["module_timeline"]=[
+        {"label":x["label"],"pages":x["pages"][:4]}
+        for x in rows if x["ok"] and x["pages"]
+    ]
+    out["module_timeline"].sort(key=lambda x:x["pages"][0] if x["pages"] else 999999)
+    out["module_evidence"]=[
+        {"label":x["label"],"page":x["pages"][0],"text":x["excerpt"]}
+        for x in rows if x["ok"] and x["pages"]
+    ]
+
+    conflicts=_process_id_conflicts_v140(pages)
+    out["process_number_conflicts"]=conflicts
+
+    missing=[
+        x for x in rows
+        if x["applicable"] and not x["ok"] and x["status"]=="Não localizado"
+    ]
+    flags=[
+        {
+            "level":"alta" if x["criticality"]=="alta" else "media",
+            "text":x["label"]+" não localizado. "+x["absence_action"]
+        }
+        for x in missing[:5]
+    ]
+    flags += [{"level":x["level"],"text":x["text"]+" Números identificados: "+", ".join(x["numbers"])+"."} for x in conflicts[:2]]
+    out["review_flags"]=flags
+    out["pending"]=[x["text"] for x in flags]
+
+    applicable=[x for x in rows if x["applicable"]]
+    out["metrics"]["checklist_ok"]=sum(1 for x in applicable if x["ok"])
+    out["metrics"]["checklist_total"]=len(applicable)
+    out["metrics"]["evidence_points"]=len(out["module_evidence"])
+
+    # Fase e próximo ato: sequência real da Comissão.
+    if decision_found:
+        if not pgs["ciencia_decisao"]:
+            stage="Pós-decisão"
+            action="Providenciar e comprovar a ciência da empresa sobre a decisão administrativa."
+            why="Há decisão localizada, mas ainda não foi comprovada a ciência da interessada."
+        elif pgs["recurso"]:
+            stage="Fase recursal"
+            action="Instruir e encaminhar o recurso ou pedido de reconsideração à autoridade competente."
+            why="Foi localizado exercício da via recursal após a ciência da decisão."
+        else:
+            stage="Pós-decisão / prazo recursal"
+            action="Controlar o prazo recursal e, após seu término, registrar as providências finais cabíveis."
+            why="A decisão e sua ciência foram localizadas; a existência de recurso é condicional."
+    elif pgs["relatorio_comissao"]:
+        stage="Conclusão da Comissão"
+        action="Encaminhar o relatório/manifestaçao conclusiva à autoridade competente para decisão."
+        why="A instrução foi concluída pela Comissão e ainda não foi localizada decisão administrativa."
+    elif defense_or_lapse:
+        stage="Análise da defesa / instrução"
+        action="Confrontar a defesa ou o decurso do prazo com as evidências, realizar diligências necessárias e elaborar a manifestação conclusiva da Comissão."
+        why="O contraditório já avançou; a próxima etapa é a instrução e conclusão pela Comissão."
+    elif notif_found:
+        stage="Contraditório"
+        if not science_notif_found:
+            action="Comprovar o envio e o recebimento da Notificação Extrajudicial da Comissão antes de controlar o prazo de defesa."
+            why="A Notificação Extrajudicial da Comissão foi localizada, mas a ciência da empresa ainda não está comprovada."
+        else:
+            action="Acompanhar o prazo de defesa; se houver manifestação, juntá-la e instruí-la; se não houver, certificar o decurso do prazo."
+            why="A empresa foi formalmente cientificada pela Comissão; a defesa depende agora do prazo processual."
+    elif commission_assumed:
+        stage="Instrução inicial pela Comissão"
+        action="Elaborar e expedir a Notificação Extrajudicial da Comissão de Penalização, com os fatos, fundamento preliminar, prazo e acesso aos autos."
+        why="Há remessa/autuação/designação da Comissão, mas não foi localizada a Notificação Extrajudicial da Comissão. Cobranças anteriores da unidade não substituem esse ato."
+    elif pgs["fato_inadimplemento"]:
+        stage="Apuração prévia / encaminhamento"
+        action="Consolidar a prova do possível descumprimento e formalizar o encaminhamento à Comissão de Penalização, se cabível."
+        why="Há indícios documentados de descumprimento, mas o fluxo sancionador ainda não foi identificado."
+    else:
+        stage="Triagem da penalização"
+        action="Identificar a obrigação contratual, o prazo, a ciência da empresa e o fato que motivou a apuração."
+        why="Ainda faltam elementos estruturantes para posicionar o processo no fluxo de penalização."
+
+    out["next_action"]={"stage":stage,"action":action,"why":why}
+    out["conclusion"]=(
+        "Penalização contratual parametrizada por função processual e fase: cobranças prévias da unidade "
+        "são separadas da Notificação Extrajudicial da Comissão de Penalização; defesa, instrução, decisão "
+        "e recurso somente são exigidos quando a fase anterior estiver materializada nos autos."
+    )
+    return out
+
+
+core._module_overlay=_module_overlay_v140
+
+
+_penalizacao_v140_js=r"""
+<script id="fiscaliza-penalizacao-v140-js">
+var _overviewEtapasV140=overviewEtapasV96;
+overviewEtapasV96=function(a){
+  if(a&&a.module_key==="penalizacao"){
+    var rows=(a.legal_matrix||[]);
+    var state=function(id){return rows.find(function(x){return x.control_id===id})};
+    var good=function(id){
+      var r=state(id);
+      return !!(r&&(!r.applicable||r.ok));
+    };
+    return [
+      ["Contratação / obrigação",good("vinculo_contratacao")&&good("obrigacao_exigivel")&&good("prazo_execucao")],
+      ["Descumprimento / cobrança",good("fato_inadimplemento")&&good("cobranca_previa")],
+      ["Remessa / Comissão",good("encaminhamento_comissao")&&good("instauracao")&&good("designacao_comissao")],
+      ["Notificação / defesa",good("notificacao_comissao")&&good("ciencia_notificacao_comissao")&&good("defesa_ou_decurso")],
+      ["Instrução / decisão",good("instrucao_pos_defesa")&&good("relatorio_comissao")&&good("decisao")]
+    ];
+  }
+  return _overviewEtapasV140(a);
+};
+
+function renderPenalizacaoNormativaV140(a){
+  if(!a||a.module_key!=="penalizacao"||!a.normative_profile)return;
+  var hub=document.getElementById("overviewHub");
+  if(!hub)return;
+
+  var meta=hub.querySelector(".ov-meta");
+  if(meta&&!meta.querySelector(".pb-penalty-profile")){
+    var chip=document.createElement("span");
+    chip.className="pb-profile-chip pb-penalty-profile";
+    chip.textContent="Perfil normativo: "+a.normative_profile.label+" · "+a.normative_profile.version;
+    meta.appendChild(chip);
+    var proc=document.createElement("span");
+    proc.className="pb-profile-chip";
+    proc.textContent="Procedimento: "+((a.procedure&&a.procedure.label)||"Penalização contratual");
+    meta.appendChild(proc);
+  }
+
+  var old=document.getElementById("penaltyLegalMatrixV140");
+  if(old)old.remove();
+
+  var panel=document.createElement("section");
+  panel.id="penaltyLegalMatrixV140";
+  panel.className="ov-panel pb-legal-panel";
+
+  var rows=(a.legal_matrix||[]).map(function(r){
+    var source=(r.documents&&r.documents.length)
+      ? documentRefHtml(r.documents,r.pages||[])
+      : '<span class="pb-legal-source">Sem evidência documental rastreável nesta fase</span>';
+    return '<tr>'+
+      '<td>'+ovEsc(r.label)+'</td>'+
+      '<td><span class="pb-legal-status '+legalStatusClassV100(r.status)+'">'+ovEsc(r.status)+'</span></td>'+
+      '<td>'+ovEsc(r.responsible)+'</td>'+
+      '<td>'+ovEsc(r.foundation)+'<div class="pb-legal-source">'+ovEsc(r.nature)+'</div></td>'+
+      '<td>'+source+'</td>'+
+    '</tr>';
+  }).join("");
+
+  panel.innerHTML=
+    '<div class="ov-panel-head"><div>'+
+      '<h3>Matriz processual · Penalização</h3>'+
+      '<p>Cobrança prévia e Notificação Extrajudicial da Comissão são atos distintos. Os controles posteriores só são ativados quando a fase precedente estiver materializada.</p>'+
+    '</div></div>'+
+    '<div class="pb-legal-table-wrap"><table class="pb-legal-table">'+
+      '<thead><tr><th>Controle</th><th>Status</th><th>Responsável</th><th>Fundamento / natureza</th><th>Evidência</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table></div>'+
+    '<div class="pb-legal-note">'+ovEsc(a.normative_profile.review_notice)+'</div>';
+
+  var grids=hub.querySelectorAll(".ov-grid");
+  if(grids.length)grids[0].insertAdjacentElement("afterend",panel);
+  else hub.appendChild(panel);
+}
+
+var _normalizarOverviewV140=normalizarOverviewV96;
+normalizarOverviewV96=function(a){
+  _normalizarOverviewV140(a);
+  if(a&&a.module_key==="penalizacao")renderPenalizacaoNormativaV140(a);
+};
+
+function dossierStatusClassV140(status,ok){
+  var s=String(status||"").toLowerCase();
+  if(ok)return "ok";
+  if(s.indexOf("não exigível")>=0||s.indexOf("nao exigivel")>=0||s.indexOf("condicional")>=0||s.indexOf("aguardando")>=0)return "conditional";
+  return "miss";
+}
+penaltyDossierHtml=function(a){
+  var groups=a.penalty_dossier||[],score=a.penalty_dossier_score||{ok:0,total:0};
+  var h='<div class="dossier-shell"><div class="dossier-head"><div><h3>Checklist documental do processo</h3><p>Os controles seguem a fase real do procedimento. Etapas futuras aparecem como condicionais ou não exigíveis, sem virar falsa pendência.</p></div><span class="dossier-score">'+esc(score.ok)+' de '+esc(score.total)+' controles aplicáveis localizados</span></div>';
+  groups.forEach(function(g){
+    h+='<div class="dossier-group"><div class="dossier-group-title">'+esc(g.group)+'</div>';
+    (g.rows||[]).forEach(function(r){
+      var cls=dossierStatusClassV140(r.status,r.ok);
+      var src=r.ok?documentRefHtml(r.documents||[],r.pages||[]):'<span>Sem evidência documental para este controle nesta fase</span>';
+      h+='<div class="dossier-row">'+
+        '<span class="dossier-state '+(r.ok?'ok':'miss')+'">'+(r.ok?'✓':(cls==="miss"?'!':'·'))+'</span>'+
+        '<div class="dossier-label">'+esc(r.label)+'</div>'+
+        '<div class="dossier-source">'+src+'</div>'+
+        '<div class="dossier-status '+(r.ok?'ok':'miss')+'">'+esc(r.status||(r.ok?'Localizado':'Conferir'))+'</div>'+
+      '</div>';
+    });
+    h+='</div>';
+  });
+  return h+'</div>';
+}
+
+var _penaltyMetadataFactsV140=window.penaltyMetadataFacts;
+penaltyMetadataFacts=function(a){
+  var m=a.penalty_metadata||{},q=a.quantity||{};
+  var qv=q.display||q.value||"Não identificado";
+  return [
+    ["Processo de penalização",m.penalizacao||"Não identificado"],
+    ["Processo originário",m.origem||"Não identificado"],
+    ["Pregão",m.pregao||"Não identificado"],
+    ["Ata de Registro de Preços",m.ata||"Não identificada"],
+    ["Instrumento da contratação",m.instrumento||m.contrato||"Não identificado"],
+    ["Nota de Empenho",m.empenho||"Não identificado"],
+    ["Valor do empenho",m.valor_empenho||"Não identificado"],
+    ["Prazo de entrega",m.prazo_entrega||"Não identificado"],
+    ["Empresa",m.empresa||"Não identificada"],
+    ["Quantidade / objeto",qv]
+  ];
+};
+</script>
+"""
+core.HTML=core.HTML.replace("</body>",_penalizacao_v140_js+"</body>",1)
+core.app.version="14.2"

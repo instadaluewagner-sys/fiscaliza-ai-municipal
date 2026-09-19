@@ -8,6 +8,7 @@ WORKDIR /app
 
 COPY app_v33.py /app/app_v33.py
 COPY rc1_patch.py /app/rc1_patch.py
+COPY profile_pimenta_bueno.py /app/profile_pimenta_bueno.py
 
 RUN pip install --no-cache-dir fastapi uvicorn pymupdf python-multipart reportlab pytesseract pillow
 
