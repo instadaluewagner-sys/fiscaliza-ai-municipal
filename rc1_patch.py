@@ -5664,3 +5664,116 @@ core._document_marker = _document_marker_v93
 
 # Rótulos de cronologia mais legíveis para Planejamento.
 core.app.version="9.3"
+
+
+# --- Análise blindada por módulo v9.4 ---
+# O backend não depende apenas do estado JS para identificar um processo modelo.
+# Se o arquivo é um dos modelos internos, o módulo é inferido do próprio nome do
+# arquivo e prevalece sobre qualquer estado antigo do navegador.
+
+from typing import List as _ListV94
+from fastapi import UploadFile as _UploadFileV94, File as _FileV94, HTTPException as _HTTPExceptionV94
+
+_V94_MODULE_KEYS = {
+    "planejamento","formalizacao","fiscalizacao",
+    "alteracoes","penalizacao","encerramento"
+}
+
+def _demo_module_from_filename_v94(filename):
+    name=str(filename or "").lower()
+    for key in _V94_MODULE_KEYS:
+        if (
+            ("processo-modelo-"+key) in name
+            or ("processo_modelo_"+key) in name
+            or ("modelo-"+key) in name
+        ):
+            return key
+    return None
+
+async def _analyze_v94(
+    files:_ListV94[_UploadFileV94]=_FileV94(...),
+    module:str="penalizacao",
+    process_number:str="",
+    interested:str="",
+    unit:str=""
+):
+    pages=[];ocr=0;names=[]
+    detected_module=None
+
+    for f in files:
+        filename=f.filename or ""
+        if not filename.lower().endswith(".pdf"):
+            continue
+        if not detected_module:
+            detected_module=_demo_module_from_filename_v94(filename)
+        pp,oo=core.extract_pdf(await f.read(),filename)
+        pages.extend(pp);ocr+=oo;names.append(filename)
+
+    if not pages:
+        raise _HTTPExceptionV94(400,"Envie pelo menos um PDF.")
+
+    # Para processo modelo, o próprio arquivo é a fonte de verdade do módulo.
+    if detected_module:
+        module=detected_module
+
+    if module not in core.MODULES:
+        module="geral"
+
+    core._assign_document_ids(pages)
+    a=core.analyze_pages(pages)
+    a=core._module_overlay(pages,a,module)
+    a=core._enrich_doc_refs(a,pages)
+    profile=core._derive_process_profile(pages,module,process_number,interested,unit)
+    a["process_profile"]=profile
+
+    aid=core.uuid.uuid4().hex
+    core.ANALYSES[aid]={
+        "pages":pages,
+        "analysis":a,
+        "created":core.datetime.utcnow().isoformat(),
+        "module":module,
+        "profile":profile,
+        "files":names
+    }
+    return {
+        "analysis_id":aid,
+        "files":names,
+        "pages":len(pages),
+        "ocr_pages":ocr,
+        "module":module,
+        "profile":profile,
+        "analysis":a
+    }
+
+core.app.router.routes=[
+    r for r in core.app.router.routes
+    if not (getattr(r,"path",None)=="/api/analyze" and "POST" in getattr(r,"methods",set()))
+]
+core.app.add_api_route("/api/analyze",_analyze_v94,methods=["POST"])
+core.app.version="9.4"
+
+
+# Frontend: durante a demonstração, a URL do módulo também é fonte de verdade.
+_model_context_v94_js = r"""
+<script id="fiscaliza-model-context-v94-js">
+function moduloAbertoV94(fallback){
+  var q=new URLSearchParams(window.location.search).get("module");
+  if(q&&moduleLabels[q])return q;
+  return (fallback&&moduleLabels[fallback])?fallback:selectedModule;
+}
+
+var _carregarProcessoModeloV92Base=carregarProcessoModeloV92;
+carregarProcessoModeloV92=async function(key){
+  key=moduloAbertoV94(key);
+  selectedModule=key;
+  return await _carregarProcessoModeloV92Base(key);
+};
+
+var _modelLoaderV90StateBase=modelLoaderV90State;
+modelLoaderV90State=function(mode,key,msg){
+  key=moduloAbertoV94(key);
+  return _modelLoaderV90StateBase(mode,key,msg);
+};
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _model_context_v94_js + "</body>", 1)
