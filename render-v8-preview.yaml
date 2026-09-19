@@ -12,5 +12,9 @@ services:
         value: "1800"
       - key: V8_MAX_PDF_BYTES
         value: "31457280"
+      - key: V8_MAX_TOTAL_UPLOAD_BYTES
+        value: "62914560"
+      - key: V8_MAX_FILES
+        value: "5"
       - key: OCR_LANG
         value: por+eng
