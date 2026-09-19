@@ -5895,3 +5895,84 @@ ovDefaultDraftKind=function(a){
 """
 core.HTML = core.HTML.replace("</body>", _overview_semantics_v95_js + "</body>", 1)
 core.app.version="9.5"
+
+
+# --- Normalização final do overview v9.6 ---
+_overview_normalize_v96_js = r"""
+<script id="fiscaliza-overview-normalize-v96-js">
+function overviewEtapasV96(a){
+  var rows=(a&&a.module_matrix)||[];
+  var ok=function(i){return !!(rows[i]&&rows[i].ok)};
+  var m=a&&a.module_key;
+  if(m==="planejamento")return [
+    ["Demanda",ok(0)],["Estudos",ok(1)],["Especificação",ok(2)],
+    ["Preços e riscos",ok(3)&&ok(4)],["Aprovação",ok(5)]
+  ];
+  if(m==="formalizacao")return [
+    ["Seleção",ok(0)],["Proposta",ok(1)],["Resultado",ok(2)&&ok(3)],
+    ["Contrato",ok(4)],["Designação",ok(5)]
+  ];
+  if(m==="fiscalizacao")return [
+    ["Contrato",ok(0)],["Fiscal designado",ok(1)],["Execução",ok(2)],
+    ["Medição / recebimento",ok(3)],["Providências",ok(4)&&ok(5)]
+  ];
+  if(m==="alteracoes")return [
+    ["Pedido / justificativa",ok(0)],["Contrato vigente",ok(1)],
+    ["Cálculos e orçamento",ok(2)&&ok(3)],["Análise",ok(4)],["Formalização",ok(5)]
+  ];
+  if(m==="encerramento")return [
+    ["Contrato",ok(0)],["Motivação",ok(1)],["Ciência / manifestação",ok(2)&&ok(3)],
+    ["Análise final",ok(4)],["Encerramento",ok(5)]
+  ];
+  return null;
+}
+
+function normalizarOverviewV96(a){
+  if(!a)return;
+
+  var docs=a.process_profile&&a.process_profile.documents;
+  var dash=document.getElementById("dashDocs");
+  if(dash&&docs!=null)dash.textContent=String(docs);
+
+  var footer=document.querySelector(".side-footer");
+  if(footer)footer.innerHTML="Rastreabilidade por documento e página<br>VERSÃO 9.6 · CICLO CONTRATUAL";
+
+  if(a.module_key==="penalizacao")return;
+
+  var hub=document.getElementById("overviewHub");
+  if(!hub)return;
+
+  var head=Array.from(hub.querySelectorAll(".ov-panel-head")).find(function(x){
+    var h=x.querySelector("h3");return h&&h.textContent.trim()==="Leitura executiva";
+  });
+  if(head){
+    var sub=head.querySelector("p");
+    if(sub)sub.textContent="Síntese dos documentos, controles localizados e pontos para revisão.";
+  }
+
+  var titles=titulosEvidenciaV95(a.module_key);
+  var blocks=hub.querySelectorAll(".ov-evidence-block h4");
+  if(blocks[0])blocks[0].textContent=titles[0];
+  if(blocks[1])blocks[1].textContent=titles[1];
+
+  var stages=overviewEtapasV96(a);
+  if(stages){
+    var nodes=hub.querySelectorAll(".ov-stage");
+    stages.forEach(function(row,i){
+      if(!nodes[i])return;
+      nodes[i].textContent=row[0];
+      nodes[i].classList.toggle("done",!!row[1]);
+    });
+  }
+}
+
+var _ativarProcessoNoSistemaV96=ativarProcessoNoSistema;
+ativarProcessoNoSistema=function(a){
+  _ativarProcessoNoSistemaV96(a);
+  normalizarOverviewV96(a);
+  setTimeout(function(){normalizarOverviewV96(a)},0);
+};
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _overview_normalize_v96_js + "</body>", 1)
+core.app.version="9.6"
