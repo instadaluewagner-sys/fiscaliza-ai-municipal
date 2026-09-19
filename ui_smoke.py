@@ -4,7 +4,7 @@ BASE = "http://127.0.0.1:8000"
 
 MODULES = [
     ("planejamento", "Planejamento da contratação", "3101/2026", "7"),
-    ("formalizacao", "Formalização da contratação", "3202/2026", "8"),
+    ("formalizacao", "Formalização da contratação", "3202/2026", "13"),
     ("fiscalizacao", "Fiscalização e execução", "1001/2026", "9"),
     ("alteracoes", "Alterações contratuais", "3404/2026", "8"),
     ("penalizacao", "Penalização contratual", "2-0001/2026", "17"),
@@ -77,6 +77,13 @@ def main():
             assert page.locator("#overviewHub .ov-stage").count() == 5
             assert "Não foi possível carregar o processo modelo" not in page.locator("body").inner_text()
 
+            if key in ("planejamento", "formalizacao"):
+                expect(page.locator(".pb-profile-chip").nth(0)).to_contain_text("Pimenta Bueno/RO")
+                expect(page.locator(".pb-profile-chip").nth(1)).to_contain_text("Pregão — aquisição de bens")
+                expect(page.locator("#legalMatrixPanelV100")).to_be_visible(timeout=10000)
+                legal_text = page.locator("#legalMatrixPanelV100").inner_text()
+                assert "Decreto Regulamentar" in legal_text
+
             if key == "planejamento":
                 text = page.locator("#overviewHub").inner_text()
                 assert "DOD" in text or "Documento Oficial de Demanda" in text
@@ -90,14 +97,22 @@ def main():
                 assert "defesa administrativa" not in hub_text
                 assert "notificação/intimação como peça autônoma" not in hub_text
                 assert page.locator("#overviewHub .ov-time").count() <= 6
-                expect(page.locator(".pb-profile-chip").nth(0)).to_contain_text("Pimenta Bueno/RO")
-                expect(page.locator(".pb-profile-chip").nth(1)).to_contain_text("Pregão — aquisição de bens")
-                expect(page.locator("#legalMatrixPanelV100")).to_be_visible(timeout=10000)
                 assert page.locator("#legalMatrixPanelV100 tbody tr").count() == 6
-                legal_text = page.locator("#legalMatrixPanelV100").inner_text()
                 assert "Documento Oficial de Demanda" in legal_text
-                assert "Decreto Regulamentar" in legal_text
                 assert "Secretaria de Origem" in legal_text
+
+            if key == "formalizacao":
+                assert page.locator("#legalMatrixPanelV100 tbody tr").count() == 11
+                assert "Conferência da fase preparatória" in legal_text
+                assert "Procuradoria-Geral do Município" in legal_text
+                assert "Controladoria-Geral do Município" in legal_text
+                assert "Adjudicação e homologação" in legal_text
+                assert "Nota de Empenho" in legal_text
+                stage_text = page.locator("#overviewHub .ov-track").inner_text()
+                assert "SUPEL / edital" in stage_text
+                assert "PGM / autorização" in stage_text
+                assert "CGM / homologação" in stage_text
+                assert "Contrato / gestão" in stage_text
 
             # Navegação lateral existe para todas as áreas operacionais.
             for tab in ["documentos", "evidencias", "cronologia", "pendencias", "perguntar", "minutas", "relatorio"]:
