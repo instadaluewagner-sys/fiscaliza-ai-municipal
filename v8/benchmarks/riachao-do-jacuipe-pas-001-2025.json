@@ -1,0 +1,48 @@
+{
+  "case_id": "riachao-do-jacuipe-pas-001-2025",
+  "source": {
+    "type": "municipal_official_gazette",
+    "url": "https://diario.indap.org.br/publicacoes/680b9aca94a24/anexo/52373",
+    "pdf_pages": 3
+  },
+  "process_number": "001/2025",
+  "company": "Orion-Saúde e Participações Ltda.",
+  "contract": "352/2022",
+  "expected_stage": "julgamento",
+  "expected_suggested_draft": "notificacao_decisao",
+  "expected_stage_source_page": 2,
+  "documents": [
+    {
+      "type": "decisao",
+      "title": "DECISÃO ADMINISTRATIVA",
+      "page_start": 2,
+      "page_end": 3,
+      "content_pages": [
+        2,
+        3
+      ],
+      "notes": "A página 1 é capa/publicação do diário; a peça autônoma de decisão administrativa ocupa as páginas 2 e 3."
+    }
+  ],
+  "critical_facts": [
+    {
+      "key": "final_decision",
+      "fact": "decisão final declara suspensão da empresa para licitar e contratar",
+      "support_page": 2
+    }
+  ],
+  "profile_expectations": {
+    "process_number": "001/2025",
+    "company": "Orion-Saúde e Participações Ltda.",
+    "cnpj": "40.254.329/0001-01",
+    "contrato": "352/2022",
+    "quantity": null
+  },
+  "profile_conflicts": {},
+  "notes": [
+    "Caso municipal publicado em Diário Oficial em 25/04/2025.",
+    "A página 1 é capa/publicação; a decisão autônoma começa na página 2.",
+    "A decisão declara suspensão da empresa para licitar e contratar e determina publicação/registro.",
+    "A página 3 determina ciência à empresa e prevê prazo de 10 dias para manifestação cabível."
+  ]
+}

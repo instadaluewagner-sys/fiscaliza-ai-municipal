@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: fiscaliza-ai-v8-preview
+    runtime: docker
+    branch: v8-rebuild
+    dockerfilePath: ./v8/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v8/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: V8_SESSION_TTL_SECONDS
+        value: "1800"
+      - key: V8_MAX_PDF_BYTES
+        value: "31457280"
+      - key: V8_MAX_TOTAL_UPLOAD_BYTES
+        value: "62914560"
+      - key: V8_MAX_FILES
+        value: "5"
+      - key: OCR_LANG
+        value: por+eng

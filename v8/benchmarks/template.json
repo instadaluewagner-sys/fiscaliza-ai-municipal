@@ -1,0 +1,20 @@
+{
+  "case_id": "exemplo-001",
+  "source": "processo público / fictício",
+  "process_number": null,
+  "expected_stage": null,
+  "expected_next_action": null,
+  "documents": [
+    {
+      "type": "contrato",
+      "page_start": null,
+      "page_end": null,
+      "title": null
+    }
+  ],
+  "facts": {
+    "object_description": null,
+    "quantity": null
+  },
+  "notes": []
+}
