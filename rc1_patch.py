@@ -5725,6 +5725,7 @@ async def _analyze_v94(
     a=core._enrich_doc_refs(a,pages)
     profile=core._derive_process_profile(pages,module,process_number,interested,unit)
     a["process_profile"]=profile
+    a["source_mode"]="modelo" if detected_module else "upload"
 
     aid=core.uuid.uuid4().hex
     core.ANALYSES[aid]={
@@ -6059,3 +6060,211 @@ ovPending=function(a){
 </script>
 """
 core.HTML = core.HTML.replace("</body>", _workspace_reset_v97_js + "</body>", 1)
+
+
+# --- Modelo somente por ação explícita v9.8 ---
+_model_intent_v98_js = r"""
+<script id="fiscaliza-model-intent-v98-js">
+/*
+  Regra operacional:
+  - entrar em um módulo SEMPRE abre workspace vazio;
+  - processo modelo só pode nascer de clique explícito em "Processo modelo"
+    ou "Usar processo modelo";
+  - resultado de um modelo cancelado nunca pode reaparecer depois.
+*/
+var modelIntentV98=false;
+var modelRenderAuthorizedV98=false;
+var modelRequestSeqV98=0;
+var modelFetchControllerV98=null;
+
+function cancelarModeloV98(){
+  modelIntentV98=false;
+  modelRenderAuthorizedV98=false;
+  modelRequestSeqV98++;
+  if(modelFetchControllerV98){
+    try{modelFetchControllerV98.abort()}catch(_e){}
+  }
+  modelFetchControllerV98=null;
+  if(typeof cancelarModeloPendenteV92==="function")cancelarModeloPendenteV92();
+}
+
+function workspaceVazioV98(key){
+  cancelarModeloV98();
+  selectedModule=key;
+
+  /* um módulo aberto não herda análise/modelo anterior */
+  analysisId=null;
+  try{localStorage.removeItem("fiscaliza_analysis_id")}catch(_e){}
+  var fi=document.getElementById("files");
+  if(fi)fi.value="";
+
+  abrirTelaModulo(key,null,true);
+  selectedModule=key;
+
+  if(typeof prepararInicioModulo==="function")prepararInicioModulo();
+  if(typeof restaurarCabecalhoModulo==="function")restaurarCabecalhoModulo();
+
+  var empty=document.getElementById("systemEmpty");
+  if(empty){
+    empty.innerHTML=emptyWorkspaceHtmlV97();
+    empty.style.display="flex";
+  }
+  var hub=document.getElementById("overviewHub");
+  if(hub){hub.innerHTML="";hub.classList.remove("visible");hub.style.display="none"}
+
+  setTimeout(function(){
+    if(selectedModule!==key)return;
+    if(typeof prepararInicioModulo==="function")prepararInicioModulo();
+    var e=document.getElementById("systemEmpty");
+    if(e){e.innerHTML=emptyWorkspaceHtmlV97();e.style.display="flex"}
+    var h=document.getElementById("overviewHub");
+    if(h){h.innerHTML="";h.classList.remove("visible");h.style.display="none"}
+  },60);
+}
+
+/* Esta é a única ação do botão "Abrir módulo". */
+abrirModuloV92=function(key){
+  if(!moduleLabels[key])return;
+  workspaceVazioV98(key);
+};
+window.abrirModulo=abrirModuloV92;
+
+/* Carregador exclusivo de modelo, com autorização e cancelamento próprios. */
+async function carregarModeloExplicitoV98(key){
+  if(!moduleLabels[key])return;
+  cancelarModeloV98();
+
+  var seq=++modelRequestSeqV98;
+  modelIntentV98=true;
+  modelRenderAuthorizedV98=true;
+  selectedModule=key;
+  demoMode=true;
+
+  modelFetchControllerV98=new AbortController();
+  modelLoaderV90State("loading",key);
+
+  try{
+    var r=await fetch("/api/demo-pdf?module="+encodeURIComponent(key),{
+      method:"GET",
+      cache:"no-store",
+      signal:modelFetchControllerV98.signal
+    });
+    if(!r.ok)throw new Error("PDF modelo indisponível ("+r.status+").");
+    if(seq!==modelRequestSeqV98 || !modelIntentV98)return;
+
+    var blob=await r.blob();
+    if(!blob||blob.size<100)throw new Error("O arquivo do processo modelo veio vazio.");
+    if(seq!==modelRequestSeqV98 || !modelIntentV98)return;
+
+    var input=document.getElementById("files");
+    if(!input)throw new Error("Campo de documentos não encontrado.");
+
+    var dt=new DataTransfer();
+    dt.items.add(new File(
+      [blob],
+      "Processo-Modelo-"+key+"-FiscalizaAI.pdf",
+      {type:"application/pdf"}
+    ));
+    input.files=dt.files;
+
+    selectedModule=key;
+    await analisar();
+
+    if(seq!==modelRequestSeqV98 || !modelIntentV98){
+      if(typeof prepararInicioModulo==="function")prepararInicioModulo();
+      return;
+    }
+  }catch(e){
+    if(e&&e.name==="AbortError")return;
+    if(seq===modelRequestSeqV98 && modelIntentV98){
+      modelLoaderV90State("error",key,e&&e.message?e.message:"Falha ao carregar o processo modelo.");
+    }
+  }finally{
+    if(seq===modelRequestSeqV98){
+      demoMode=false;
+      modelIntentV98=false;
+      modelRenderAuthorizedV98=false;
+      modelFetchControllerV98=null;
+    }
+  }
+}
+
+/* Botão Processo modelo da Home. */
+abrirModeloModuloV85=async function(key){
+  if(!moduleLabels[key])return;
+
+  cancelarModeloV98();
+  selectedModule=key;
+  abrirTelaModulo(key,null,true);
+
+  await new Promise(function(resolve){setTimeout(resolve,90)});
+  if(selectedModule!==key)return;
+
+  if(typeof prepararInicioModulo==="function")prepararInicioModulo();
+  selectedModule=key;
+  await carregarModeloExplicitoV98(key);
+};
+
+/* Botão Usar processo modelo dentro do módulo. */
+usarProcessoModeloV92=async function(){
+  var q=new URLSearchParams(window.location.search).get("module");
+  var key=(q&&moduleLabels[q])?q:selectedModule;
+  if(!key||!moduleLabels[key])return;
+  if(typeof prepararInicioModulo==="function")prepararInicioModulo();
+  selectedModule=key;
+  await carregarModeloExplicitoV98(key);
+};
+
+/* Bloqueia chamadas legadas a testarDemo: nenhum código antigo pode iniciar
+   demonstração ao simples ato de abrir um módulo. */
+testarDemo=async function(){
+  return false;
+};
+
+/* Se uma resposta antiga de processo modelo chegar depois de o usuário ter
+   aberto o módulo limpo, ela é descartada antes de tocar a interface. */
+var _ajustarResultadoModuloV98=ajustarResultadoModulo;
+ajustarResultadoModulo=function(a){
+  if(a&&a.source_mode==="modelo"&&!modelRenderAuthorizedV98){
+    return;
+  }
+  return _ajustarResultadoModuloV98(a);
+};
+
+/* Garante handlers finais, mesmo com scripts legados presentes na página. */
+function corrigirAcoesModeloV98(){
+  document.querySelectorAll("#homeV86 .home-v86-card").forEach(function(card){
+    var key=card.getAttribute("data-module");
+    var open=card.querySelector(".home-v86-open");
+    var model=card.querySelector(".home-v86-model");
+    if(open){
+      open.setAttribute("onclick","event.stopPropagation();abrirModuloV92('"+key+"')");
+      open.textContent="Abrir módulo →";
+    }
+    if(model){
+      model.setAttribute("onclick","event.stopPropagation();abrirModeloModuloV85('"+key+"')");
+      model.textContent="Processo modelo";
+    }
+
+    /* Clique no corpo do card = abrir módulo vazio. */
+    card.onclick=function(ev){
+      if(ev.target.closest("button"))return;
+      abrirModuloV92(key);
+    };
+  });
+
+  document.querySelectorAll("#screenWorkspace button").forEach(function(btn){
+    var txt=(btn.textContent||"").trim().toLowerCase();
+    if(txt.indexOf("usar processo modelo")>=0){
+      btn.setAttribute("onclick","usarProcessoModeloV92()");
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+  setTimeout(corrigirAcoesModeloV98,1100);
+});
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _model_intent_v98_js + "</body>", 1)
+core.app.version="9.8"
