@@ -7746,7 +7746,7 @@ function renderAlteracoesNormativaV130(a){
   panel.id="legalMatrixPanelV100";
   panel.className="ov-panel pb-legal-panel";
 
-  var rows=(a.legal_matrix||[]).map(function(r){
+  var rows=(a.legal_matrix||[]).filter(function(r){return r.applicable}).map(function(r){
     var source=(r.documents&&r.documents.length)
       ? documentRefHtml(r.documents,r.pages||[])
       : '<span class="pb-legal-source">Sem evidência documental rastreável</span>';
