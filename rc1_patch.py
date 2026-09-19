@@ -4568,3 +4568,437 @@ _home_v87_css = r"""
 </style>
 """
 core.HTML = core.HTML.replace("</head>", _home_v87_css + "</head>", 1)
+
+
+# --- Arquitetura do ciclo completo da contratação v8.8 ---
+# O produto deixa de misturar contratos com apuração funcional e passa a cobrir
+# o ciclo da contratação pública: planejamento -> formalização -> execução ->
+# alterações -> responsabilização -> encerramento.
+
+core.MODULES = {
+    "planejamento":{
+        "label":"Planejamento da contratação",
+        "short":"Planejamento",
+        "desc":"DFD, ETP, termo de referência, preços, riscos e aprovações."
+    },
+    "formalizacao":{
+        "label":"Formalização da contratação",
+        "short":"Formalização",
+        "desc":"Seleção, proposta, adjudicação/homologação, contrato, garantias e designações."
+    },
+    "fiscalizacao":{
+        "label":"Fiscalização e execução",
+        "short":"Fiscalização",
+        "desc":"Execução, entregas, ocorrências, medições, recebimento e providências."
+    },
+    "alteracoes":{
+        "label":"Alterações contratuais",
+        "short":"Alterações",
+        "desc":"Aditivos, prorrogações, reajuste, repactuação e reequilíbrio econômico-financeiro."
+    },
+    "penalizacao":{
+        "label":"Penalização contratual",
+        "short":"Penalização",
+        "desc":"Instauração, notificação, defesa, instrução, decisão e sanção."
+    },
+    "encerramento":{
+        "label":"Extinção / encerramento",
+        "short":"Encerramento",
+        "desc":"Extinção, obrigações finais, recebimento definitivo e registros de encerramento."
+    }
+}
+
+core.MODULE_RULES = {
+    "planejamento":[
+        ("Documento de formalização da demanda",["formalizacao da demanda"]),
+        ("Estudo técnico preliminar",["estudo tecnico preliminar"]),
+        ("Termo de referência / projeto básico",["termo de referencia"]),
+        ("Pesquisa de preços / orçamento estimado",["pesquisa de precos"]),
+        ("Mapa ou matriz de riscos",["riscos"]),
+        ("Autorização / aprovação do planejamento",["autorizacao"])
+    ],
+    "formalizacao":[
+        ("Edital / instrumento de seleção",["edital"]),
+        ("Proposta vencedora",["proposta vencedora"]),
+        ("Adjudicação / homologação",["homologacao"]),
+        ("Ata / registro do resultado",["ata"]),
+        ("Contrato ou instrumento equivalente",["contrato"]),
+        ("Designação de fiscal ou gestor",["designacao"])
+    ],
+    "fiscalizacao":[
+        ("Instrumento contratual",["contrato"]),
+        ("Designação de fiscal ou gestor",["fiscal"]),
+        ("Relatório de execução / fiscalização",["relatorio","execucao"]),
+        ("Entrega, medição ou recebimento",["recebimento"]),
+        ("Ocorrência ou comunicação à contratada",["notificacao"]),
+        ("Providência ou regularização registrada",["providencia"])
+    ],
+    "alteracoes":[
+        ("Pedido / justificativa da alteração",["alteracao contratual"]),
+        ("Contrato vigente",["contrato"]),
+        ("Memória de cálculo / planilha / preços",["planilha"]),
+        ("Disponibilidade orçamentária",["dotacao"]),
+        ("Parecer técnico ou jurídico",["parecer"]),
+        ("Termo aditivo / apostilamento / decisão",["termo aditivo"])
+    ],
+    "encerramento":[
+        ("Contrato ou instrumento equivalente",["contrato"]),
+        ("Motivação da extinção / encerramento",["extincao"]),
+        ("Comunicação ou notificação da contratada",["notificacao"]),
+        ("Manifestação / contraditório quando cabível",["manifestacao"]),
+        ("Parecer / análise final",["parecer"]),
+        ("Decisão e registro de encerramento",["encerramento"])
+    ]
+}
+
+# Processos-modelo específicos dos novos fluxos.
+core.MODEL_CASES.update({
+    "planejamento":{
+        "title":"Planejamento da contratação",
+        "pages":[
+            (
+                "PROCESSO DE PLANEJAMENTO DA CONTRATAÇÃO Nº 3101/2026",
+                "CASO FICTÍCIO. Aquisição de notebooks para modernização de unidades administrativas municipais."
+            ),
+            (
+                "DOCUMENTO DE FORMALIZAÇÃO DA DEMANDA — DFD",
+                "A unidade requisitante registra a necessidade de aquisição, problema a ser resolvido, quantitativo preliminar de 60 notebooks e resultados esperados. Documento de formalização da demanda aprovado pela chefia da unidade."
+            ),
+            (
+                "ESTUDO TÉCNICO PRELIMINAR — ETP",
+                "O estudo técnico preliminar descreve a necessidade, alternativas disponíveis, requisitos mínimos, estimativa de quantitativos e justificativa da solução escolhida."
+            ),
+            (
+                "MAPA DE RISCOS DA CONTRATAÇÃO",
+                "O mapa de riscos identifica riscos de especificação inadequada, atraso no fornecimento, variação de preços e recebimento de equipamentos em desacordo, com medidas preventivas e responsáveis."
+            ),
+            (
+                "PESQUISA DE PREÇOS E ORÇAMENTO ESTIMADO",
+                "A pesquisa de preços reúne fontes de mercado e consolida orçamento estimado para 60 unidades, com memória da metodologia utilizada e tratamento dos valores coletados."
+            ),
+            (
+                "TERMO DE REFERÊNCIA",
+                "O termo de referência define objeto, 60 notebooks, requisitos técnicos, prazo de entrega, critérios de aceitação, obrigações, fiscalização, forma de pagamento e condições de recebimento."
+            ),
+            (
+                "AUTORIZAÇÃO DO PLANEJAMENTO",
+                "A autoridade competente registra autorização para prosseguimento da contratação após conferência do documento de formalização da demanda, estudo técnico preliminar, pesquisa de preços, riscos e termo de referência."
+            )
+        ]
+    },
+    "formalizacao":{
+        "title":"Formalização da contratação",
+        "pages":[
+            (
+                "PROCESSO DE FORMALIZAÇÃO DA CONTRATAÇÃO Nº 3202/2026",
+                "CASO FICTÍCIO. Contratação decorrente de processo competitivo para aquisição de notebooks destinados a unidades municipais."
+            ),
+            (
+                "EDITAL DO PREGÃO ELETRÔNICO Nº 41/2026",
+                "O edital estabelece objeto, critérios de julgamento, condições de participação, requisitos de habilitação, prazo e regras do procedimento de seleção."
+            ),
+            (
+                "PROPOSTA VENCEDORA",
+                "A empresa Tecnologia Modelo Ltda. apresenta proposta vencedora para fornecimento de 60 notebooks, com preço unitário e condições compatíveis com o edital."
+            ),
+            (
+                "ATA DA SESSÃO E RESULTADO",
+                "A ata registra propostas, lances, classificação, habilitação e resultado final da sessão pública."
+            ),
+            (
+                "ADJUDICAÇÃO E HOMOLOGAÇÃO",
+                "A autoridade adjudica o objeto à proposta vencedora e registra a homologação do resultado do procedimento."
+            ),
+            (
+                "CONTRATO ADMINISTRATIVO Nº 188/2026",
+                "CONTRATANTE: Município Demonstração. CONTRATADA: Tecnologia Modelo Ltda. Objeto: fornecimento de 60 notebooks. O contrato estabelece prazo, obrigações, recebimento, pagamento, fiscalização e demais condições."
+            ),
+            (
+                "PORTARIA DE DESIGNAÇÃO DE FISCAL E GESTOR",
+                "Ficam designados fiscal e gestor para acompanhar o Contrato Administrativo nº 188/2026 e registrar ocorrências e providências."
+            ),
+            (
+                "PUBLICAÇÃO E REGISTRO DA CONTRATAÇÃO",
+                "A unidade registra a publicação e os dados essenciais da contratação, concluindo a etapa de formalização."
+            )
+        ]
+    },
+    "alteracoes":{
+        "title":"Alterações contratuais",
+        "pages":[
+            (
+                "PROCESSO DE ALTERAÇÃO CONTRATUAL Nº 3404/2026",
+                "CASO FICTÍCIO. Contrato nº 260/2026. Análise de prorrogação de prazo e reequilíbrio econômico-financeiro requerido pela contratada."
+            ),
+            (
+                "CONTRATO ADMINISTRATIVO Nº 260/2026",
+                "Objeto: fornecimento continuado de gêneros alimentícios. O contrato define prazo, preços, condições de reajuste e hipóteses de alteração."
+            ),
+            (
+                "PEDIDO E JUSTIFICATIVA DE ALTERAÇÃO CONTRATUAL",
+                "A unidade apresenta justificativa para prorrogação da vigência e a contratada formula pedido de alteração contratual com reequilíbrio econômico-financeiro em razão de aumento extraordinário de custos."
+            ),
+            (
+                "PLANILHA, MEMÓRIA DE CÁLCULO E PESQUISA DE PREÇOS",
+                "A instrução contém planilha comparativa, memória de cálculo e pesquisa de preços para demonstrar a variação dos custos e avaliar a vantajosidade da alteração."
+            ),
+            (
+                "DECLARAÇÃO DE DOTAÇÃO E DISPONIBILIDADE ORÇAMENTÁRIA",
+                "A unidade orçamentária registra dotação e disponibilidade para suportar a despesa decorrente da alteração contratual proposta."
+            ),
+            (
+                "NOTA TÉCNICA DA UNIDADE GESTORA",
+                "A área técnica examina necessidade, interesse público, vantajosidade, execução do contrato e documentação do pedido de alteração."
+            ),
+            (
+                "PARECER JURÍDICO Nº 61/2026",
+                "O parecer jurídico analisa os requisitos da prorrogação e do reequilíbrio econômico-financeiro, recomendando decisão motivada e formalização adequada."
+            ),
+            (
+                "TERMO ADITIVO Nº 02/2026",
+                "O termo aditivo formaliza a prorrogação da vigência e os efeitos financeiros aprovados, conforme decisão constante dos autos."
+            )
+        ]
+    },
+    "encerramento":{
+        "title":"Extinção / encerramento",
+        "pages":[
+            (
+                "PROCESSO DE EXTINÇÃO E ENCERRAMENTO Nº 3606/2026",
+                "CASO FICTÍCIO. Contrato nº 411/2026. Avaliação de extinção e providências necessárias ao encerramento do vínculo contratual."
+            ),
+            (
+                "CONTRATO ADMINISTRATIVO Nº 411/2026",
+                "Objeto: serviços continuados de transporte. O contrato estabelece obrigações, prazo, hipóteses de extinção, recebimento e responsabilidades finais."
+            ),
+            (
+                "RELATÓRIO DE MOTIVAÇÃO DA EXTINÇÃO",
+                "A fiscalização registra descumprimentos reiterados e apresenta motivação técnica para avaliação da extinção contratual."
+            ),
+            (
+                "NOTIFICAÇÃO À CONTRATADA",
+                "A contratada fica notificada acerca da proposta de extinção e das ocorrências registradas, com possibilidade de manifestação."
+            ),
+            (
+                "MANIFESTAÇÃO DA CONTRATADA",
+                "A empresa apresenta manifestação, contesta parte das ocorrências e requer consideração das providências adotadas."
+            ),
+            (
+                "PARECER JURÍDICO Nº 72/2026",
+                "O parecer examina a motivação, o contraditório, os efeitos da extinção e as providências necessárias ao encerramento."
+            ),
+            (
+                "DECISÃO DE EXTINÇÃO CONTRATUAL",
+                "Após análise dos autos, a autoridade decide pela extinção do Contrato nº 411/2026 e determina as providências finais."
+            ),
+            (
+                "TERMO DE ENCERRAMENTO E REGISTROS FINAIS",
+                "O termo de encerramento registra recebimento definitivo do que foi executado, acertos finais, garantias, saldo contratual e baixa dos controles administrativos."
+            )
+        ]
+    }
+})
+
+# O modelo de Fiscalização existente permanece válido e passa a ser apresentado
+# como Fiscalização e execução.
+if "fiscalizacao" in core.MODEL_CASES:
+    core.MODEL_CASES["fiscalizacao"]["title"] = "Fiscalização e execução"
+
+core.app.version = "8.8"
+
+
+_home_cycle_v88_css = r"""
+<style id="fiscaliza-home-cycle-v88">
+/* Paleta dos seis fluxos do ciclo da contratação */
+.home-v86-card[data-module="planejamento"] .home-v86-icon{background:#e9f2ff!important;color:#1767c7!important}
+.home-v86-card[data-module="formalizacao"] .home-v86-icon{background:#edf0ff!important;color:#4f60bd!important}
+.home-v86-card[data-module="fiscalizacao"] .home-v86-icon{background:#e6f6f1!important;color:#087d72!important}
+.home-v86-card[data-module="alteracoes"] .home-v86-icon{background:#fff0df!important;color:#c46818!important}
+.home-v86-card[data-module="penalizacao"] .home-v86-icon{background:#fdecee!important;color:#b62939!important}
+.home-v86-card[data-module="encerramento"] .home-v86-icon{background:#eef2f5!important;color:#405d72!important}
+
+/* A Home passa a comunicar explicitamente o ciclo contratual */
+.home-v86-cycle{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  flex-wrap:wrap;
+  margin-top:7px
+}
+.home-v86-cycle span{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  color:#718699;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:14px!important;
+  line-height:1.2!important
+}
+.home-v86-cycle span:not(:last-child):after{
+  content:"→";
+  color:#9aabb8;
+  margin-left:2px
+}
+</style>
+"""
+core.HTML = core.HTML.replace("</head>", _home_cycle_v88_css + "</head>", 1)
+
+_home_cycle_v88_js = r"""
+<script id="fiscaliza-home-cycle-v88-js">
+/* Catálogo oficial do produto — somente os seis fluxos do ciclo contratual. */
+moduleLabels={
+  planejamento:"Planejamento da contratação",
+  formalizacao:"Formalização da contratação",
+  fiscalizacao:"Fiscalização e execução",
+  alteracoes:"Alterações contratuais",
+  penalizacao:"Penalização contratual",
+  encerramento:"Extinção / encerramento"
+};
+
+function homeV86Meta(){
+  return {
+    planejamento:{
+      category:"Fase preparatória",
+      title:"Planejamento da contratação",
+      desc:"DFD, ETP, termo de referência, preços, riscos e aprovações."
+    },
+    formalizacao:{
+      category:"Contratação",
+      title:"Formalização da contratação",
+      desc:"Seleção, proposta, adjudicação/homologação, contrato e designações."
+    },
+    fiscalizacao:{
+      category:"Execução contratual",
+      title:"Fiscalização e execução",
+      desc:"Entregas, ocorrências, medições, recebimento e providências."
+    },
+    alteracoes:{
+      category:"Gestão contratual",
+      title:"Alterações contratuais",
+      desc:"Aditivos, prorrogações, reajuste, repactuação e reequilíbrio."
+    },
+    penalizacao:{
+      category:"Responsabilização",
+      title:"Penalização contratual",
+      desc:"Instauração, notificação, defesa, instrução, decisão e sanção."
+    },
+    encerramento:{
+      category:"Encerramento",
+      title:"Extinção / encerramento",
+      desc:"Extinção, obrigações finais, recebimento definitivo e registros."
+    }
+  };
+}
+
+function homeIconSvg(key){
+  var base='fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+  var map={
+    planejamento:'<svg viewBox="0 0 24 24"><path '+base+' d="M5 4h14v16H5zM8 8h8M8 12h5M8 16h7"/><path '+base+' d="M9 2h6v4H9z"/></svg>',
+    formalizacao:'<svg viewBox="0 0 24 24"><path '+base+' d="M6 3h9l3 3v15H6zM15 3v4h4M9 12h6"/><path '+base+' d="M9 16l2 2 4-5"/></svg>',
+    fiscalizacao:'<svg viewBox="0 0 24 24"><circle '+base+' cx="10" cy="10" r="6"/><path '+base+' d="M14.5 14.5L20 20M8 10l1.5 1.5L13 8"/></svg>',
+    alteracoes:'<svg viewBox="0 0 24 24"><path '+base+' d="M4 7h12M13 4l3 3-3 3M20 17H8M11 14l-3 3 3 3"/></svg>',
+    penalizacao:'<svg viewBox="0 0 24 24"><path '+base+' d="M14 4l6 6M12 6l6 6M5 19l7-7M4 20l3-3M15 3l6 6-3 3-6-6z"/></svg>',
+    encerramento:'<svg viewBox="0 0 24 24"><path '+base+' d="M6 3h12v18H6zM9 8h6M9 12h6"/><path '+base+' d="M9 16l2 2 4-5"/></svg>'
+  };
+  return map[key]||'';
+}
+
+function moduloCategoriaCor(key){
+  return {
+    planejamento:"#1767c7",
+    formalizacao:"#4f60bd",
+    fiscalizacao:"#087d72",
+    alteracoes:"#c46818",
+    penalizacao:"#b62939",
+    encerramento:"#405d72"
+  }[key]||"#1767c7";
+}
+
+/* Contexto específico da área de trabalho de cada novo módulo. */
+var _aplicarContextoDoModuloV88=aplicarContextoDoModulo;
+aplicarContextoDoModulo=function(key){
+  _aplicarContextoDoModuloV88(key);
+  var meta=homeV86Meta()[key];
+  if(!meta)return;
+  var t=document.getElementById("workspaceModuleTitle");
+  var d=document.getElementById("workspaceModuleDesc");
+  if(t)t.textContent=meta.title;
+  if(d)d.textContent=meta.desc;
+  document.title="Fiscaliza.AI · "+meta.title;
+};
+
+/* Reconstrói a Home com a nova arquitetura e somente estes seis fluxos. */
+function construirHomeV86(){
+  var home=document.getElementById("screenHome");
+  if(!home)return;
+  var root=document.getElementById("homeV86");
+  if(!root){
+    root=document.createElement("section");
+    root.id="homeV86";
+    root.className="home-v86";
+    home.insertBefore(root,home.firstChild);
+  }
+
+  var meta=homeV86Meta();
+  var keys=["planejamento","formalizacao","fiscalizacao","alteracoes","penalizacao","encerramento"];
+
+  root.innerHTML=
+    '<section class="home-v86-summary">'+
+      '<div>'+
+        '<h1>Inteligência processual para o ciclo da contratação pública</h1>'+
+        '<p>Da necessidade administrativa ao encerramento do contrato, organize documentos, evidências, pendências e decisões com rastreabilidade por documento e página.</p>'+
+        '<div class="home-v86-cycle">'+
+          '<span>Planejamento</span><span>Formalização</span><span>Execução</span><span>Alterações</span><span>Penalização</span><span>Encerramento</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="home-v86-kpis">'+
+        '<div class="home-v86-kpi"><b>6 módulos</b><span>ciclo contratual</span></div>'+
+        '<div class="home-v86-kpi"><b>ID + página</b><span>rastreabilidade</span></div>'+
+        '<div class="home-v86-kpi"><b>Revisão humana</b><span>decisão final</span></div>'+
+      '</div>'+
+    '</section>'+
+    '<div class="home-v86-modules-head">'+
+      '<div><h2>Módulos especializados</h2><p>Escolha a etapa do ciclo contratual ou abra um processo modelo para demonstração.</p></div>'+
+    '</div>'+
+    '<section class="home-v86-grid">'+keys.map(function(k){return homeV86Card(k,meta[k])}).join("")+'</section>'+
+    '<section class="home-v86-recent" id="homeV86Recent">'+
+      '<div class="home-v86-recent-head"><div><h2>Processos recentes</h2><p>Retome os últimos processos usados nesta sessão.</p></div></div>'+
+      '<div class="home-v86-recent-list">'+homeV86Recent()+'</div>'+
+    '</section>';
+}
+
+/* Processo modelo funciona para os seis novos módulos. */
+function ativarCardsModeloV85(){
+  var keys=["planejamento","formalizacao","fiscalizacao","alteracoes","penalizacao","encerramento"];
+  document.querySelectorAll("#homeV86 .home-v86-card").forEach(function(card){
+    var key=card.getAttribute("data-module");
+    if(keys.indexOf(key)<0)return;
+    var open=card.querySelector(".home-v86-open");
+    if(open){
+      open.textContent="Abrir processo modelo →";
+      open.setAttribute("onclick","abrirModeloModuloV85('"+key+"')");
+    }
+  });
+}
+function restaurarCardsModuloV85(){
+  var keys=["planejamento","formalizacao","fiscalizacao","alteracoes","penalizacao","encerramento"];
+  document.querySelectorAll("#homeV86 .home-v86-card").forEach(function(card){
+    var key=card.getAttribute("data-module");
+    if(keys.indexOf(key)<0)return;
+    var open=card.querySelector(".home-v86-open");
+    if(open){
+      open.textContent="Abrir módulo →";
+      open.setAttribute("onclick","abrirModulo('"+key+"')");
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+  setTimeout(function(){
+    construirHomeV86();
+    if(typeof atualizarBuscaTopoV85==="function")atualizarBuscaTopoV85();
+  },520);
+});
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _home_cycle_v88_js + "</body>", 1)
