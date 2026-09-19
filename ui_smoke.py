@@ -29,7 +29,7 @@ def main():
         page.wait_for_url("**?module=planejamento")
         expect(page.locator("#workspaceModuleTitle")).to_have_text("3101/2026", timeout=30000)
         expect(page.get_by_text("Planejamento da contratação", exact=True).first).to_be_visible()
-        expect(page.get_by_text("Documento de Formalização da Demanda", exact=False).first).to_be_visible(timeout=10000)
+        expect(page.locator("main").get_by_text("Documento de Formalização da Demanda", exact=False).last).to_be_visible(timeout=10000)
 
         # Penalização continua isolada e com seu próprio modelo.
         page.get_by_role("button", name="Voltar aos módulos").click()
