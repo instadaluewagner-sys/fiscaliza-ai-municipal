@@ -5002,3 +5002,87 @@ document.addEventListener("DOMContentLoaded",function(){
 </script>
 """
 core.HTML = core.HTML.replace("</body>", _home_cycle_v88_js + "</body>", 1)
+
+
+# --- Processo modelo: carregamento automático robusto v8.9 ---
+_model_autoload_v89_js = r"""
+<script id="fiscaliza-model-autoload-v89-js">
+var modelLoadV89Busy=false;
+
+/* 
+   O botão Processo modelo da Home precisa fazer duas coisas na mesma ação:
+   1) abrir o módulo correto;
+   2) carregar e analisar o PDF fictício daquele módulo.
+   Não depende mais de timeout.
+*/
+async function abrirModeloModuloV85(key){
+  if(modelLoadV89Busy)return;
+  if(!moduleLabels[key])return;
+
+  modelLoadV89Busy=true;
+  try{
+    selectedModule=key;
+    abrirTelaModulo(key,null,true);
+
+    /* Garante que o contexto do módulo já esteja aplicado antes do download. */
+    selectedModule=key;
+
+    var status=document.getElementById("status");
+    if(status){
+      status.innerHTML='<span class="loading"><span class="spinner"></span> Carregando processo modelo de '+esc(moduleLabels[key])+'…</span>';
+    }
+
+    await testarDemo();
+  }catch(e){
+    var status=document.getElementById("status");
+    if(status)status.textContent="Não foi possível carregar o processo modelo deste módulo.";
+    console.error("Falha ao abrir processo modelo",e);
+  }finally{
+    modelLoadV89Busy=false;
+  }
+}
+
+/* Botão interno usa sempre o módulo exibido na área de trabalho. */
+async function usarProcessoModeloV89(){
+  if(modelLoadV89Busy)return;
+  modelLoadV89Busy=true;
+  try{
+    var q=new URLSearchParams(window.location.search).get("module");
+    if(q&&moduleLabels[q])selectedModule=q;
+    await testarDemo();
+  }finally{
+    modelLoadV89Busy=false;
+  }
+}
+
+/* Substitui, na barra do módulo, a chamada genérica pelo carregamento protegido. */
+function corrigirBotoesModeloV89(){
+  document.querySelectorAll("#screenWorkspace .workspace-actions button").forEach(function(btn){
+    var txt=(btn.textContent||"").toLowerCase();
+    if(txt.indexOf("processo modelo")>=0){
+      btn.setAttribute("onclick","usarProcessoModeloV89()");
+    }
+  });
+}
+
+/* Se o módulo foi aberto por URL, mantém selectedModule sincronizado. */
+function sincronizarModuloV89(){
+  var q=new URLSearchParams(window.location.search).get("module");
+  if(q&&moduleLabels[q])selectedModule=q;
+  corrigirBotoesModeloV89();
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+  setTimeout(sincronizarModuloV89,650);
+});
+
+var _abrirTelaModuloV89=abrirTelaModulo;
+abrirTelaModulo=function(key,el,push){
+  _abrirTelaModuloV89(key,el,push);
+  selectedModule=key;
+  setTimeout(corrigirBotoesModeloV89,0);
+};
+window.abrirModulo=abrirTelaModulo;
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _model_autoload_v89_js + "</body>", 1)
