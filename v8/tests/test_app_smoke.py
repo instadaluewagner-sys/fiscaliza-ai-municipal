@@ -5,6 +5,7 @@ def test_app_rc1_importa_e_expoe_rotas_essenciais():
     paths = {route.path for route in app.routes}
     assert "/" in paths
     assert "/api/v8/health" in paths
+    assert "/api/v8/demo.pdf" in paths
     assert "/api/v8/analyze" in paths
     assert "/api/v8/analysis/{analysis_id}" in paths
     assert "/api/v8/document/{analysis_id}/{document_id}" in paths
