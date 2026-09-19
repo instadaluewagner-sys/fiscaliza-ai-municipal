@@ -7896,39 +7896,56 @@ core._extract_origin_process=_extract_origin_process_v140
 
 _old_quantity_context_v140=getattr(core,"_quantity_context",None)
 def _quantity_context_v140(pages):
-    # Prioriza linhas de item da Nota de Empenho / pedido, evitando números
-    # narrativos soltos. Isso resolve tabelas como "40,00 UN" ou "40.00 UND".
+    # Quantidade só é aceita quando se comporta como quantidade de ITEM.
+    # Campos administrativos como "Ficha: 520 Unidade: ..." são excluídos.
     ordered=sorted(
         pages,
         key=lambda p:(0 if ("empenho" in _pen_page_blob_v140(p) or "pedido de empenho" in _pen_page_blob_v140(p)) else 1,p.get("page",999999))
     )
     unit_rx=re.compile(r"\b(\d{1,7})(?:[.,]00)?\s+(UN|UND|UNID|UNIDADE(?:S)?|CX|CAIXA(?:S)?|KIT(?:S)?|PC|PE[CÇ]A(?:S)?)\b",re.I)
+
     for p in ordered:
         raw=re.sub(r"\s+"," ",p.get("text") or "")
         z=core.norm(raw)
         if not any(x in z for x in ["nota de empenho","pedido de empenho","detalhamento dos itens","descricao completa"]):
             continue
+
         for m in unit_rx.finditer(raw):
+            prefix=core.norm(raw[max(0,m.start()-90):m.start()])
+            suffix=raw[m.end():m.end()+12]
+
+            if re.search(r"(?:ficha|unidade|funcional|classificacao|centro de custo|codigo de aplicacao|reserva de saldo)\s*:\s*$",prefix,re.I):
+                continue
+            if m.group(2).upper().startswith("UNIDADE") and re.match(r"\s*:",suffix):
+                continue
+
             try:
                 value=int(m.group(1))
             except Exception:
                 continue
             if not (1<=value<=10000000):
                 continue
+
             unit=m.group(2).upper()
             obj=""
             before=raw[max(0,m.start()-900):m.start()]
-            item_matches=list(re.finditer(r"\b\d{1,4}\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9 /\-]{4,90})(?:;|\s{2,})",before))
+            item_matches=list(re.finditer(
+                r"\b\d{1,4}\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9 /\-]{4,90})(?:;|\s{2,})",
+                before
+            ))
             if item_matches:
                 obj=re.sub(r"\s+"," ",item_matches[-1].group(1)).strip(" ;:-")
+
             display=str(value)+" "+unit
             if obj:
                 display+=" · "+obj[:80]
+
             refs=core._page_doc_refs(pages,p.get("file"),[p.get("page")]) if hasattr(core,"_page_doc_refs") else []
             source={"file":p.get("file"),"page":p.get("page")}
             if refs:
                 source["document_id"]=refs[0].get("document_id")
                 source["source_document_id"]=refs[0].get("source_document_id")
+
             return {
                 "value":str(value),
                 "unit_object":unit,
@@ -7937,6 +7954,7 @@ def _quantity_context_v140(pages):
                 "source":source,
                 "context":core.clip(raw[max(0,m.start()-180):min(len(raw),m.end()+220)],360),
             }
+
     if _old_quantity_context_v140:
         return _old_quantity_context_v140(pages)
     return {"value":"Não identificado com segurança","unit_object":"","display":"Não identificado com segurança","source":None,"context":""}
@@ -7970,13 +7988,64 @@ def _prior_collection_pages_v140(pages, commission_pages):
         if p.get("page") in commission:
             continue
         marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:900])
         z=core.norm(p.get("text") or "")
-        is_notice=("notificacao" in marker or "notificacao" in z[:1800])
+
+        is_notice=(
+            "notificacao" in marker
+            or head.startswith("notificacao")
+            or "notificacao - almoxarifado" in head
+            or "notificacao almoxarifado" in head
+        )
         pre_context=any(x in z for x in [
             "almoxarifado","prazo de entrega","proceder a entrega","regularizar a obrigacao",
             "informacoes quanto a entrega","cumprimento contratual","previsao de entrega"
         ])
         if is_notice and pre_context:
+            hits.append(p.get("page"))
+    return sorted(set(x for x in hits if x))
+
+
+def _penalty_opening_pages_v140(pages):
+    hits=[]
+    for p in pages:
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:1400])
+        z=core.norm(p.get("text") or "")
+        title=marker+" "+head
+        opening=(
+            ("termo de abertura de processo" in title and "aplicacao de penalidade" in z)
+            or ("ficha do processo eletronico" in title and "aplicacao de penalidade" in z)
+            or (
+                "processo administrativo de penalizacao" in head
+                and any(x in head for x in ["instaurado","instauracao","termo de abertura"])
+            )
+        )
+        if opening:
+            hits.append(p.get("page"))
+    return sorted(set(x for x in hits if x))
+
+
+def _penalty_assignment_pages_v140(pages):
+    hits=[]
+    for p in pages:
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:1600])
+        title=marker+" "+head
+        assigned=(
+            "termo de atribuicao/designacao" in title
+            or "termo de atribuicao / designacao" in title
+            or (
+                "termo de atribuicao" in title
+                and "comissao" in head
+                and "penalizacao" in head
+            )
+            or (
+                re.search(r"atribui.{0,100}membro da comissao",head,re.I)
+                and "penalizacao" in head
+            )
+        )
+        if assigned:
             hits.append(p.get("page"))
     return sorted(set(x for x in hits if x))
 
@@ -8112,13 +8181,8 @@ def _module_overlay_v140(pages,a,module):
         r"encaminha.{0,180}comissao de penalizacao",r"remessa.{0,120}comissao de penalizacao",
         r"segue o processo para penalizacao",r"comissao.{0,120}apuracao.{0,120}infracao"
     ])
-    pgs["instauracao"]=_pen_pages_v140(pages,[
-        r"termo de abertura de processo",r"aplicacao de penalidade",r"processo administrativo de penalizacao",
-        r"processo administrativo sancionador"
-    ])
-    pgs["designacao_comissao"]=_pen_pages_v140(pages,[
-        r"termo de atribuicao.?designacao",r"atribu.{0,80}membro da comissao",r"designa.{0,120}comissao.{0,40}penalizacao"
-    ])
+    pgs["instauracao"]=_penalty_opening_pages_v140(pages)
+    pgs["designacao_comissao"]=_penalty_assignment_pages_v140(pages)
 
     notif_page=min(commission_notice) if commission_notice else None
     science=[]
