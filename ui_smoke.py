@@ -27,7 +27,7 @@ def main():
         planejamento = page.locator("#homeV86 .home-v86-card[data-module='planejamento']")
         planejamento.get_by_role("button", name="Processo modelo").click()
         page.wait_for_url("**?module=planejamento")
-        expect(page.get_by_text("3101/2026", exact=True)).to_be_visible(timeout=30000)
+        expect(page.locator("#workspaceModuleTitle")).to_have_text("3101/2026", timeout=30000)
         expect(page.get_by_text("Planejamento da contratação", exact=True).first).to_be_visible()
         expect(page.get_by_text("Documento de Formalização da Demanda", exact=False).first).to_be_visible(timeout=10000)
 
@@ -37,7 +37,7 @@ def main():
         penalizacao = page.locator("#homeV86 .home-v86-card[data-module='penalizacao']")
         penalizacao.get_by_role("button", name="Processo modelo").click()
         page.wait_for_url("**?module=penalizacao")
-        expect(page.get_by_text("2-0001/2026", exact=True)).to_be_visible(timeout=30000)
+        expect(page.locator("#workspaceModuleTitle")).to_have_text("2-0001/2026", timeout=30000)
 
         browser.close()
 
