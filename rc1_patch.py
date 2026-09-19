@@ -7988,12 +7988,12 @@ def _defense_pages_v140(pages, commission_pages=None):
     primary_doc_ids=set()
 
     title_patterns=[
-        r"^defesa administrativa\\b",
-        r"^defesa previa\\b",
-        r"^razoes de defesa\\b",
-        r"^manifestacao em defesa\\b",
-        r"^manifestacao de defesa\\b",
-        r"^alegacoes de defesa\\b",
+        r"^defesa administrativa\b",
+        r"^defesa previa\b",
+        r"^razoes de defesa\b",
+        r"^manifestacao em defesa\b",
+        r"^manifestacao de defesa\b",
+        r"^alegacoes de defesa\b",
     ]
 
     for p in pages:
@@ -8005,7 +8005,7 @@ def _defense_pages_v140(pages, commission_pages=None):
         raw=p.get("text") or ""
         head=core.norm(raw[:1800])
 
-        # Peças que apenas convocam a empresa a se defender jamais são a defesa.
+        # Ato que convoca a empresa a apresentar defesa é comunicação, nunca a defesa.
         if any(x in marker for x in [
             "notificacao","intimacao","ato de instauracao","termo de abertura",
         ]):
@@ -8021,10 +8021,9 @@ def _defense_pages_v140(pages, commission_pages=None):
             first=core.norm(raw[:700])
             autonomous=any(re.search(rx,first,re.I) for rx in title_patterns)
 
-        # Forma narrativa válida somente quando parte da própria manifestação da empresa.
         if not autonomous:
             autonomous=bool(
-                re.search(r"\\b(?:vem|comparece).{0,140}\\bapresentar\\s+(?:a\\s+|sua\\s+)?defesa\\b",head,re.I)
+                re.search(r"\b(?:vem|comparece).{0,140}\bapresentar\s+(?:a\s+|sua\s+)?defesa\b",head,re.I)
             )
 
         if autonomous:
@@ -8032,14 +8031,12 @@ def _defense_pages_v140(pages, commission_pages=None):
             if p.get("document_id"):
                 primary_doc_ids.add(p.get("document_id"))
 
-    # Inclui páginas subsequentes pertencentes ao mesmo documento autônomo.
     hits=set(x for x in primary if x)
     if primary_doc_ids:
         for p in pages:
             if p.get("document_id") in primary_doc_ids and p.get("page"):
                 hits.add(p.get("page"))
     return sorted(hits)
-
 
 def _process_id_conflicts_v140(pages):
     flags=[]
