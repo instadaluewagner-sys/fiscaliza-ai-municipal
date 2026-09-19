@@ -2517,3 +2517,173 @@ ajustarResultadoModulo=function(a){
 </script>
 """
 core.HTML = core.HTML.replace("</body>", _visual_final_v82_js + "</body>", 1)
+
+
+# --- Cronologia em grade e evidências mais limpas v8.3 ---
+_timeline_grid_v83_css = r"""
+<style id="fiscaliza-timeline-grid-v83">
+
+/* =========================================================
+   CRONOLOGIA DA VISÃO GERAL — sem rolagem horizontal
+   ========================================================= */
+#overviewHub .ov-timeline{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:12px!important;
+  overflow:visible!important;
+  padding:4px 0 0!important
+}
+#overviewHub .ov-time.timeline-v82{
+  min-width:0!important;
+  width:100%!important;
+  max-width:none!important;
+  min-height:150px!important;
+  margin:0!important
+}
+
+/* =========================================================
+   CRONOLOGIA DETALHADA — quebra automática de linha
+   ========================================================= */
+#result.system-result .timeline{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:14px!important;
+  width:100%!important;
+  overflow:visible!important;
+  padding:10px 0 2px!important;
+  scroll-snap-type:none!important
+}
+#result.system-result .timeline-step.timeline-v82{
+  min-width:0!important;
+  max-width:none!important;
+  width:100%!important;
+  min-height:190px!important;
+  flex:none!important;
+  scroll-snap-align:none!important
+}
+
+/* Remove qualquer aparência residual de scrollbar */
+#result.system-result .timeline::-webkit-scrollbar,
+#overviewHub .ov-timeline::-webkit-scrollbar{
+  display:none!important
+}
+
+/* Cards da cronologia mais editoriais */
+#result.system-result .timeline-step.timeline-v82 h4,
+#overviewHub .timeline-v82-title{
+  color:#17354d!important;
+  font-weight:700!important;
+  text-transform:none!important;
+  letter-spacing:0!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important
+}
+#result.system-result .timeline-step.timeline-v82 .timeline-v82-type,
+#overviewHub .timeline-v82-type{
+  max-width:100%!important;
+  white-space:normal!important;
+  text-align:left!important
+}
+.timeline-v82-meta{
+  align-items:center!important
+}
+.timeline-v82-page,
+.timeline-v82-id{
+  font-size:15px!important;
+  font-weight:500!important;
+  color:#73889a!important;
+  background:#fbfcfd!important;
+  border-color:#dce5eb!important
+}
+.timeline-v82-id{
+  opacity:.82
+}
+
+/* =========================================================
+   EVIDÊNCIAS — nome do documento antes do ID
+   ========================================================= */
+#result.system-result table.matrix td:nth-child(3) .ref-stack{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  gap:7px!important
+}
+
+/* O nome/origem do documento ganha prioridade visual */
+#result.system-result table.matrix td:nth-child(3) .doc-origin{
+  order:-2!important;
+  flex-basis:100%!important;
+  display:block!important;
+  margin:0 0 4px!important;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;
+  line-height:1.45!important;
+  font-weight:600!important;
+  color:#405b70!important;
+  text-transform:none!important;
+  letter-spacing:0!important
+}
+
+/* ID e página passam a ser metadados */
+#result.system-result table.matrix td:nth-child(3) .doc-id-chip{
+  order:1!important;
+  background:#f3f7fa!important;
+  border:1px solid #dce5eb!important;
+  color:#698095!important;
+  font-size:15px!important;
+  font-weight:600!important;
+  padding:5px 8px!important
+}
+#result.system-result table.matrix td:nth-child(3) .page-chip{
+  order:2!important;
+  background:#f7f9fb!important;
+  border:1px solid #dce5eb!important;
+  color:#667e92!important;
+  font-size:15px!important;
+  font-weight:600!important;
+  padding:5px 8px!important
+}
+
+/* Mais respiro entre linhas da matriz */
+#result.system-result table.matrix tbody tr{
+  border-top:1px solid #e2e9ee!important
+}
+#result.system-result table.matrix tbody tr:first-child{
+  border-top:0!important
+}
+#result.system-result table.matrix td{
+  padding-top:15px!important;
+  padding-bottom:15px!important
+}
+
+/* Status continua compacto, mas sem dominar a tela */
+#result.system-result .status-chip-v82{
+  min-width:118px!important;
+  box-shadow:none!important
+}
+
+/* =========================================================
+   Responsividade
+   ========================================================= */
+@media(max-width:1180px){
+  #overviewHub .ov-timeline,
+  #result.system-result .timeline{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important
+  }
+}
+@media(max-width:900px){
+  #overviewHub .ov-timeline,
+  #result.system-result .timeline{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important
+  }
+}
+@media(max-width:620px){
+  #overviewHub .ov-timeline,
+  #result.system-result .timeline{
+    grid-template-columns:1fr!important
+  }
+}
+</style>
+"""
+
+core.HTML = core.HTML.replace("</head>", _timeline_grid_v83_css + "</head>", 1)
