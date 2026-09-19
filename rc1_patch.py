@@ -7409,3 +7409,377 @@ def _module_overlay_v121(pages,a,module):
 
 core._module_overlay=_module_overlay_v121
 core.app.version="12.1"
+
+
+# --- Alterações contratuais parametrizadas · Pimenta Bueno v13.0 ---
+from profile_pimenta_bueno import (
+    ALTERATION_TYPES as PB_ALTERATION_TYPES,
+    ALTERACOES_CONTROLS as PB_ALTERACOES_CONTROLS,
+    classify_alteration_type as pb_classify_alteration_type,
+)
+
+core.MODEL_CASES["alteracoes"]={
+    "title":"Alterações contratuais",
+    "pages":[
+        (
+            "PROCESSO DE ALTERAÇÃO CONTRATUAL Nº 3404/2026",
+            "CASO FICTÍCIO PARA DEMONSTRAÇÃO. Pedido de restabelecimento do equilíbrio econômico-financeiro relacionado ao Contrato nº 260/2026."
+        ),
+        (
+            "CONTRATO ADMINISTRATIVO Nº 260/2026",
+            "Objeto: fornecimento continuado de gêneros alimentícios. O contrato registra preços, vigência, condições de alteração e matriz de riscos da contratação."
+        ),
+        (
+            "PEDIDO DE REEQUILÍBRIO ECONÔMICO-FINANCEIRO",
+            "A EMPRESA MODELO LTDA. requer restabelecimento do equilíbrio econômico-financeiro, descreve aumento extraordinário e superveniente do custo de insumo essencial e apresenta documentação comprobatória."
+        ),
+        (
+            "RELATÓRIO DA FISCALIZAÇÃO SOBRE A EXECUÇÃO",
+            "A fiscalização informa que o contrato permanece em execução regular, registra o histórico de fornecimento e relata os efeitos do evento alegado sobre a execução."
+        ),
+        (
+            "NOTA DE INTERESSE PÚBLICO E VANTAJOSIDADE",
+            "A unidade gestora examina a continuidade do fornecimento, a necessidade administrativa e a vantajosidade de manter a contratação caso o pedido seja comprovado."
+        ),
+        (
+            "PLANILHA E MEMÓRIA DE CÁLCULO DO REEQUILÍBRIO",
+            "A requerente apresenta memória de cálculo com preços originários, custos atuais, documentos fiscais e impacto econômico. A unidade técnica realiza conferência dos cálculos."
+        ),
+        (
+            "NOTA TÉCNICA — FATO SUPERVENIENTE E NEXO ECONÔMICO",
+            "A área técnica examina o fato superveniente alegado, a documentação temporal, a variação extraordinária e o nexo entre o evento e o aumento dos encargos contratuais."
+        ),
+        (
+            "MATRIZ DE RISCOS — CONFERÊNCIA DA ALOCAÇÃO",
+            "A unidade confronta o evento alegado com a matriz de riscos do contrato e registra que o evento analisado não foi alocado à contratada nas condições descritas no pedido."
+        ),
+        (
+            "DECLARAÇÃO DE DOTAÇÃO E DISPONIBILIDADE ORÇAMENTÁRIA",
+            "A unidade orçamentária registra disponibilidade suficiente para suportar eventual impacto financeiro decorrente do pedido, caso deferido."
+        ),
+        (
+            "PARECER TÉCNICO CONCLUSIVO",
+            "A unidade gestora consolida a análise técnica, a memória de cálculo, a prova do fato superveniente, o nexo econômico e a vantajosidade, recomendando decisão motivada."
+        ),
+        (
+            "PARECER JURÍDICO Nº 61/2026",
+            "A PGM examina a hipótese de restabelecimento do equilíbrio econômico-financeiro à luz da Lei nº 14.133/2021, da documentação produzida e da matriz de riscos."
+        ),
+        (
+            "DECISÃO ADMINISTRATIVA SOBRE O REEQUILÍBRIO",
+            "A autoridade competente decide motivadamente sobre o pedido após examinar o contrato, as provas, os cálculos, as manifestações técnica e jurídica e a disponibilidade orçamentária."
+        ),
+        (
+            "TERMO ADITIVO Nº 02/2026",
+            "O termo aditivo formaliza o resultado econômico aprovado, identifica o fundamento do restabelecimento e registra os efeitos financeiros conforme a decisão administrativa."
+        ),
+    ]
+}
+
+def _alt_marker_pages_v130(pages,patterns):
+    regs=[re.compile(p,re.I) for p in patterns]
+    hits=[]
+    for p in pages:
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:500])
+        full=core.norm(p.get("text") or "")
+        if any(rx.search(marker) or rx.search(head) or rx.search(full) for rx in regs):
+            hits.append(p.get("page"))
+    return sorted(set(x for x in hits if x))
+
+def _alt_excerpt_v130(pages,page_no,limit=360):
+    for p in pages:
+        if p.get("page")==page_no:
+            raw=p.get("text") or ""
+            lines=[re.sub(r"\s+"," ",x).strip() for x in raw.splitlines() if x.strip()]
+            marker=core.norm(p.get("source_document_id") or "")
+            clean=[]
+            for i,line in enumerate(lines):
+                if i==0 and marker and core.norm(line)==marker:
+                    continue
+                if "FISCALIZA.AI" in line.upper() and "PROCESSO MODELO" in line.upper():
+                    continue
+                clean.append(line)
+            return core.clip(" ".join(clean),limit)
+    return ""
+
+_ALT_PATTERNS_V130 = {
+    "contrato_vigente":[r"^contrato administrativo\b",r"\bcontrato vigente\b"],
+    "pedido_justificativa":[r"pedido de reequilibrio",r"pedido e justificativa",r"requer.{0,80}reequilibrio",r"requer.{0,80}alteracao"],
+    "relatorio_execucao":[r"relatorio da fiscalizacao",r"relatorio de execucao"],
+    "vantajosidade":[r"vantajosidade",r"interesse publico"],
+    "memoria_calculo":[r"memoria de calculo",r"planilha.{0,60}reequilibrio",r"comprovacao economica"],
+    "indice_data_base":[r"indice.{0,60}data-base",r"data-base.{0,60}reajuste",r"interregno"],
+    "repactuacao_custos":[r"planilha de custos",r"convencao coletiva",r"acordo coletivo",r"sentenca normativa"],
+    "fato_superveniente_nexo":[r"fato superveniente",r"nexo economico",r"evento superveniente"],
+    "matriz_riscos":[r"matriz de riscos",r"alocacao de riscos"],
+    "limites_quantitativos":[r"limite.{0,40}25",r"acrescimo.{0,60}supressao",r"alteracao quantitativa"],
+    "dotacao":[r"dotacao",r"disponibilidade orcamentaria"],
+    "analise_tecnica":[r"parecer tecnico",r"nota tecnica",r"analise tecnica"],
+    "parecer_juridico":[r"parecer juridico",r"\bpgm\b",r"procuradoria geral do municipio"],
+    "decisao":[r"decisao administrativa",r"decide.{0,100}(?:pedido|alteracao|reequilibrio|reajuste|repactuacao|prorrogacao)"],
+    "formalizacao":[r"termo aditivo",r"\bapostila\b",r"\bapostilamento\b"],
+}
+
+_old_module_overlay_v130=core._module_overlay
+def _module_overlay_v130(pages,a,module):
+    out=_old_module_overlay_v130(pages,a,module)
+    if module!="alteracoes":
+        return out
+
+    joined=core.norm("\n".join(p.get("text") or "" for p in pages))
+    alteration_type=pb_classify_alteration_type(joined)
+    type_label=PB_ALTERATION_TYPES.get(alteration_type,PB_ALTERATION_TYPES["outra"])
+
+    rows=[]
+    legal=[]
+    for control in PB_ALTERACOES_CONTROLS:
+        cid=control["id"]
+        pgs=_alt_marker_pages_v130(pages,_ALT_PATTERNS_V130.get(cid,[]))
+        found=bool(pgs)
+        applicable=alteration_type in control["applies_to"]
+
+        # Matriz de riscos é juridicamente relevante quando existir/alocar o evento,
+        # mas sua ausência não deve ser convertida automaticamente em irregularidade.
+        if cid=="matriz_riscos" and alteration_type=="reequilibrio" and not found:
+            applicable=False
+
+        state=("Localizado" if found else ("Não localizado" if applicable else "Condicional"))
+        ex=_alt_excerpt_v130(pages,pgs[0]) if pgs else ""
+
+        row={
+            "question":"Há "+control["label"].lower()+"?",
+            "answer":state,
+            "ok":found,
+            "pages":pgs[:8],
+            "label":control["label"],
+            "excerpt":ex,
+            "legal_control_id":cid,
+            "responsible":control["responsible"],
+            "nature":control["nature"],
+            "criticality":control["criticality"],
+            "foundation":control["foundation"],
+            "applicable":applicable,
+            "legal_status":state,
+        }
+        rows.append(row)
+
+        legal.append({
+            "control_id":cid,
+            "label":control["label"],
+            "responsible":control["responsible"],
+            "nature":control["nature"],
+            "criticality":control["criticality"],
+            "foundation":control["foundation"],
+            "absence_action":control["absence_action"],
+            "applicable":applicable,
+            "status":state,
+            "ok":found,
+            "pages":pgs[:8],
+            "excerpt":ex,
+        })
+
+    out["module_matrix"]=rows
+    out["legal_matrix"]=legal
+    out["process_checklist"]=[{
+        "label":x["label"],"ok":x["ok"],"pages":x["pages"]
+    } for x in rows if x["applicable"]]
+    out["module_summary"]=[
+        {
+            "label":x["label"],
+            "ok":x["ok"] if x["applicable"] else True,
+            "value":x["legal_status"]
+        }
+        for x in rows if x["applicable"]
+    ][:4]
+
+    out["normative_profile"]={
+        "id":PB_PROFILE["id"],
+        "label":PB_PROFILE["label"],
+        "version":PB_PROFILE["version"],
+        "review_notice":PB_PROFILE["review_notice"],
+    }
+    out["procedure"]={"key":alteration_type,"label":type_label}
+
+    # Cronologia somente das peças pertinentes ao tipo classificado.
+    out["module_timeline"]=[
+        {"label":x["label"],"pages":x["pages"][:4]}
+        for x in rows if x["applicable"] and x["ok"]
+    ]
+    out["module_timeline"].sort(key=lambda x:(x["pages"][0] if x.get("pages") else 999999))
+
+    out["module_evidence"]=[
+        {
+            "label":x["label"],
+            "page":x["pages"][0],
+            "text":x["excerpt"]
+        }
+        for x in rows if x["applicable"] and x["ok"] and x["pages"]
+    ]
+
+    applicable_rows=[x for x in legal if x["applicable"]]
+    present=[x for x in applicable_rows if x["ok"]]
+    missing=[x for x in applicable_rows if not x["ok"]]
+    out["review_flags"]=[
+        {
+            "level":"alta" if x["criticality"]=="alta" else "media",
+            "text":x["label"]+" não localizado. "+x["absence_action"]
+        }
+        for x in missing[:5]
+    ]
+    out["pending"]=[x["text"] for x in out["review_flags"]]
+    out["metrics"]["checklist_ok"]=len(present)
+    out["metrics"]["checklist_total"]=len(applicable_rows)
+    out["metrics"]["evidence_points"]=len(out["module_evidence"])
+
+    if missing:
+        out["next_action"]={
+            "stage":"Alterações · "+type_label,
+            "action":"Conferir ou localizar: "+missing[0]["label"]+".",
+            "why":"O controle é aplicável ao tipo de alteração identificado; a ausência requer revisão humana antes da conclusão."
+        }
+    else:
+        out["next_action"]={
+            "stage":"Alterações · "+type_label+" instruído",
+            "action":"Revisar a coerência entre fundamento, provas, cálculos, manifestações e instrumento de formalização antes da assinatura.",
+            "why":"Todos os controles parametrizados aplicáveis ao tipo "+type_label+" foram localizados."
+        }
+
+    out["conclusion"]=(
+        "Perfil "+PB_PROFILE["label"]+" · "+type_label+": foram localizados "
+        +str(len(present))+" de "+str(len(applicable_rows))+
+        " controles aplicáveis. Controles de outros tipos de alteração permanecem condicionais e não geram pendência automática."
+    )
+    return out
+
+core._module_overlay=_module_overlay_v130
+
+
+_old_document_marker_v130=core._document_marker
+def _document_marker_v130(text):
+    raw=text or ""
+    lines=[re.sub(r"\s+"," ",x).strip() for x in raw.splitlines() if x.strip()]
+    heads=[
+        "PROCESSO DE ALTERAÇÃO CONTRATUAL",
+        "PROCESSO DE ALTERACAO CONTRATUAL",
+        "PEDIDO DE REEQUILÍBRIO ECONÔMICO-FINANCEIRO",
+        "PEDIDO DE REEQUILIBRIO ECONOMICO-FINANCEIRO",
+        "RELATÓRIO DA FISCALIZAÇÃO SOBRE A EXECUÇÃO",
+        "RELATORIO DA FISCALIZACAO SOBRE A EXECUCAO",
+        "NOTA DE INTERESSE PÚBLICO E VANTAJOSIDADE",
+        "NOTA DE INTERESSE PUBLICO E VANTAJOSIDADE",
+        "PLANILHA E MEMÓRIA DE CÁLCULO DO REEQUILÍBRIO",
+        "PLANILHA E MEMORIA DE CALCULO DO REEQUILIBRIO",
+        "NOTA TÉCNICA — FATO SUPERVENIENTE E NEXO ECONÔMICO",
+        "NOTA TECNICA - FATO SUPERVENIENTE E NEXO ECONOMICO",
+        "MATRIZ DE RISCOS — CONFERÊNCIA DA ALOCAÇÃO",
+        "MATRIZ DE RISCOS - CONFERENCIA DA ALOCACAO",
+        "DECLARAÇÃO DE DOTAÇÃO E DISPONIBILIDADE ORÇAMENTÁRIA",
+        "DECLARACAO DE DOTACAO E DISPONIBILIDADE ORCAMENTARIA",
+        "PARECER TÉCNICO CONCLUSIVO",
+        "PARECER TECNICO CONCLUSIVO",
+        "DECISÃO ADMINISTRATIVA SOBRE O REEQUILÍBRIO",
+        "DECISAO ADMINISTRATIVA SOBRE O REEQUILIBRIO",
+    ]
+    for line in lines[:10]:
+        up=line.upper()
+        if any(h in up for h in heads) and len(line)<=200:
+            return line
+    return _old_document_marker_v130(text)
+
+core._document_marker=_document_marker_v130
+
+
+_alteracoes_v130_js=r"""
+<script id="fiscaliza-alteracoes-v130-js">
+var _overviewEtapasV130=overviewEtapasV96;
+overviewEtapasV96=function(a){
+  if(a&&a.module_key==="alteracoes"){
+    var rows=(a.legal_matrix||[]);
+    var good=function(id){
+      var r=rows.find(function(x){return x.control_id===id});
+      return !!(r&&(!r.applicable||r.ok));
+    };
+    var type=(a.procedure&&a.procedure.key)||"outra";
+    if(type==="reequilibrio"){
+      return [
+        ["Contrato / pedido",good("contrato_vigente")&&good("pedido_justificativa")],
+        ["Execução / interesse",good("relatorio_execucao")&&good("vantajosidade")],
+        ["Prova / cálculos",good("memoria_calculo")&&good("fato_superveniente_nexo")&&good("matriz_riscos")],
+        ["Análises / orçamento",good("dotacao")&&good("analise_tecnica")&&good("parecer_juridico")],
+        ["Decisão / aditivo",good("decisao")&&good("formalizacao")]
+      ];
+    }
+    return [
+      ["Contrato / pedido",good("contrato_vigente")&&good("pedido_justificativa")],
+      ["Fundamento",true],
+      ["Cálculos / suporte",good("memoria_calculo")],
+      ["Análises",good("analise_tecnica")&&good("parecer_juridico")],
+      ["Decisão / formalização",good("decisao")&&good("formalizacao")]
+    ];
+  }
+  return _overviewEtapasV130(a);
+};
+
+function renderAlteracoesNormativaV130(a){
+  if(!a||a.module_key!=="alteracoes"||!a.normative_profile)return;
+  var hub=document.getElementById("overviewHub");
+  if(!hub)return;
+
+  var meta=hub.querySelector(".ov-meta");
+  if(meta&&!meta.querySelector(".pb-profile-chip")){
+    var chip=document.createElement("span");
+    chip.className="pb-profile-chip";
+    chip.textContent="Perfil normativo: "+a.normative_profile.label+" · "+a.normative_profile.version;
+    meta.appendChild(chip);
+
+    var proc=document.createElement("span");
+    proc.className="pb-profile-chip";
+    proc.textContent="Tipo de alteração: "+((a.procedure&&a.procedure.label)||"Não classificado");
+    meta.appendChild(proc);
+  }
+
+  var old=document.getElementById("legalMatrixPanelV100");
+  if(old)old.remove();
+
+  var panel=document.createElement("section");
+  panel.id="legalMatrixPanelV100";
+  panel.className="ov-panel pb-legal-panel";
+
+  var rows=(a.legal_matrix||[]).map(function(r){
+    var source=(r.documents&&r.documents.length)
+      ? documentRefHtml(r.documents,r.pages||[])
+      : '<span class="pb-legal-source">Sem evidência documental rastreável</span>';
+    return '<tr>'+
+      '<td>'+ovEsc(r.label)+'</td>'+
+      '<td><span class="pb-legal-status '+legalStatusClassV100(r.status)+'">'+ovEsc(r.status)+'</span></td>'+
+      '<td>'+ovEsc(r.responsible)+'</td>'+
+      '<td>'+ovEsc(r.foundation)+'<div class="pb-legal-source">'+ovEsc(r.nature)+'</div></td>'+
+      '<td>'+source+'</td>'+
+    '</tr>';
+  }).join("");
+
+  panel.innerHTML=
+    '<div class="ov-panel-head"><div>'+
+      '<h3>Matriz normativa · Alterações contratuais</h3>'+
+      '<p>O sistema classifica primeiro o tipo da alteração e só então ativa os controles correspondentes.</p>'+
+    '</div></div>'+
+    '<div class="pb-legal-table-wrap"><table class="pb-legal-table">'+
+      '<thead><tr><th>Controle</th><th>Status</th><th>Responsável</th><th>Fundamento / natureza</th><th>Evidência</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table></div>'+
+    '<div class="pb-legal-note">'+ovEsc(a.normative_profile.review_notice)+'</div>';
+
+  var grids=hub.querySelectorAll(".ov-grid");
+  if(grids.length)grids[0].insertAdjacentElement("afterend",panel);
+  else hub.appendChild(panel);
+}
+
+var _normalizarOverviewV130=normalizarOverviewV96;
+normalizarOverviewV96=function(a){
+  _normalizarOverviewV130(a);
+  if(a&&a.module_key==="alteracoes")renderAlteracoesNormativaV130(a);
+};
+</script>
+"""
+core.HTML=core.HTML.replace("</body>",_alteracoes_v130_js+"</body>",1)
+core.app.version="13.0"
