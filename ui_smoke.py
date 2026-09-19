@@ -2,6 +2,21 @@ from playwright.sync_api import sync_playwright, expect
 
 BASE = "http://127.0.0.1:8000"
 
+MODULES = [
+    ("planejamento", "Planejamento da contratação", "3101/2026", "7"),
+    ("formalizacao", "Formalização da contratação", "3202/2026", "8"),
+    ("fiscalizacao", "Fiscalização e execução", "1001/2026", "9"),
+    ("alteracoes", "Alterações contratuais", "3404/2026", "8"),
+    ("penalizacao", "Penalização contratual", "2-0001/2026", "17"),
+    ("encerramento", "Extinção / encerramento", "3606/2026", "8"),
+]
+
+
+def home(page):
+    page.get_by_role("button", name="Voltar aos módulos").click()
+    page.locator("#homeV86").wait_for(state="visible")
+    page.wait_for_url(lambda u: "module=" not in u)
+
 
 def main():
     with sync_playwright() as p:
@@ -13,35 +28,52 @@ def main():
         cards = page.locator("#homeV86 .home-v86-card")
         assert cards.count() == 6, f"Home deveria ter 6 módulos; encontrou {cards.count()}"
 
-        planejamento = page.locator("#homeV86 .home-v86-card[data-module='planejamento']")
-        expect(planejamento).to_be_visible()
+        for i, (key, label, number, docs) in enumerate(MODULES):
+            card = page.locator(f"#homeV86 .home-v86-card[data-module='{key}']")
+            expect(card).to_be_visible()
 
-        # Abrir módulo não pode carregar modelo automaticamente.
-        planejamento.get_by_role("button", name="Abrir módulo").click()
-        page.wait_for_url("**?module=planejamento")
-        expect(page.get_by_text("Nenhum processo aberto", exact=True)).to_be_visible(timeout=10000)
+            # Abrir módulo deve abrir uma área limpa, sem processo fictício.
+            card.get_by_role("button", name="Abrir módulo").click()
+            page.wait_for_url(f"**?module={key}")
+            expect(page.locator("#sideModuleName")).to_have_text(label)
+            expect(page.get_by_text("Nenhum processo aberto", exact=True)).to_be_visible(timeout=10000)
 
-        # Processo modelo deve carregar o modelo do próprio módulo.
-        page.get_by_role("button", name="Voltar aos módulos").click()
-        page.locator("#homeV86").wait_for(state="visible")
-        planejamento = page.locator("#homeV86 .home-v86-card[data-module='planejamento']")
-        planejamento.get_by_role("button", name="Processo modelo").click()
-        page.wait_for_url("**?module=planejamento")
-        expect(page.locator("#workspaceModuleTitle")).to_have_text("3101/2026", timeout=30000)
-        expect(page.get_by_text("Planejamento da contratação", exact=True).first).to_be_visible()
-        expect(page.locator("main").get_by_text("Documento de Formalização da Demanda", exact=False).last).to_be_visible(timeout=10000)
+            home(page)
 
-        # Penalização continua isolada e com seu próprio modelo.
-        page.get_by_role("button", name="Voltar aos módulos").click()
-        page.locator("#homeV86").wait_for(state="visible")
-        penalizacao = page.locator("#homeV86 .home-v86-card[data-module='penalizacao']")
-        penalizacao.get_by_role("button", name="Processo modelo").click()
-        page.wait_for_url("**?module=penalizacao")
-        expect(page.locator("#workspaceModuleTitle")).to_have_text("2-0001/2026", timeout=30000)
+            # Processo modelo deve carregar somente o modelo do módulo escolhido.
+            card = page.locator(f"#homeV86 .home-v86-card[data-module='{key}']")
+            card.get_by_role("button", name="Processo modelo").click()
+            page.wait_for_url(f"**?module={key}")
+
+            expect(page.locator("#sideModuleName")).to_have_text(label, timeout=30000)
+            expect(page.locator("#workspaceModuleTitle")).to_have_text(number, timeout=30000)
+            expect(page.locator("#overviewHub .ov-title")).to_have_text(number, timeout=30000)
+            expect(page.locator("#dashDocs")).to_have_text(docs, timeout=10000)
+            expect(page.locator("#overviewHub")).to_be_visible()
+            assert page.locator("#overviewHub .ov-status").count() >= 4
+            assert page.locator("#overviewHub .ov-stage").count() == 5
+            assert "Não foi possível carregar o processo modelo" not in page.locator("body").inner_text()
+
+            if key == "planejamento":
+                text = page.locator("#overviewHub").inner_text()
+                assert "Documento de Formalização da Demanda" in text
+                assert "Estudo Técnico Preliminar" in text
+                assert "Termo de Referência" in text
+                assert "Documentos estruturantes" in text
+                assert "Controles complementares" in text
+                assert "Demanda" in text and "Aprovação" in text
+
+            # Navegação lateral existe e pode ser acionada sem quebrar.
+            for tab in ["Documentos", "Evidências", "Cronologia", "Pendências", "Perguntar", "Minutas", "Relatório"]:
+                btn = page.locator(".side-nav").get_by_role("button", name=lambda name: tab in name)
+                expect(btn).to_be_visible()
+
+            if i < len(MODULES) - 1:
+                home(page)
 
         browser.close()
 
-    print("UI SMOKE OK — Home, Abrir módulo e Processos modelo isolados")
+    print("UI SMOKE OK — Home + 6 módulos + abertura vazia + 6 processos modelo")
 
 
 if __name__ == "__main__":
