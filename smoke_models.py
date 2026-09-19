@@ -69,22 +69,32 @@ def main():
         if int(profile.get("documents") or 0) < 4:
             fail(f"{module}: rastreabilidade documental insuficiente: {profile.get('documents')} docs")
 
-        if module == "planejamento":
+        if module in ("planejamento", "formalizacao"):
             np = analysis.get("normative_profile") or {}
             proc = analysis.get("procedure") or {}
             legal = analysis.get("legal_matrix") or []
             if np.get("id") != "pimenta_bueno_ro":
-                fail("planejamento: perfil normativo de Pimenta Bueno ausente")
+                fail(f"{module}: perfil normativo de Pimenta Bueno ausente")
             if proc.get("key") != "pregao_bens":
-                fail(f"planejamento: procedimento classificado incorretamente: {proc}")
-            if len(legal) != 6:
-                fail(f"planejamento: matriz normativa deveria ter 6 controles; encontrou {len(legal)}")
-            if legal[0].get("control_id") != "dod" or not legal[0].get("ok"):
-                fail(f"planejamento: DOD não foi parametrizado/localizado corretamente: {legal[0] if legal else None}")
+                fail(f"{module}: procedimento classificado incorretamente: {proc}")
+            expected = 6 if module == "planejamento" else 11
+            if len(legal) != expected:
+                fail(f"{module}: matriz normativa deveria ter {expected} controles; encontrou {len(legal)}")
             if not all(x.get("foundation") for x in legal):
-                fail("planejamento: há controle sem fundamento parametrizado")
+                fail(f"{module}: há controle sem fundamento parametrizado")
             if not all(x.get("documents") for x in legal if x.get("ok")):
-                fail("planejamento: controle localizado sem documento/página rastreável")
+                fail(f"{module}: controle localizado sem documento/página rastreável")
+            if module == "planejamento":
+                if legal[0].get("control_id") != "dod" or not legal[0].get("ok"):
+                    fail(f"planejamento: DOD não foi parametrizado/localizado corretamente: {legal[0] if legal else None}")
+            else:
+                ids = [x.get("control_id") for x in legal]
+                required_ids = ["conferencia_fase_preparatoria","parecer_pgm","manifestacao_cgm","adjudicacao_homologacao","empenho","contrato","designacao_fiscal_gestor","publicacao_registro"]
+                for rid in required_ids:
+                    if rid not in ids:
+                        fail(f"formalizacao: controle normativo ausente: {rid}")
+                if not all(x.get("ok") for x in legal):
+                    fail(f"formalizacao: processo modelo não localizou todos os controles: {[(x.get('control_id'),x.get('status')) for x in legal]}")
 
         results.append(
             (
