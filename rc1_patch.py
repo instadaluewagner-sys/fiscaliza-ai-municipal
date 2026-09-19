@@ -5088,6 +5088,26 @@ window.abrirModulo=abrirTelaModulo;
 core.HTML = core.HTML.replace("</body>", _model_autoload_v89_js + "</body>", 1)
 
 
+
+
+# --- Correção estrutural do catálogo v9.1 ---
+# O backend legado mantém "geral" como fallback interno. A Home continua exibindo
+# somente os seis módulos do ciclo contratual, mas o fallback precisa existir
+# para perfil, minutas e rotinas genéricas do analisador.
+core.MODULES.setdefault("geral",{
+    "label":"Análise geral",
+    "short":"Geral",
+    "desc":"Análise documental genérica com cronologia, evidências e revisão humana."
+})
+core.MODULE_RULES.setdefault("geral",[
+    ("Identificação do processo",["processo"]),
+    ("Documento de origem",["protocolo"]),
+    ("Manifestação do interessado",["manifestacao"]),
+    ("Parecer / análise",["parecer"]),
+    ("Decisão / encaminhamento",["decisao"])
+])
+core.app.version="9.1"
+
 # --- Carregador central de processo modelo v9.0 ---
 _model_loader_v90_css = r"""
 <style id="fiscaliza-model-loader-v90">
