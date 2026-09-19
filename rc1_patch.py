@@ -3074,3 +3074,850 @@ ajustarResultadoModulo=function(a){
 </script>
 """
 core.HTML = core.HTML.replace("</body>", _evidence_clarity_v84_js + "</body>", 1)
+
+
+# --- Home executiva aprovada v8.5 ---
+_home_exec_v85_css = r"""
+<style id="fiscaliza-home-executive-v85">
+/* =========================================================
+   HOME EXECUTIVA — módulos primeiro, sem hero de landing page
+   ========================================================= */
+.screen-home{
+  padding-top:12px!important;
+  padding-bottom:18px!important;
+  gap:0!important
+}
+.screen-home .home-welcome{
+  margin:0 0 10px!important;
+  padding:0!important
+}
+
+/* Intro compacta */
+.home-commercial-hero.home-executive-v85{
+  display:grid!important;
+  grid-template-columns:minmax(0,1.3fr) minmax(520px,.7fr)!important;
+  align-items:center!important;
+  gap:22px!important;
+  min-height:0!important;
+  padding:17px 20px!important;
+  border:1px solid #dce7ed!important;
+  border-radius:16px!important;
+  background:
+    radial-gradient(circle at 92% 16%,rgba(20,168,157,.10),transparent 30%),
+    linear-gradient(110deg,#ffffff 0%,#f7fbfc 70%,#eef9f7 100%)!important;
+  box-shadow:0 5px 18px rgba(15,47,73,.045)!important;
+  color:#17354d!important;
+  overflow:hidden!important
+}
+.home-commercial-hero.home-executive-v85:before,
+.home-commercial-hero.home-executive-v85:after{
+  content:none!important;
+  display:none!important
+}
+.home-exec-copy-v85{
+  min-width:0
+}
+.home-exec-kicker-v85{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:15px!important;
+  line-height:1.3!important;
+  font-weight:700!important;
+  letter-spacing:.06em!important;
+  color:#07877d!important;
+  margin:0 0 5px!important
+}
+.home-exec-title-v85{
+  margin:0!important;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:30px!important;
+  line-height:1.12!important;
+  letter-spacing:-.45px!important;
+  color:#102f49!important
+}
+.home-exec-desc-v85{
+  margin:6px 0 0!important;
+  max-width:740px!important;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;
+  line-height:1.45!important;
+  color:#63798d!important
+}
+.home-exec-kpis-v85{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px
+}
+.home-exec-kpi-v85{
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr);
+  gap:10px;
+  align-items:center;
+  min-height:76px;
+  padding:10px 11px;
+  border:1px solid #dce6ec;
+  border-radius:12px;
+  background:rgba(255,255,255,.9)
+}
+.home-exec-kpi-icon-v85{
+  width:42px;height:42px;border-radius:10px;
+  display:grid;place-items:center;
+  background:#e6f6f2;color:#07877d
+}
+.home-exec-kpi-icon-v85 svg{
+  width:23px;height:23px
+}
+.home-exec-kpi-v85 b{
+  display:block;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:17px!important;
+  line-height:1.15!important;
+  color:#102f49!important
+}
+.home-exec-kpi-v85 span{
+  display:block;
+  margin-top:3px;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:15px!important;
+  line-height:1.3!important;
+  color:#6a8093!important
+}
+
+/* Busca global no topo */
+.home-top-search-v85{
+  flex:1 1 410px;
+  max-width:520px;
+  min-width:260px;
+  height:42px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  margin-left:auto;
+  padding:0 11px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:10px;
+  background:#fff;
+  box-shadow:0 4px 12px rgba(2,31,51,.08)
+}
+.home-top-search-v85.hidden{
+  display:none!important
+}
+.home-top-search-v85 svg{
+  width:19px;height:19px;
+  flex:0 0 auto;
+  color:#567189
+}
+.home-top-search-v85 input{
+  width:100%;
+  min-width:0;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:#1f3d54;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:16px!important
+}
+.home-top-search-v85 input::placeholder{
+  color:#8495a5
+}
+.home-search-key-v85{
+  flex:0 0 auto;
+  padding:4px 7px;
+  border:1px solid #dbe4eb;
+  border-radius:7px;
+  background:#f7fafc;
+  color:#73889a;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:13px!important
+}
+
+/* Painel de módulos vira área de trabalho limpa */
+.screen-home .module-panel.home-only{
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important
+}
+.screen-home .module-toolbar{
+  display:none!important
+}
+
+/* Navegação rápida */
+.home-tabs-v85{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  margin:0 0 9px;
+  padding:0 4px
+}
+.home-tabs-left-v85{
+  display:flex;
+  align-items:center;
+  gap:5px
+}
+.home-tab-v85{
+  border:0;
+  background:transparent;
+  color:#60778a;
+  border-radius:9px;
+  padding:9px 12px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:16px!important;
+  line-height:1.2!important;
+  font-weight:700;
+  cursor:pointer
+}
+.home-tab-v85:hover{
+  background:#f1f6f8;
+  color:#15364f
+}
+.home-tab-v85.active{
+  background:#eaf4fb;
+  color:#155fae;
+  box-shadow:inset 0 -2px 0 #1876d2
+}
+.home-tab-v85 svg{
+  width:19px;height:19px
+}
+.home-tabs-hint-v85{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:15px!important;
+  color:#768a9b
+}
+.home-tabs-hint-v85 strong{
+  color:#155fae
+}
+
+/* Cards dos módulos como no mockup aprovado */
+.screen-home .module-grid{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:10px!important;
+  margin:0!important
+}
+.screen-home .module-card{
+  display:grid!important;
+  grid-template-columns:66px minmax(0,1fr)!important;
+  grid-template-rows:auto auto 1fr!important;
+  column-gap:14px!important;
+  row-gap:4px!important;
+  align-content:center!important;
+  min-height:132px!important;
+  padding:14px 16px!important;
+  border:1px solid #d9e4eb!important;
+  border-radius:13px!important;
+  background:#fff!important;
+  box-shadow:0 3px 10px rgba(15,47,73,.025)!important;
+  position:relative!important;
+  overflow:hidden!important
+}
+.screen-home .module-card:hover{
+  transform:translateY(-2px)!important;
+  border-color:#b9cbd7!important;
+  box-shadow:0 10px 24px rgba(15,47,73,.08)!important
+}
+.screen-home .module-icon{
+  grid-column:1!important;
+  grid-row:1 / 4!important;
+  align-self:center!important;
+  width:58px!important;
+  height:58px!important;
+  margin:0!important;
+  border-radius:12px!important
+}
+.screen-home .module-icon svg{
+  width:29px!important;
+  height:29px!important
+}
+.screen-home .module-category{
+  grid-column:2!important;
+  grid-row:1!important;
+  position:static!important;
+  justify-self:start!important;
+  width:max-content!important;
+  max-width:calc(100% - 72px)!important;
+  margin:0 0 1px!important;
+  padding:5px 9px!important;
+  font-size:14px!important;
+  line-height:1.15!important;
+  border-radius:999px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important
+}
+.screen-home .module-name{
+  grid-column:2!important;
+  grid-row:2!important;
+  padding-right:72px!important;
+  font-size:18px!important;
+  line-height:1.28!important;
+  color:#102f49!important;
+  font-weight:700!important
+}
+.screen-home .module-desc{
+  grid-column:2!important;
+  grid-row:3!important;
+  margin:1px 0 0!important;
+  padding:0 76px 0 0!important;
+  font-size:16px!important;
+  line-height:1.38!important;
+  color:#667d90!important
+}
+.screen-home .module-card:after{
+  right:15px!important;
+  bottom:15px!important;
+  font-size:16px!important;
+  line-height:1.2!important;
+  font-weight:700!important
+}
+.screen-home.home-model-mode-v85 .module-card:after{
+  content:"Abrir modelo →"!important;
+  font-size:15px!important
+}
+
+/* Barra de resultados de busca */
+.home-search-result-v85{
+  display:none;
+  margin:0 4px 9px;
+  padding:8px 11px;
+  border:1px solid #dce6ed;
+  border-radius:9px;
+  background:#f8fbfd;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:15px!important;
+  color:#61788b
+}
+.home-search-result-v85.visible{
+  display:block
+}
+
+/* Bloco inferior: recentes + inteligência */
+.home-bottom-v85{
+  display:grid;
+  grid-template-columns:minmax(0,1.8fr) minmax(290px,.72fr);
+  gap:11px;
+  margin-top:11px
+}
+.recent-panel.home-approved-recent.home-recent-v85{
+  margin:0!important;
+  padding:15px 16px!important;
+  border-radius:14px!important;
+  box-shadow:0 4px 14px rgba(15,47,73,.04)!important
+}
+.home-recent-v85 .recent-head{
+  margin-bottom:10px!important
+}
+.home-recent-v85 .recent-head h3{
+  font-size:21px!important
+}
+.home-recent-v85 .recent-head p{
+  font-size:15px!important;
+  margin-top:2px!important
+}
+.home-recent-v85 .recent-session-label{
+  font-size:14px!important
+}
+.home-recent-v85 .recent-list{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:8px!important
+}
+.home-recent-v85 .recent-row{
+  grid-template-columns:1fr!important;
+  grid-template-areas:
+    "main"
+    "status"
+    "action"!important;
+  min-height:126px!important;
+  gap:6px!important;
+  padding:11px 12px!important
+}
+.home-recent-v85 .recent-icon{
+  display:none!important
+}
+.home-recent-v85 .recent-main b{
+  font-size:16px!important
+}
+.home-recent-v85 .recent-main span,
+.home-recent-v85 .recent-meta{
+  font-size:15px!important;
+  line-height:1.35!important
+}
+.home-recent-v85 .recent-status{
+  font-size:14px!important;
+  padding:4px 8px!important
+}
+.home-recent-v85 .recent-open{
+  font-size:15px!important;
+  padding:7px 10px!important
+}
+
+/* Card institucional inferior */
+.home-intel-card-v85{
+  position:relative;
+  overflow:hidden;
+  min-height:100%;
+  padding:18px;
+  border:1px solid #d5e8e5;
+  border-radius:14px;
+  background:
+    radial-gradient(circle at 90% 25%,rgba(15,164,157,.14),transparent 34%),
+    linear-gradient(135deg,#f5fcfa 0%,#e5f6f3 100%);
+  color:#17354d
+}
+.home-intel-card-v85:after{
+  content:"";
+  position:absolute;
+  right:-55px;bottom:-70px;
+  width:210px;height:210px;
+  border:35px solid rgba(15,143,130,.06);
+  border-radius:50%
+}
+.home-intel-overline-v85{
+  position:relative;z-index:1;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:14px!important;
+  line-height:1.35!important;
+  color:#087d73;
+  font-weight:700;
+  letter-spacing:.07em
+}
+.home-intel-card-v85 h3{
+  position:relative;z-index:1;
+  margin:8px 0 0;
+  max-width:250px;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:23px!important;
+  line-height:1.2!important;
+  color:#102f49
+}
+.home-intel-card-v85 p{
+  position:relative;z-index:1;
+  margin:9px 0 0;
+  max-width:290px;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:16px!important;
+  line-height:1.48!important;
+  color:#5f778a
+}
+.home-intel-graphic-v85{
+  position:absolute;
+  z-index:1;
+  right:18px;
+  top:45px;
+  width:100px;height:100px;
+  display:grid;place-items:center;
+  color:#087d73
+}
+.home-intel-graphic-v85 svg{
+  width:90px;height:90px
+}
+.home-intel-button-v85{
+  position:absolute;
+  z-index:2;
+  right:16px;
+  bottom:15px;
+  border:0;
+  border-radius:9px;
+  padding:8px 11px;
+  background:#d5f0eb;
+  color:#12675f;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:15px!important;
+  line-height:1.2!important;
+  font-weight:700;
+  cursor:pointer
+}
+
+/* Footer mais discreto */
+.fiscaliza-home-footer{
+  margin-top:10px!important;
+  padding-top:10px!important;
+  font-size:14px!important
+}
+
+/* Mantém os seis módulos na primeira dobra em notebooks comuns */
+@media(max-height:820px) and (min-width:1000px){
+  .home-commercial-hero.home-executive-v85{
+    padding:13px 18px!important
+  }
+  .home-exec-title-v85{font-size:27px!important}
+  .home-exec-kpi-v85{min-height:68px;padding:8px 10px}
+  .screen-home .module-card{
+    min-height:118px!important;
+    padding-top:11px!important;
+    padding-bottom:11px!important
+  }
+  .screen-home .module-icon{
+    width:52px!important;height:52px!important
+  }
+  .home-bottom-v85{
+    margin-top:9px
+  }
+}
+
+@media(max-width:1180px){
+  .home-commercial-hero.home-executive-v85{
+    grid-template-columns:1fr!important
+  }
+  .home-exec-kpis-v85{
+    max-width:none
+  }
+  .home-top-search-v85{
+    max-width:420px
+  }
+  .home-bottom-v85{
+    grid-template-columns:1fr!important
+  }
+  .home-intel-card-v85{
+    min-height:190px
+  }
+}
+@media(max-width:930px){
+  .screen-home .module-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important
+  }
+  .home-top-search-v85{
+    display:none!important
+  }
+  .home-recent-v85 .recent-list{
+    grid-template-columns:1fr!important
+  }
+}
+@media(max-width:650px){
+  .home-exec-kpis-v85{
+    grid-template-columns:1fr!important
+  }
+  .home-tabs-v85{
+    align-items:flex-start;
+    flex-direction:column
+  }
+  .home-tabs-left-v85{
+    width:100%;
+    overflow-x:auto
+  }
+  .screen-home .module-grid{
+    grid-template-columns:1fr!important
+  }
+  .screen-home .module-card{
+    grid-template-columns:56px minmax(0,1fr)!important
+  }
+  .screen-home .module-icon{
+    width:50px!important;height:50px!important
+  }
+  .home-exec-title-v85{
+    font-size:25px!important
+  }
+}
+</style>
+"""
+core.HTML = core.HTML.replace("</head>", _home_exec_v85_css + "</head>", 1)
+
+_home_exec_v85_js = r"""
+<script id="fiscaliza-home-executive-v85-js">
+var homeV85ModelMode=false;
+
+function homeKpiIconV85(kind){
+  var common='fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+  if(kind==="layers")return '<svg viewBox="0 0 24 24"><path '+common+' d="M12 3l8 4-8 4-8-4 8-4zM4 12l8 4 8-4M4 17l8 4 8-4"/></svg>';
+  if(kind==="doc")return '<svg viewBox="0 0 24 24"><path '+common+' d="M6 3h9l3 3v15H6zM15 3v4h4M9 12h6M9 16h6"/></svg>';
+  return '<svg viewBox="0 0 24 24"><circle '+common+' cx="9" cy="8" r="3"/><circle '+common+' cx="17" cy="8" r="2.5"/><path '+common+' d="M3 19c.8-3.2 3-5 6-5s5.2 1.8 6 5M14 14c3.2 0 5.3 1.8 6 5"/></svg>';
+}
+function searchIconV85(){
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>';
+}
+function tabsIconV85(kind){
+  if(kind==="grid")return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg>';
+  if(kind==="clock")return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l3 3v15H6zM15 3v4h4M9 12h6M9 16h6"/></svg>';
+}
+function intelGraphicV85(){
+  return '<svg viewBox="0 0 100 100" fill="none">'+
+    '<rect x="17" y="14" width="49" height="64" rx="7" fill="#fff" opacity=".88" transform="rotate(-6 17 14)"/>'+
+    '<path d="M30 33h24M29 43h27M28 53h20" stroke="#7bb9c7" stroke-width="4" stroke-linecap="round"/>'+
+    '<path d="M68 43l21 8v17c0 16-10 25-21 31-11-6-21-15-21-31V51z" fill="#0b6275"/>'+
+    '<path d="M58 68l7 7 13-17" stroke="#70e2d3" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>'+
+  '</svg>';
+}
+
+function instalarBuscaTopoV85(){
+  if(document.getElementById("homeTopSearchV85"))return;
+  var inner=document.querySelector(".topbar-inner");
+  if(!inner)return;
+  var actions=inner.querySelector(".top-actions");
+  var search=document.createElement("label");
+  search.id="homeTopSearchV85";
+  search.className="home-top-search-v85";
+  search.innerHTML=searchIconV85()+
+    '<input id="homeSearchInputV85" type="search" autocomplete="off" placeholder="Buscar módulos ou processos..." oninput="buscarHomeV85(this.value)">'+
+    '<span class="home-search-key-v85">Ctrl + K</span>';
+  if(actions)inner.insertBefore(search,actions);
+  else inner.appendChild(search);
+
+  if(!window._homeV85KeyInstalled){
+    window._homeV85KeyInstalled=true;
+    document.addEventListener("keydown",function(e){
+      if((e.ctrlKey||e.metaKey)&&String(e.key).toLowerCase()==="k"){
+        var home=document.getElementById("screenHome");
+        if(home&&home.classList.contains("active")){
+          e.preventDefault();
+          var input=document.getElementById("homeSearchInputV85");
+          if(input){input.focus();input.select()}
+        }
+      }
+    });
+  }
+}
+
+function buscarHomeV85(q){
+  var raw=String(q||"").trim();
+  var key=raw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  var moduleHits=0,recentHits=0;
+
+  document.querySelectorAll("#screenHome .module-card").forEach(function(card){
+    if(card.style.display==="none"&&["penalizacao","fiscalizacao","reequilibrio","rescisao","disciplinar","sindicancia"].indexOf(card.dataset.module)<0)return;
+    var text=(card.textContent||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    var show=!key||text.indexOf(key)>=0;
+    card.style.display=show?"grid":"none";
+    if(show)moduleHits++;
+  });
+
+  document.querySelectorAll("#recentList .recent-row").forEach(function(row){
+    var text=(row.textContent||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    var show=!key||text.indexOf(key)>=0;
+    row.style.display=show?"grid":"none";
+    if(show)recentHits++;
+  });
+
+  var note=document.getElementById("homeSearchResultV85");
+  if(note){
+    if(key){
+      note.classList.add("visible");
+      note.textContent=moduleHits+" módulo(s) e "+recentHits+" processo(s) recente(s) encontrados para “"+raw+"”.";
+    }else{
+      note.classList.remove("visible");
+      note.textContent="";
+    }
+  }
+}
+
+function homeTabV85(tab){
+  var home=document.getElementById("screenHome");if(!home)return;
+  document.querySelectorAll(".home-tab-v85").forEach(function(b){
+    b.classList.toggle("active",b.dataset.homeTab===tab);
+  });
+
+  if(tab==="recent"){
+    homeV85ModelMode=false;
+    home.classList.remove("home-model-mode-v85");
+    restaurarCardsModuloV85();
+    var recent=document.getElementById("recentPanel");
+    if(recent)recent.scrollIntoView({behavior:"smooth",block:"start"});
+    return;
+  }
+
+  if(tab==="models"){
+    homeV85ModelMode=true;
+    home.classList.add("home-model-mode-v85");
+    ativarCardsModeloV85();
+    var title=home.querySelector(".home-exec-title-v85");
+    var desc=home.querySelector(".home-exec-desc-v85");
+    if(title)title.textContent="Escolha um processo modelo";
+    if(desc)desc.textContent="Selecione um módulo para abrir a área de trabalho e carregar automaticamente o processo fictício correspondente.";
+    var grid=home.querySelector(".module-grid");
+    if(grid)grid.scrollIntoView({behavior:"smooth",block:"nearest"});
+    return;
+  }
+
+  homeV85ModelMode=false;
+  home.classList.remove("home-model-mode-v85");
+  restaurarCardsModuloV85();
+  var title=home.querySelector(".home-exec-title-v85");
+  var desc=home.querySelector(".home-exec-desc-v85");
+  if(title)title.textContent="Escolha um fluxo especializado";
+  if(desc)desc.textContent="Organize seus processos com rastreabilidade, evidências e revisão humana.";
+  var grid=home.querySelector(".module-grid");
+  if(grid)grid.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+function ativarCardsModeloV85(){
+  document.querySelectorAll("#screenHome .module-card").forEach(function(card){
+    var key=card.getAttribute("data-module");
+    if(["penalizacao","fiscalizacao","reequilibrio","rescisao","disciplinar","sindicancia"].indexOf(key)<0)return;
+    card.setAttribute("onclick","abrirModeloModuloV85('"+key+"')");
+  });
+}
+function restaurarCardsModuloV85(){
+  document.querySelectorAll("#screenHome .module-card").forEach(function(card){
+    var key=card.getAttribute("data-module");
+    if(["penalizacao","fiscalizacao","reequilibrio","rescisao","disciplinar","sindicancia"].indexOf(key)<0)return;
+    card.setAttribute("onclick","abrirModulo('"+key+"')");
+  });
+}
+function abrirModeloModuloV85(key){
+  homeV85ModelMode=false;
+  var home=document.getElementById("screenHome");
+  if(home)home.classList.remove("home-model-mode-v85");
+  abrirTelaModulo(key,null,true);
+  setTimeout(function(){
+    if(typeof testarDemo==="function")testarDemo();
+  },220);
+}
+
+function instalarTabsHomeV85(){
+  var panel=document.querySelector("#screenHome .module-panel.home-only");
+  var grid=panel&&panel.querySelector(".module-grid");
+  if(!panel||!grid)return;
+  var tabs=document.getElementById("homeTabsV85");
+  if(!tabs){
+    tabs=document.createElement("div");
+    tabs.id="homeTabsV85";
+    tabs.className="home-tabs-v85";
+    tabs.innerHTML=
+      '<div class="home-tabs-left-v85">'+
+        '<button class="home-tab-v85 active" data-home-tab="modules" onclick="homeTabV85(\'modules\')">'+tabsIconV85("grid")+'<span>Módulos</span></button>'+
+        '<button class="home-tab-v85" data-home-tab="recent" onclick="homeTabV85(\'recent\')">'+tabsIconV85("clock")+'<span>Recentes</span></button>'+
+        '<button class="home-tab-v85" data-home-tab="models" onclick="homeTabV85(\'models\')">'+tabsIconV85("doc")+'<span>Modelos</span></button>'+
+      '</div>'+
+      '<div class="home-tabs-hint-v85"><strong>6 fluxos</strong> prontos para uso</div>';
+    panel.insertBefore(tabs,grid);
+  }
+  if(!document.getElementById("homeSearchResultV85")){
+    var res=document.createElement("div");
+    res.id="homeSearchResultV85";
+    res.className="home-search-result-v85";
+    panel.insertBefore(res,grid);
+  }
+}
+
+function instalarBlocoInferiorV85(){
+  var home=document.getElementById("screenHome");
+  var recent=document.getElementById("recentPanel");
+  if(!home||!recent)return;
+  recent.classList.add("home-recent-v85");
+
+  var bottom=document.getElementById("homeBottomV85");
+  if(!bottom){
+    bottom=document.createElement("div");
+    bottom.id="homeBottomV85";
+    bottom.className="home-bottom-v85";
+    recent.parentNode.insertBefore(bottom,recent);
+    bottom.appendChild(recent);
+
+    var intel=document.createElement("aside");
+    intel.className="home-intel-card-v85";
+    intel.innerHTML=
+      '<div class="home-intel-overline-v85">Inteligência a serviço do interesse público</div>'+
+      '<h3>Do documento à decisão humana</h3>'+
+      '<p>Organize autos, acompanhe pendências e produza documentos assistidos, com rastreabilidade e padrão de trabalho.</p>'+
+      '<div class="home-intel-graphic-v85">'+intelGraphicV85()+'</div>'+
+      '<button class="home-intel-button-v85" onclick="homeTabV85(\'modules\')">Ver módulos →</button>';
+    bottom.appendChild(intel);
+  }
+}
+
+function aplicarHomeExecutivaV85(){
+  var home=document.getElementById("screenHome");
+  var hero=document.querySelector("#screenHome .home-commercial-hero");
+  if(!home||!hero)return;
+
+  instalarBuscaTopoV85();
+
+  hero.classList.add("home-executive-v85");
+  if(!hero.dataset.executiveV85){
+    hero.dataset.executiveV85="1";
+    hero.innerHTML=
+      '<div class="home-exec-copy-v85">'+
+        '<div class="home-exec-kicker-v85">Gestão contratual e responsabilização</div>'+
+        '<h1 class="home-exec-title-v85">Escolha um fluxo especializado</h1>'+
+        '<p class="home-exec-desc-v85">Organize seus processos com rastreabilidade, evidências e revisão humana.</p>'+
+      '</div>'+
+      '<div class="home-exec-kpis-v85">'+
+        '<div class="home-exec-kpi-v85"><span class="home-exec-kpi-icon-v85">'+homeKpiIconV85("layers")+'</span><div><b>6 módulos</b><span>fluxos especializados</span></div></div>'+
+        '<div class="home-exec-kpi-v85"><span class="home-exec-kpi-icon-v85">'+homeKpiIconV85("doc")+'</span><div><b>ID + página</b><span>rastreabilidade em todos os fluxos</span></div></div>'+
+        '<div class="home-exec-kpi-v85"><span class="home-exec-kpi-icon-v85">'+homeKpiIconV85("human")+'</span><div><b>Revisão humana</b><span>decisão final com segurança</span></div></div>'+
+      '</div>';
+  }
+
+  instalarTabsHomeV85();
+  instalarBlocoInferiorV85();
+
+  /* Garante os ícones e as categorias já aprovados no mockup. */
+  document.querySelectorAll("#screenHome .module-card").forEach(function(card){
+    var key=card.getAttribute("data-module");
+    if(["penalizacao","fiscalizacao","reequilibrio","rescisao","disciplinar","sindicancia"].indexOf(key)<0){
+      card.style.display="none";
+      return;
+    }
+    card.style.display="grid";
+    var icon=card.querySelector(".module-icon");
+    if(icon&&typeof homeIconSvg==="function")icon.innerHTML=homeIconSvg(key);
+    var meta=commercialModuleMeta[key];
+    var tag=card.querySelector(".module-category");
+    if(!tag&&meta){
+      tag=document.createElement("span");
+      tag.className="module-category";
+      tag.textContent=meta.category;
+      card.appendChild(tag);
+    }
+  });
+
+  var input=document.getElementById("homeSearchInputV85");
+  if(input&&input.value)buscarHomeV85(input.value);
+}
+
+function atualizarBuscaTopoV85(){
+  var search=document.getElementById("homeTopSearchV85");
+  var home=document.getElementById("screenHome");
+  if(!search||!home)return;
+  search.classList.toggle("hidden",!home.classList.contains("active"));
+}
+
+/* Mantém a Home nova após todos os fluxos antigos que também mexem na tela. */
+var _deixarHomeMaisProdutoV85=deixarHomeMaisProduto;
+deixarHomeMaisProduto=function(){
+  _deixarHomeMaisProdutoV85();
+  setTimeout(function(){
+    aplicarHomeExecutivaV85();
+    atualizarBuscaTopoV85();
+  },0);
+};
+
+var _prepararHomeComercialV85=prepararHomeComercial;
+prepararHomeComercial=function(){
+  _prepararHomeComercialV85();
+  setTimeout(function(){
+    aplicarHomeExecutivaV85();
+    atualizarBuscaTopoV85();
+  },0);
+};
+
+var _abrirTelaModuloV85=abrirTelaModulo;
+abrirTelaModulo=function(key,el,push){
+  _abrirTelaModuloV85(key,el,push);
+  setTimeout(atualizarBuscaTopoV85,0);
+};
+window.abrirModulo=abrirTelaModulo;
+
+var _voltarAosModulosV85=voltarAosModulos;
+voltarAosModulos=function(push){
+  _voltarAosModulosV85(push);
+  setTimeout(function(){
+    aplicarHomeExecutivaV85();
+    atualizarBuscaTopoV85();
+  },0);
+};
+
+document.addEventListener("DOMContentLoaded",function(){
+  setTimeout(function(){
+    aplicarHomeExecutivaV85();
+    atualizarBuscaTopoV85();
+  },320);
+});
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _home_exec_v85_js + "</body>", 1)
