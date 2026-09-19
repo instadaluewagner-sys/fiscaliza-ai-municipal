@@ -23,7 +23,7 @@ A V8 não deve sugerir documento incompatível com a fase atual. Ex.: processo c
 - modules/penalizacao.py: regras do primeiro módulo.
 - core/models.py: contratos de dados estáveis.
 - tests/: testes de regressão.
-- templates/ e static/: interface mínima de validação.
+- templates/ e static/: interface comercial de homologação com menu lateral, abas e visualizador de PDF.
 
 ## Executar localmente
 
@@ -48,12 +48,15 @@ Concluído nesta etapa:
 - checklist com quatro estados: localizado, não localizado, não aplicável e inconclusivo;
 - minutas compatíveis com a fase, com fontes por DOC-ID + página;
 - notificação de instauração detalhada, sem inventar prazo, competência ou dado ausente;
-- sessão temporária com expiração, encerramento explícito, cabeçalhos no-store e limite configurável por PDF.
+- sessão temporária com expiração, encerramento explícito, cabeçalhos no-store e limites por arquivo/lote;
+- processo modelo fictício analisado pelo mesmo pipeline dos uploads reais;
+- interface comercial com menu lateral + abas horizontais, Visão Geral executiva e prévia da minuta;
+- Blueprint isolado de preview no Render em `render-v8-preview.yaml`.
 
 Os testes internos automatizados são o gate obrigatório de cada alteração. Os benchmarks públicos reais ficam disponíveis para execução manual porque dependem de sites externos e não devem quebrar o desenvolvimento por indisponibilidade, bloqueio ou mudança de arquivo.
 
 ## Escopo fechado da RC1
 
-A RC1 de Penalização entrega: upload de PDF, OCR, segmentação documental, identificação contratual rastreável, estágio processual, pendências, cronologia, evidências com DOC-ID + página, visualização do PDF original, minuta compatível com a fase, relatório PDF/JSON e exclusão da sessão.
+A RC1 de Penalização entrega: upload de PDF, processo modelo, OCR, segmentação documental, identificação contratual rastreável, estágio processual, pendências, cronologia, evidências com DOC-ID + página, visualização do PDF original, minuta compatível com a fase, relatório PDF/JSON e exclusão da sessão.
 
 Os outros módulos ficam fora desta RC1. Eles só serão migrados depois da validação desta base.
