@@ -5,6 +5,8 @@ on:
     branches: [v8-rebuild]
     paths:
       - "v8/**"
+      - "render-v8-preview.yaml"
+      - "render-v8-preview.yaml"
       - ".github/workflows/v8-tests.yml"
   pull_request:
     paths:
@@ -22,3 +24,5 @@ jobs:
         run: pip install -r v8/requirements.txt
       - name: Run V8 tests
         run: PYTHONPATH=. pytest -q v8/tests
+      - name: Build V8 Docker image
+        run: docker build -f v8/Dockerfile -t fiscaliza-ai-v8:ci .
