@@ -7835,6 +7835,8 @@ def _extract_penalization_process_v140(pages):
     # "Processo Administrativo de Penalização nº ..." no cabeçalho.
     for p in pages:
         raw=re.sub(r"\s+"," ",p.get("text") or "")
+        raw=re.sub(r"(?<=\d)\s*-\s*(?=\d)","-",raw)
+        raw=re.sub(r"(?<=\d)\s*/\s*(?=\d)","/",raw)
         z=core.norm(raw)
         if not (
             ("termo de abertura de processo" in z and "aplicacao de penalidade" in z)
@@ -7854,6 +7856,8 @@ def _extract_penalization_process_v140(pages):
     # 3) termo de atribuição da Comissão também identifica com segurança o processo.
     for p in pages:
         raw=re.sub(r"\s+"," ",p.get("text") or "")
+        raw=re.sub(r"(?<=\d)\s*-\s*(?=\d)","-",raw)
+        raw=re.sub(r"(?<=\d)\s*/\s*(?=\d)","/",raw)
         z=core.norm(raw)
         if "termo de atribuicao" not in z or "comissao" not in z or "penalizacao" not in z:
             continue
@@ -7880,6 +7884,8 @@ def _extract_origin_process_v140(pages):
     ]
     for p in pages:
         raw=re.sub(r"\s+"," ",p.get("text") or "")
+        raw=re.sub(r"(?<=\d)\s*-\s*(?=\d)","-",raw)
+        raw=re.sub(r"(?<=\d)\s*/\s*(?=\d)","/",raw)
         for pat,weight in patterns:
             for m in re.finditer(pat,raw,flags=re.I):
                 value=m.group(1).strip().rstrip(" .;,:")
@@ -7964,6 +7970,56 @@ core._quantity_context=_quantity_context_v140
 core.total_quantity=_quantity_context_v140
 
 
+def _penalty_deadline_v142(pages):
+    """Extrai o prazo de entrega da ordem/empenho, sem confundir prazo de defesa ou pagamento."""
+    ordered=sorted(pages,key=lambda p:p.get("page",999999))
+    for p in ordered:
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:1000])
+        if not any(x in marker or x in head for x in ["pedido de empenho","nota de empenho"]):
+            continue
+        raw=re.sub(r"\s+"," ",p.get("text") or "")
+        m=re.search(r"Prazo\s+de\s+Entrega\s*:\s*([^.;\n]{1,120})",raw,flags=re.I)
+        if m:
+            value=re.sub(r"\s+"," ",m.group(1)).strip(" .;,:")
+            return {"value":value,"page":p.get("page")}
+    return {"value":"Não identificado com segurança","page":None}
+
+
+def _penalty_value_v142(pages):
+    """Prefere o valor positivo da NE original e ignora a nota de anulação."""
+    candidates=[]
+    for p in pages:
+        marker=core.norm(p.get("source_document_id") or "")
+        head=core.norm((p.get("text") or "")[:1200])
+        raw=re.sub(r"\s+"," ",p.get("text") or "")
+        doc_head=marker+" "+head
+        if "anulacao" in doc_head:
+            continue
+
+        priority=9
+        if "nota de empenho" in doc_head:
+            priority=0
+        elif "pedido de empenho" in doc_head:
+            priority=1
+        else:
+            continue
+
+        for rx in [
+            r"Valor\s+do\s+Empenho\s*[:\s]*R?\$?\s*([0-9.]+,[0-9]{2})",
+            r"Valor\s+Total\s*:\s*R?\$?\s*([0-9.]+,[0-9]{2})",
+        ]:
+            m=re.search(rx,raw,flags=re.I)
+            if m:
+                candidates.append((priority,p.get("page",999999),m.group(1)))
+                break
+
+    if candidates:
+        _,page,value=sorted(candidates)[0]
+        return {"value":value,"display":"R$ "+value,"page":page}
+    return {"value":"Não identificado com segurança","display":"Não identificado com segurança","page":None}
+
+
 def _commission_notification_pages_v140(pages):
     hits=[]
     for p in pages:
@@ -8016,25 +8072,35 @@ def _inadimplemento_pages_v141(pages):
     for p in pages:
         z=_pen_page_blob_v140(p)
         marker=core.norm(p.get("source_document_id") or "")
-        head=core.norm((p.get("text") or "")[:1200])
+        head=core.norm((p.get("text") or "")[:1400])
+        doc_head=marker+" "+head
 
-        # Edital, termo de referência e ARP descrevem hipóteses abstratas de infração;
-        # não provam, por si, que o fato ocorreu no caso concreto.
-        normative=any(x in marker or x in head for x in [
-            "edital","termo de referencia","ata de registro de precos"
+        normative_content=any(x in z for x in [
+            "das infracoes administrativas e sancoes",
+            "comete infracao administrativa",
+            "clausula decima primeira",
+            "clausula decima - das penalidades",
         ])
-        factual_context=any(x in marker or x in head or x in z for x in [
+        factual_phrase=any(x in z for x in [
+            "nao houve entrega","nao promoveu a entrega","ausencia de entrega",
+            "empresa fornecedora foi formalmente notificada",
+            "nao tendo atendido as solicitacoes",
+            "permanencia do descumprimento",
+            "segue o processo para penalizacao",
+            "encaminha-se o presente processo",
+            "nao houve retorno ou apresentacao de justificativa",
+        ])
+        execution_doc=any(x in doc_head for x in [
             "notificacao","certidao","oficio","relatorio de fiscalizacao","relatorio tecnico",
             "solicitacao de anulacao","nota de empenho - anulacao","anulacao de empenho",
-            "encaminha-se o presente processo","segue o processo para penalizacao",
-            "empresa fornecedora foi formalmente notificada"
+            "termo de ocorrencia","registro de ocorrencia"
         ])
-        if normative and not factual_context:
+
+        if normative_content and not factual_phrase:
             continue
-        if factual_context and any(rx.search(z) for rx in regs):
+        if (execution_doc or factual_phrase) and any(rx.search(z) for rx in regs):
             factual.append(p.get("page"))
     return sorted(set(x for x in factual if x))
-
 
 def _defense_lapse_pages_v141(pages, commission_pages):
     """Decurso de defesa só existe depois da Notificação Extrajudicial da Comissão."""
@@ -8172,26 +8238,34 @@ def _process_id_conflicts_v140(pages):
         key=p.get("document_id") or ("page-"+str(p.get("page")))
         groups.setdefault(key,[]).append(p)
 
+    proc_rx=r"([0-9][0-9.\-\s]*\/\s*[0-9]{4})"
+    def clean_no(v):
+        return re.sub(r"\s+","",v or "").rstrip(" .;,:")
+
     for group in groups.values():
-        raw=re.sub(r"\\s+"," ","\\n".join(p.get("text") or "" for p in group))
+        raw=re.sub(r"\s+"," ","\n".join(p.get("text") or "" for p in group))
+        raw=re.sub(r"(?<=\d)\s*-\s*(?=\d)","-",raw)
+        raw=re.sub(r"(?<=\d)\s*/\s*(?=\d)","/",raw)
         z=core.norm(raw)
         if "referencia: processo" not in z:
             continue
 
         subject=[]
-        for pat in [
-            r"Assunto:\\s*Encaminhamento do Processo\\s*(?:n[ºo.]?)?\\s*[:\\-]?\\s*([0-9][0-9.\\-/]+)",
-            r"Encaminhamos[^.]{0,220}?Processo Administrativo\\s*(?:n[ºo.]?)?\\s*[:\\-]?\\s*([0-9][0-9.\\-/]+)",
+        for prefix in [
+            r"Assunto:\s*Encaminhamento do Processo\s*(?:n[ºo.]?)?\s*[:\-]?\s*",
+            r"Encaminhamos[^.]{0,220}?Processo Administrativo\s*(?:n[ºo.]?)?\s*[:\-]?\s*",
         ]:
-            subject += [m.group(1).rstrip(" .;,:") for m in re.finditer(pat,raw,flags=re.I)]
+            subject += [clean_no(m.group(1)) for m in re.finditer(prefix+proc_rx,raw,flags=re.I)]
 
         refs=[
-            m.group(1).rstrip(" .;,:")
+            clean_no(m.group(1))
             for m in re.finditer(
-                r"Refer[eê]ncia:\\s*Processo\\s*(?:n[ºo.]?)?\\s*[:\\-]?\\s*([0-9][0-9.\\-/]+)",
+                r"Refer[eê]ncia:\s*Processo\s*(?:n[ºo.]?)?\s*[:\-]?\s*"+proc_rx,
                 raw,flags=re.I
             )
         ]
+        subject=[x for x in subject if x]
+        refs=[x for x in refs if x]
         if subject and refs and any(core.norm(a)!=core.norm(b) for a in subject for b in refs):
             flags.append({
                 "level":"media",
@@ -8436,6 +8510,8 @@ def _module_overlay_v140(pages,a,module):
         if ata: parts.append("ARP "+ata)
         if empenho: parts.append("NE "+empenho)
         instrument=" / ".join(parts) or "Não identificado"
+    deadline=_penalty_deadline_v142(pages)
+    contract_value=_penalty_value_v142(pages)
     out["penalty_metadata"]={
         "penalizacao":core._clean_profile_value(md.get("penalizacao")) or "Não identificado",
         "origem":core._clean_profile_value(md.get("origem")) or "Não identificado",
@@ -8446,6 +8522,10 @@ def _module_overlay_v140(pages,a,module):
         "empenho":empenho or "Não identificado",
         "empresa":core._clean_profile_value(md.get("empresa")) or "Não identificada",
         "cnpj":core._clean_profile_value(md.get("cnpj")) or "Não identificado",
+        "prazo_entrega":deadline.get("value") or "Não identificado",
+        "prazo_entrega_page":deadline.get("page"),
+        "valor_empenho":contract_value.get("display") or "Não identificado",
+        "valor_empenho_page":contract_value.get("page"),
     }
 
     out["module_timeline"]=[
@@ -8653,6 +8733,8 @@ penaltyMetadataFacts=function(a){
     ["Ata de Registro de Preços",m.ata||"Não identificada"],
     ["Instrumento da contratação",m.instrumento||m.contrato||"Não identificado"],
     ["Nota de Empenho",m.empenho||"Não identificado"],
+    ["Valor do empenho",m.valor_empenho||"Não identificado"],
+    ["Prazo de entrega",m.prazo_entrega||"Não identificado"],
     ["Empresa",m.empresa||"Não identificada"],
     ["Quantidade / objeto",qv]
   ];
@@ -8660,4 +8742,4 @@ penaltyMetadataFacts=function(a){
 </script>
 """
 core.HTML=core.HTML.replace("</body>",_penalizacao_v140_js+"</body>",1)
-core.app.version="14.1"
+core.app.version="14.2"
