@@ -6570,3 +6570,314 @@ def _document_marker_v101(text):
 
 core._document_marker=_document_marker_v101
 core.app.version="10.1"
+
+
+# --- Formalização parametrizada · Pimenta Bueno v11.0 ---
+from profile_pimenta_bueno import FORMALIZACAO_CONTROLS as PB_FORMALIZACAO_CONTROLS
+
+core.MODULE_AUDIT["formalizacao"] = [
+    ("Há conferência da fase preparatória ou atesto de conformidade?",[
+        r"\bconferencia da fase preparatoria\b",r"\bdeclaracao de conformidade\b",
+        r"\batesto de conformidade\b"
+    ]),
+    ("Há edital ou instrumento convocatório?",[
+        r"\bedital\b",r"\binstrumento convocatorio\b"
+    ]),
+    ("Há controle prévio de legalidade ou parecer jurídico?",[
+        r"\bcontrole previo de legalidade\b",r"\bparecer juridico\b",
+        r"\bprocuradoria geral do municipio\b",r"\bpgm\b"
+    ]),
+    ("Há autorização de abertura ou prosseguimento?",[
+        r"\bautorizacao de abertura\b",r"\bautorizacao para prosseguimento\b",
+        r"\bautoriza.{0,80}(?:abertura|prosseguimento)\b"
+    ]),
+    ("Há registros da fase externa, proposta, julgamento e habilitação?",[
+        r"\bproposta vencedora\b",r"\bata da sessao\b",r"\bjulgamento\b",
+        r"\bhabilitacao\b",r"\bresultado da sessao\b"
+    ]),
+    ("Há manifestação da CGM anterior à homologação?",[
+        r"\bmanifestacao da cgm\b",r"\bcontroladoria geral do municipio\b",
+        r"\bcontrole interno\b"
+    ]),
+    ("Há adjudicação e homologação?",[
+        r"\badjudicacao\b",r"\bhomologacao\b"
+    ]),
+    ("Há pedido de empenho ou Nota de Empenho?",[
+        r"\bpedido de empenho\b",r"\bnota de empenho\b"
+    ]),
+    ("Há contrato ou instrumento equivalente?",[
+        r"\bcontrato administrativo\b",r"\binstrumento equivalente\b"
+    ]),
+    ("Há designação de fiscal e gestor?",[
+        r"\bdesignacao de fiscal\b",r"\bdesignacao de gestor\b",
+        r"\bfiscal e gestor\b",r"\bportaria de designacao\b"
+    ]),
+    ("Há publicação ou registro da contratação?",[
+        r"\bpublicacao do contrato\b",r"\bpublicacao e registro\b",
+        r"\bextrato do contrato\b",r"\bregistro da contratacao\b"
+    ]),
+]
+
+core.MODEL_CASES["formalizacao"]={
+    "title":"Formalização da contratação",
+    "pages":[
+        (
+            "PROCESSO DE FORMALIZAÇÃO DA CONTRATAÇÃO Nº 3202/2026",
+            "CASO FICTÍCIO PARA DEMONSTRAÇÃO. Procedimento: Pregão eletrônico para aquisição de bens. Objeto: aquisição de 60 notebooks para unidades administrativas."
+        ),
+        (
+            "DECLARAÇÃO DE CONFORMIDADE DA FASE PREPARATÓRIA — SUPEL",
+            "A SUPEL registra a conferência dos documentos da fase preparatória e declara a instrução apta ao prosseguimento do Pregão Eletrônico para aquisição de bens."
+        ),
+        (
+            "EDITAL DO PREGÃO ELETRÔNICO Nº 41/2026",
+            "A SUPEL elabora o edital contendo objeto, critérios de julgamento, condições de participação, requisitos de habilitação, prazos e regras do procedimento."
+        ),
+        (
+            "PARECER JURÍDICO — PGM",
+            "A Procuradoria-Geral do Município realiza controle prévio de legalidade da minuta do edital e dos documentos da contratação, registrando conclusão para prosseguimento."
+        ),
+        (
+            "AUTORIZAÇÃO PARA ABERTURA E PROSSEGUIMENTO",
+            "A autoridade competente autoriza a abertura e o prosseguimento da fase externa após a análise jurídica e a conferência da instrução."
+        ),
+        (
+            "PROPOSTA VENCEDORA",
+            "A EMPRESA MODELO LTDA. apresenta proposta vencedora para fornecimento de 60 notebooks, com preço unitário e condições compatíveis com o edital."
+        ),
+        (
+            "ATA DA SESSÃO, JULGAMENTO E HABILITAÇÃO",
+            "A ata registra propostas, lances, classificação, julgamento, habilitação e resultado da sessão pública, indicando a empresa vencedora."
+        ),
+        (
+            "MANIFESTAÇÃO DA CGM — CONTROLE INTERNO",
+            "A Controladoria-Geral do Município registra manifestação favorável quanto à regularidade da fase externa antes da homologação."
+        ),
+        (
+            "ADJUDICAÇÃO E HOMOLOGAÇÃO",
+            "A autoridade competente adjudica o objeto e homologa o resultado após a manifestação do controle interno."
+        ),
+        (
+            "NOTA DE EMPENHO Nº 2026NE000188",
+            "É emitida Nota de Empenho referente à aquisição de 60 notebooks, vinculada ao procedimento e à proposta vencedora."
+        ),
+        (
+            "CONTRATO ADMINISTRATIVO Nº 188/2026",
+            "CONTRATANTE: MUNICÍPIO — CASO FICTÍCIO. CONTRATADA: EMPRESA MODELO LTDA. Objeto: fornecimento de 60 notebooks. O contrato estabelece prazo, obrigações, recebimento, pagamento e fiscalização."
+        ),
+        (
+            "PORTARIA DE DESIGNAÇÃO DE FISCAL E GESTOR",
+            "A autoridade competente designa fiscal e gestor para acompanhar o Contrato Administrativo nº 188/2026 e registrar ocorrências e providências."
+        ),
+        (
+            "PUBLICAÇÃO E REGISTRO DA CONTRATAÇÃO",
+            "A unidade competente registra a publicação do contrato e os dados necessários à publicidade e ao acompanhamento da contratação."
+        ),
+    ]
+}
+
+_old_module_overlay_v110=core._module_overlay
+def _module_overlay_v110(pages,a,module):
+    out=_old_module_overlay_v110(pages,a,module)
+    if module!="formalizacao":
+        return out
+
+    joined=core.norm("\n".join(p.get("text") or "" for p in pages))
+    procedure=pb_classify_planning_procedure(joined)
+    proc_label=PB_PROCEDURES.get(procedure,PB_PROCEDURES["outro"])
+
+    out["normative_profile"]={
+        "id":PB_PROFILE["id"],
+        "label":PB_PROFILE["label"],
+        "version":PB_PROFILE["version"],
+        "review_notice":PB_PROFILE["review_notice"],
+    }
+    out["procedure"]={"key":procedure,"label":proc_label}
+
+    matrix=out.get("module_matrix") or []
+    legal=[]
+    for i,control in enumerate(PB_FORMALIZACAO_CONTROLS):
+        base=matrix[i] if i<len(matrix) else {}
+        applicable=(procedure=="outro" or procedure in control["applies_to"])
+        found=bool(base.get("ok"))
+        if not applicable:
+            state="Condicional"
+        elif found:
+            state="Localizado"
+        else:
+            state="Não localizado"
+
+        row={
+            "control_id":control["id"],
+            "label":control["label"],
+            "aliases":control.get("aliases") or [],
+            "responsible":control["responsible"],
+            "nature":control["nature"],
+            "criticality":control["criticality"],
+            "foundation":control["foundation"],
+            "absence_action":control["absence_action"],
+            "applicable":applicable,
+            "status":state,
+            "ok":found,
+            "pages":(base.get("pages") or [])[:8],
+            "excerpt":base.get("excerpt") or "",
+        }
+        legal.append(row)
+
+        if i<len(matrix):
+            matrix[i]["legal_control_id"]=control["id"]
+            matrix[i]["responsible"]=control["responsible"]
+            matrix[i]["nature"]=control["nature"]
+            matrix[i]["criticality"]=control["criticality"]
+            matrix[i]["foundation"]=control["foundation"]
+            matrix[i]["applicable"]=applicable
+            matrix[i]["legal_status"]=state
+
+    out["legal_matrix"]=legal
+    missing=[x for x in legal if x["applicable"] and not x["ok"]]
+    out["review_flags"]=[
+        {
+            "level":"alta" if x["criticality"]=="alta" else "media",
+            "text":x["label"]+" não localizado. "+x["absence_action"]
+        }
+        for x in missing[:5]
+    ]
+
+    if missing:
+        out["next_action"]={
+            "stage":"Formalização · Perfil Pimenta Bueno",
+            "action":"Conferir ou localizar: "+missing[0]["label"]+".",
+            "why":"O controle é esperado no fluxo classificado como "+proc_label+"; a ausência exige conferência humana."
+        }
+    else:
+        out["next_action"]={
+            "stage":"Formalização · controles localizados",
+            "action":"Conferir a sequência SUPEL → PGM → autorização → fase externa → CGM → homologação → empenho → contrato → designação → publicação.",
+            "why":"Os controles normativos/documentais parametrizados para "+proc_label+" foram localizados."
+        }
+
+    out["conclusion"]=(
+        "Perfil "+PB_PROFILE["label"]+" · "+proc_label+": o sistema localizou "
+        +str(sum(1 for x in legal if x["applicable"] and x["ok"]))+" de "
+        +str(sum(1 for x in legal if x["applicable"]))+
+        " controles de formalização aplicáveis. A ordem, competência e incidência permanecem sujeitas à revisão humana."
+    )
+    return out
+
+core._module_overlay=_module_overlay_v110
+
+
+_old_document_marker_v110=core._document_marker
+def _document_marker_v110(text):
+    raw=text or ""
+    lines=[re.sub(r"\s+"," ",x).strip() for x in raw.splitlines() if x.strip()]
+    heads=[
+        "PROCESSO DE FORMALIZAÇÃO DA CONTRATAÇÃO",
+        "PROCESSO DE FORMALIZACAO DA CONTRATACAO",
+        "DECLARAÇÃO DE CONFORMIDADE DA FASE PREPARATÓRIA",
+        "DECLARACAO DE CONFORMIDADE DA FASE PREPARATORIA",
+        "PARECER JURÍDICO",
+        "PARECER JURIDICO",
+        "AUTORIZAÇÃO PARA ABERTURA",
+        "AUTORIZACAO PARA ABERTURA",
+        "ATA DA SESSÃO, JULGAMENTO E HABILITAÇÃO",
+        "ATA DA SESSAO, JULGAMENTO E HABILITACAO",
+        "MANIFESTAÇÃO DA CGM",
+        "MANIFESTACAO DA CGM",
+        "NOTA DE EMPENHO",
+        "PORTARIA DE DESIGNAÇÃO DE FISCAL E GESTOR",
+        "PORTARIA DE DESIGNACAO DE FISCAL E GESTOR",
+        "PUBLICAÇÃO E REGISTRO DA CONTRATAÇÃO",
+        "PUBLICACAO E REGISTRO DA CONTRATACAO",
+    ]
+    for line in lines[:10]:
+        up=line.upper()
+        if any(h in up for h in heads) and len(line)<=190:
+            return line
+    return _old_document_marker_v110(text)
+
+core._document_marker=_document_marker_v110
+
+
+_formalizacao_v110_js=r"""
+<script id="fiscaliza-formalizacao-v110-js">
+/* Etapas executivas aderentes ao fluxo municipal parametrizado. */
+var _overviewEtapasV110=overviewEtapasV96;
+overviewEtapasV96=function(a){
+  if(a&&a.module_key==="formalizacao"){
+    var rows=(a.legal_matrix||[]);
+    var ok=function(id){
+      var r=rows.find(function(x){return x.control_id===id});
+      return !!(r&&r.ok);
+    };
+    return [
+      ["SUPEL / edital",ok("conferencia_fase_preparatoria")&&ok("edital")],
+      ["PGM / autorização",ok("parecer_pgm")&&ok("autorizacao_abertura")],
+      ["Fase externa",ok("fase_externa")],
+      ["CGM / homologação",ok("manifestacao_cgm")&&ok("adjudicacao_homologacao")],
+      ["Contrato / gestão",ok("empenho")&&ok("contrato")&&ok("designacao_fiscal_gestor")&&ok("publicacao_registro")]
+    ];
+  }
+  return _overviewEtapasV110(a);
+};
+
+/* A matriz normativa passa a servir tanto Planejamento quanto Formalização. */
+renderPerfilNormativoV100=function(a){
+  if(!a||["planejamento","formalizacao"].indexOf(a.module_key)<0||!a.normative_profile)return;
+  var hub=document.getElementById("overviewHub");
+  if(!hub)return;
+
+  var meta=hub.querySelector(".ov-meta");
+  if(meta&&!meta.querySelector(".pb-profile-chip")){
+    var chip=document.createElement("span");
+    chip.className="pb-profile-chip";
+    chip.textContent="Perfil normativo: "+a.normative_profile.label+" · "+a.normative_profile.version;
+    meta.appendChild(chip);
+
+    var proc=document.createElement("span");
+    proc.className="pb-profile-chip";
+    proc.textContent="Procedimento: "+((a.procedure&&a.procedure.label)||"Não classificado");
+    meta.appendChild(proc);
+  }
+
+  var old=document.getElementById("legalMatrixPanelV100");
+  if(old)old.remove();
+
+  var panel=document.createElement("section");
+  panel.id="legalMatrixPanelV100";
+  panel.className="ov-panel pb-legal-panel";
+  var rows=(a.legal_matrix||[]).map(function(r){
+    var source=(r.documents&&r.documents.length)
+      ? documentRefHtml(r.documents,r.pages||[])
+      : '<span class="pb-legal-source">Sem evidência documental rastreável</span>';
+    return '<tr>'+
+      '<td>'+ovEsc(r.label)+'</td>'+
+      '<td><span class="pb-legal-status '+legalStatusClassV100(r.status)+'">'+ovEsc(r.status)+'</span></td>'+
+      '<td>'+ovEsc(r.responsible)+'</td>'+
+      '<td>'+ovEsc(r.foundation)+'<div class="pb-legal-source">'+ovEsc(r.nature)+'</div></td>'+
+      '<td>'+source+'</td>'+
+    '</tr>';
+  }).join("");
+
+  panel.innerHTML=
+    '<div class="ov-panel-head"><div>'+
+      '<h3>Matriz normativa · Perfil Pimenta Bueno</h3>'+
+      '<p>'+(
+        a.module_key==="formalizacao"
+          ?"Sequência da formalização, competência, fundamento parametrizado e evidência localizada."
+          :"Controle esperado, responsável, fundamento parametrizado e evidência localizada nos autos."
+      )+'</p>'+
+    '</div></div>'+
+    '<div class="pb-legal-table-wrap"><table class="pb-legal-table">'+
+      '<thead><tr><th>Controle</th><th>Status</th><th>Responsável</th><th>Fundamento / natureza</th><th>Evidência</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table></div>'+
+    '<div class="pb-legal-note">'+ovEsc(a.normative_profile.review_notice)+'</div>';
+
+  var grids=hub.querySelectorAll(".ov-grid");
+  if(grids.length)grids[0].insertAdjacentElement("afterend",panel);
+  else hub.appendChild(panel);
+};
+</script>
+"""
+core.HTML=core.HTML.replace("</body>",_formalizacao_v110_js+"</body>",1)
+core.app.version="11.0"
