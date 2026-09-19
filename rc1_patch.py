@@ -4428,3 +4428,143 @@ document.addEventListener("DOMContentLoaded",function(){
 </script>
 """
 core.HTML = core.HTML.replace("</body>", _home_v86_js + "</body>", 1)
+
+
+# --- Home final congelada v8.7: compactação para 1366x768 ---
+_home_v87_css = r"""
+<style id="fiscaliza-home-v87">
+/* Ajuste final: manter os 6 módulos e ações totalmente visíveis na primeira dobra */
+
+#screenHome{
+  padding-top:8px!important;
+  padding-bottom:14px!important
+}
+
+.home-v86-summary{
+  min-height:80px!important;
+  padding:11px 14px!important;
+  gap:14px!important
+}
+.home-v86-summary h1{
+  font-size:24px!important;
+  line-height:1.12!important
+}
+.home-v86-summary p{
+  margin-top:4px!important;
+  font-size:16px!important;
+  line-height:1.35!important
+}
+.home-v86-kpis{
+  gap:7px!important
+}
+.home-v86-kpi{
+  min-width:136px!important;
+  padding:7px 9px!important
+}
+.home-v86-kpi b{
+  font-size:16px!important
+}
+.home-v86-kpi span{
+  margin-top:2px!important;
+  font-size:15px!important;
+  line-height:1.2!important
+}
+
+/* Aproxima os módulos da faixa superior */
+.home-v86-modules-head{
+  margin:8px 2px 6px!important
+}
+.home-v86-modules-head h2{
+  font-size:20px!important
+}
+.home-v86-modules-head p{
+  margin-top:2px!important;
+  font-size:15px!important;
+  line-height:1.3!important
+}
+
+/* Chip redundante removido: o topo já informa os 6 módulos */
+.home-v86-count{
+  display:none!important
+}
+
+/* Cards ligeiramente mais baixos sem reduzir legibilidade */
+.home-v86-grid{
+  gap:9px!important
+}
+.home-v86-card{
+  min-height:118px!important;
+  padding:10px 13px!important;
+  grid-template-columns:52px minmax(0,1fr)!important;
+  gap:11px!important
+}
+.home-v86-icon{
+  width:48px!important;
+  height:48px!important;
+  border-radius:10px!important;
+  margin-top:1px!important
+}
+.home-v86-icon svg{
+  width:25px!important;
+  height:25px!important
+}
+.home-v86-category{
+  padding:3px 7px!important;
+  font-size:15px!important
+}
+.home-v86-card h3{
+  margin-top:4px!important;
+  font-size:18px!important;
+  line-height:1.2!important
+}
+.home-v86-card p{
+  margin-top:3px!important;
+  font-size:16px!important;
+  line-height:1.3!important
+}
+.home-v86-actions{
+  margin-top:7px!important;
+  gap:7px!important
+}
+.home-v86-open,
+.home-v86-model{
+  padding:6px 9px!important;
+  font-size:15px!important
+}
+
+/* Recentes continua abaixo e não compete com a seleção inicial */
+.home-v86-recent{
+  margin-top:10px!important
+}
+
+/* Notebook / 1366x768: alvo principal */
+@media(max-height:800px) and (min-width:1000px){
+  #screenHome{
+    padding-top:6px!important
+  }
+  .home-v86-summary{
+    min-height:74px!important;
+    padding:9px 13px!important
+  }
+  .home-v86-summary h1{
+    font-size:23px!important
+  }
+  .home-v86-kpi{
+    padding:6px 8px!important
+  }
+  .home-v86-modules-head{
+    margin-top:6px!important;
+    margin-bottom:5px!important
+  }
+  .home-v86-card{
+    min-height:112px!important;
+    padding-top:9px!important;
+    padding-bottom:9px!important
+  }
+  .home-v86-actions{
+    margin-top:5px!important
+  }
+}
+</style>
+"""
+core.HTML = core.HTML.replace("</head>", _home_v87_css + "</head>", 1)
