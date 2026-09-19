@@ -6,7 +6,7 @@ MODULES = [
     ("planejamento", "Planejamento da contratação", "3101/2026", "7"),
     ("formalizacao", "Formalização da contratação", "3202/2026", "13"),
     ("fiscalizacao", "Fiscalização e execução", "1001/2026", "11"),
-    ("alteracoes", "Alterações contratuais", "3404/2026", "8"),
+    ("alteracoes", "Alterações contratuais", "3404/2026", "13"),
     ("penalizacao", "Penalização contratual", "2-0001/2026", "17"),
     ("encerramento", "Extinção / encerramento", "3606/2026", "8"),
 ]
@@ -77,10 +77,12 @@ def main():
             assert page.locator("#overviewHub .ov-stage").count() == 5
             assert "Não foi possível carregar o processo modelo" not in page.locator("body").inner_text()
 
-            if key in ("planejamento", "formalizacao", "fiscalizacao"):
+            if key in ("planejamento", "formalizacao", "fiscalizacao", "alteracoes"):
                 expect(page.locator(".pb-profile-chip").nth(0)).to_contain_text("Pimenta Bueno/RO")
                 if key == "fiscalizacao":
                     expect(page.locator(".pb-profile-chip").nth(1)).to_contain_text("Execução contratual")
+                elif key == "alteracoes":
+                    expect(page.locator(".pb-profile-chip").nth(1)).to_contain_text("Restabelecimento do equilíbrio econômico-financeiro")
                 else:
                     expect(page.locator(".pb-profile-chip").nth(1)).to_contain_text("Pregão — aquisição de bens")
                 expect(page.locator("#legalMatrixPanelV100")).to_be_visible(timeout=10000)
@@ -131,6 +133,24 @@ def main():
                 assert "Medição / recebimento" in stage_text
                 assert "Ocorrências / ciência" in stage_text
                 assert "Providências" in stage_text
+
+            if key == "alteracoes":
+                assert page.locator("#legalMatrixPanelV100 tbody tr").count() == 12
+                assert "Pedido e justificativa da alteração" in legal_text
+                assert "Fato superveniente, prova e nexo com o desequilíbrio" in legal_text
+                assert "Planilha / memória de cálculo / comprovação econômica" in legal_text
+                assert "Conferência da matriz de riscos" in legal_text
+                assert "Decisão motivada sobre a alteração" in legal_text
+                assert "Termo aditivo ou apostila compatível com a hipótese" in legal_text
+                assert "Índice contratual, data-base e interregno" not in legal_text
+                assert "Planilha de custos e instrumento coletivo da repactuação" not in legal_text
+                assert "Cálculo dos limites de acréscimo / supressão" not in legal_text
+                stage_text = page.locator("#overviewHub .ov-track").inner_text()
+                assert "Contrato / pedido" in stage_text
+                assert "Execução / interesse" in stage_text
+                assert "Prova / cálculos" in stage_text
+                assert "Análises / orçamento" in stage_text
+                assert "Decisão / aditivo" in stage_text
 
             # Navegação lateral existe para todas as áreas operacionais.
             for tab in ["documentos", "evidencias", "cronologia", "pendencias", "perguntar", "minutas", "relatorio"]:
