@@ -34,4 +34,4 @@ def test_processo_modelo_e_pdf_valido_e_chega_ao_julgamento():
     assert result.profile.quantity is not None
     assert result.profile.quantity.startswith("500 kits")
     assert any(e.key=="non_delivery" for e in result.evidence)
-    assert any(e.key=="sanction_decision" for e in result.evidence)
+    assert any(e.key=="final_decision" for e in result.evidence)
