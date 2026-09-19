@@ -6546,3 +6546,27 @@ normalizarOverviewV96=function(a){
 """
 core.HTML=core.HTML.replace("</body>",_profile_v100_js+"</body>",1)
 core.app.version="10.0"
+
+
+# --- IDs documentais do Planejamento Pimenta Bueno v10.1 ---
+_old_document_marker_v101=core._document_marker
+def _document_marker_v101(text):
+    raw=text or ""
+    lines=[re.sub(r"\s+"," ",x).strip() for x in raw.splitlines() if x.strip()]
+    heads=[
+        "PROCESSO DE PLANEJAMENTO DA CONTRATAÇÃO",
+        "PROCESSO DE PLANEJAMENTO DA CONTRATACAO",
+        "DOCUMENTO OFICIAL DE DEMANDA",
+        "DOD —",
+        "DOD -",
+        "ANÁLISE DE RISCOS",
+        "ANALISE DE RISCOS",
+    ]
+    for line in lines[:10]:
+        up=line.upper()
+        if any(h in up for h in heads) and len(line)<=180:
+            return line
+    return _old_document_marker_v101(text)
+
+core._document_marker=_document_marker_v101
+core.app.version="10.1"
