@@ -63,6 +63,10 @@ def main():
                 expect(page.locator("#overviewHub .ov-evidence-block h4").nth(1)).to_have_text("Controles complementares", timeout=10000)
                 stage_text = page.locator("#overviewHub .ov-track").inner_text()
                 assert "Demanda" in stage_text and "Aprovação" in stage_text
+                hub_text = page.locator("#overviewHub").inner_text().lower()
+                assert "defesa administrativa" not in hub_text
+                assert "notificação/intimação como peça autônoma" not in hub_text
+                assert page.locator("#overviewHub .ov-time").count() <= 6
 
             # Navegação lateral existe para todas as áreas operacionais.
             for tab in ["documentos", "evidencias", "cronologia", "pendencias", "perguntar", "minutas", "relatorio"]:
