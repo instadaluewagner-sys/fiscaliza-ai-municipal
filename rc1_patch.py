@@ -7994,8 +7994,6 @@ def _prior_collection_pages_v140(pages, commission_pages):
         is_notice=(
             "notificacao" in marker
             or head.startswith("notificacao")
-            or "notificacao - almoxarifado" in head
-            or "notificacao almoxarifado" in head
         )
         pre_context=any(x in z for x in [
             "almoxarifado","prazo de entrega","proceder a entrega","regularizar a obrigacao",
