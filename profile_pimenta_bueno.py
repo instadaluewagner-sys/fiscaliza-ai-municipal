@@ -324,6 +324,188 @@ FISCALIZACAO_CONTROLS = [
 ]
 
 
+ALTERATION_TYPES = {
+    "prorrogacao": "Prorrogação contratual",
+    "reajuste": "Reajuste em sentido estrito",
+    "repactuacao": "Repactuação",
+    "reequilibrio": "Restabelecimento do equilíbrio econômico-financeiro",
+    "acrescimo_supressao": "Acréscimo / supressão quantitativa",
+    "apostilamento": "Apostilamento",
+    "outra": "Outra alteração contratual",
+}
+
+ALTERACOES_CONTROLS = [
+    {
+        "id": "contrato_vigente",
+        "label": "Contrato vigente e alterações anteriores",
+        "responsible": "Unidade gestora / fiscalização",
+        "nature": "Base obrigatória para identificar a situação contratual vigente",
+        "criticality": "alta",
+        "applies_to": ["prorrogacao","reajuste","repactuacao","reequilibrio","acrescimo_supressao","apostilamento","outra"],
+        "foundation": "Lei nº 14.133/2021, arts. 124 a 136",
+        "absence_action": "Conferir o contrato e aditivos/apostilas anteriores antes de avaliar qualquer alteração.",
+    },
+    {
+        "id": "pedido_justificativa",
+        "label": "Pedido e justificativa da alteração",
+        "responsible": "Unidade gestora e/ou contratada, conforme a origem do pleito",
+        "nature": "Motivação e delimitação do pedido",
+        "criticality": "alta",
+        "applies_to": ["prorrogacao","reajuste","repactuacao","reequilibrio","acrescimo_supressao","outra"],
+        "foundation": "Lei nº 14.133/2021, art. 124",
+        "absence_action": "Sinalizar ausência da motivação do pedido e exigir conferência antes de prosseguir.",
+    },
+    {
+        "id": "relatorio_execucao",
+        "label": "Relatório da fiscalização sobre a execução",
+        "responsible": "Fiscal / gestor do contrato",
+        "nature": "Subsídio técnico sobre execução, cumprimento e interesse na alteração",
+        "criticality": "media",
+        "applies_to": ["prorrogacao","reequilibrio","acrescimo_supressao","outra"],
+        "foundation": "Lei nº 14.133/2021, art. 117; Decreto Municipal nº 6.287/2022",
+        "absence_action": "Conferir a situação de execução e eventual manifestação do fiscal/gestor.",
+    },
+    {
+        "id": "vantajosidade",
+        "label": "Demonstração de interesse público / vantajosidade",
+        "responsible": "Unidade gestora",
+        "nature": "Controle especialmente relevante para prorrogação e alterações com reflexo econômico",
+        "criticality": "alta",
+        "applies_to": ["prorrogacao","reequilibrio","acrescimo_supressao","outra"],
+        "foundation": "Lei nº 14.133/2021 e motivação administrativa do caso concreto",
+        "absence_action": "Conferir se a alteração preserva o interesse público e se a motivação demonstra sua vantagem ou necessidade.",
+    },
+    {
+        "id": "memoria_calculo",
+        "label": "Planilha / memória de cálculo / comprovação econômica",
+        "responsible": "Contratada e/ou unidade técnica",
+        "nature": "Demonstração do impacto econômico da alteração",
+        "criticality": "alta",
+        "applies_to": ["reajuste","repactuacao","reequilibrio","acrescimo_supressao"],
+        "foundation": "Lei nº 14.133/2021, arts. 124, 130, 134 e 135, conforme a hipótese",
+        "absence_action": "Sinalizar ausência da memória de cálculo ou comprovação econômica pertinente ao tipo de alteração.",
+    },
+    {
+        "id": "indice_data_base",
+        "label": "Índice contratual, data-base e interregno",
+        "responsible": "Unidade técnica / gestão contratual",
+        "nature": "Específico do reajuste em sentido estrito",
+        "criticality": "alta",
+        "applies_to": ["reajuste"],
+        "foundation": "Lei nº 14.133/2021, art. 92, §§ 3º e 4º",
+        "absence_action": "Conferir índice previsto no contrato, data-base e interregno aplicável.",
+    },
+    {
+        "id": "repactuacao_custos",
+        "label": "Planilha de custos e instrumento coletivo da repactuação",
+        "responsible": "Contratada / unidade técnica",
+        "nature": "Específico de serviços contínuos com dedicação exclusiva ou predominância de mão de obra",
+        "criticality": "alta",
+        "applies_to": ["repactuacao"],
+        "foundation": "Lei nº 14.133/2021, art. 135, especialmente § 6º",
+        "absence_action": "Conferir demonstração analítica dos custos e acordo, convenção ou sentença normativa pertinente.",
+    },
+    {
+        "id": "fato_superveniente_nexo",
+        "label": "Fato superveniente, prova e nexo com o desequilíbrio",
+        "responsible": "Requerente e unidade técnica",
+        "nature": "Específico do restabelecimento do equilíbrio econômico-financeiro",
+        "criticality": "alta",
+        "applies_to": ["reequilibrio"],
+        "foundation": "Lei nº 14.133/2021, art. 124, II, d, e arts. 130 e 131",
+        "absence_action": "Conferir o evento alegado, sua superveniência, a alocação de riscos e o nexo econômico com o contrato.",
+    },
+    {
+        "id": "matriz_riscos",
+        "label": "Conferência da matriz de riscos / alocação do evento",
+        "responsible": "Unidade técnica / gestão contratual",
+        "nature": "Condicional — relevante quando houver matriz de riscos ou alocação contratual do evento",
+        "criticality": "alta",
+        "applies_to": ["reequilibrio"],
+        "foundation": "Lei nº 14.133/2021, arts. 22 e 103 e disciplina do equilíbrio contratual",
+        "absence_action": "Verificar se existe matriz de riscos e se o evento alegado foi alocado a uma das partes.",
+    },
+    {
+        "id": "limites_quantitativos",
+        "label": "Cálculo dos limites de acréscimo / supressão e preservação do objeto",
+        "responsible": "Unidade técnica / gestão contratual",
+        "nature": "Específico de alteração quantitativa",
+        "criticality": "alta",
+        "applies_to": ["acrescimo_supressao"],
+        "foundation": "Lei nº 14.133/2021, arts. 125 e 126",
+        "absence_action": "Conferir percentuais, base de cálculo e se a alteração não transfigura o objeto contratado.",
+    },
+    {
+        "id": "dotacao",
+        "label": "Dotação / disponibilidade orçamentária para o impacto financeiro",
+        "responsible": "Unidade orçamentária",
+        "nature": "Condicional — exigível quando houver aumento ou reflexo financeiro a suportar",
+        "criticality": "alta",
+        "applies_to": ["prorrogacao","repactuacao","reequilibrio","acrescimo_supressao","outra"],
+        "foundation": "Legislação orçamentária e instrução da despesa; Lei nº 14.133/2021",
+        "absence_action": "Havendo impacto financeiro, conferir a disponibilidade orçamentária correspondente.",
+    },
+    {
+        "id": "analise_tecnica",
+        "label": "Análise técnica do pedido",
+        "responsible": "Unidade gestora / área técnica",
+        "nature": "Exame da hipótese, documentação e reflexos da alteração",
+        "criticality": "alta",
+        "applies_to": ["prorrogacao","reajuste","repactuacao","reequilibrio","acrescimo_supressao","outra"],
+        "foundation": "Lei nº 14.133/2021, arts. 123 e 124 e seguintes",
+        "absence_action": "Sinalizar para conferência da manifestação técnica que instrui a decisão.",
+    },
+    {
+        "id": "parecer_juridico",
+        "label": "Análise / parecer jurídico quando cabível",
+        "responsible": "PGM / unidade jurídica competente",
+        "nature": "Controle jurídico conforme a hipótese e o fluxo aplicável",
+        "criticality": "alta",
+        "applies_to": ["prorrogacao","repactuacao","reequilibrio","acrescimo_supressao","outra"],
+        "foundation": "Lei nº 14.133/2021 e fluxo jurídico-administrativo aplicável",
+        "absence_action": "Conferir a incidência do controle jurídico no caso concreto antes de concluir pela suficiência da instrução.",
+    },
+    {
+        "id": "decisao",
+        "label": "Decisão motivada sobre a alteração",
+        "responsible": "Autoridade competente",
+        "nature": "Conclusão administrativa do pedido",
+        "criticality": "alta",
+        "applies_to": ["prorrogacao","reajuste","repactuacao","reequilibrio","acrescimo_supressao","apostilamento","outra"],
+        "foundation": "Lei nº 14.133/2021, art. 123 e disciplina específica da alteração",
+        "absence_action": "Sinalizar ausência de decisão expressa e motivada sobre a solicitação ou alteração.",
+    },
+    {
+        "id": "formalizacao",
+        "label": "Termo aditivo ou apostila compatível com a hipótese",
+        "responsible": "Unidade competente pela formalização contratual",
+        "nature": "Forma de registro da alteração conforme sua natureza",
+        "criticality": "alta",
+        "applies_to": ["prorrogacao","reajuste","repactuacao","reequilibrio","acrescimo_supressao","apostilamento","outra"],
+        "foundation": "Lei nº 14.133/2021, arts. 132 e 136",
+        "absence_action": "Conferir se a hipótese exige termo aditivo ou admite simples apostila e se o instrumento utilizado é compatível.",
+    },
+]
+
+
+def classify_alteration_type(text_normalized: str) -> str:
+    """Classifica a alteração sem misturar institutos jurídicos distintos."""
+    z = text_normalized or ""
+    if "repactuacao" in z or "dedicacao exclusiva de mao de obra" in z or "convencao coletiva" in z:
+        return "repactuacao"
+    if "reequilibrio" in z or "restabelecimento do equilibrio" in z or "equilibrio economico financeiro" in z:
+        return "reequilibrio"
+    if "acrescimo" in z or "supressao" in z or "alteracao quantitativa" in z:
+        return "acrescimo_supressao"
+    if "reajuste" in z or "indice de reajustamento" in z:
+        return "reajuste"
+    if "prorrogacao" in z or "prorrogar" in z:
+        return "prorrogacao"
+    if "apostila" in z or "apostilamento" in z:
+        return "apostilamento"
+    return "outra"
+
+
 def classify_planning_procedure(text_normalized: str) -> str:
     """Classificação conservadora; 'outro' é preferível a inferência frágil."""
     z = text_normalized or ""
