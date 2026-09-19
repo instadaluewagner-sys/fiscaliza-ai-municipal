@@ -5086,3 +5086,183 @@ window.abrirModulo=abrirTelaModulo;
 </script>
 """
 core.HTML = core.HTML.replace("</body>", _model_autoload_v89_js + "</body>", 1)
+
+
+# --- Carregador central de processo modelo v9.0 ---
+_model_loader_v90_css = r"""
+<style id="fiscaliza-model-loader-v90">
+.model-loader-v90{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  min-height:190px;
+  text-align:center
+}
+.model-loader-v90 .spinner-v90{
+  width:34px;height:34px;
+  border:3px solid #d8e6ec;
+  border-top-color:#0b8f82;
+  border-radius:50%;
+  animation:modelSpinV90 .8s linear infinite
+}
+.model-loader-v90 strong{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:18px!important;
+  color:#12334d
+}
+.model-loader-v90 span{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:16px!important;
+  color:#6d8193
+}
+.model-loader-v90.error .spinner-v90{display:none}
+.model-loader-v90.error strong{color:#a8333f}
+@keyframes modelSpinV90{to{transform:rotate(360deg)}}
+</style>
+"""
+core.HTML = core.HTML.replace("</head>", _model_loader_v90_css + "</head>", 1)
+
+_model_loader_v90_js = r"""
+<script id="fiscaliza-model-loader-v90-js">
+var modelLoaderV90Busy=false;
+
+function modelLoaderV90State(mode,key,msg){
+  var empty=document.getElementById("systemEmpty");
+  if(!empty)return;
+  if(mode==="loading"){
+    empty.style.display="flex";
+    empty.innerHTML=
+      '<div class="model-loader-v90">'+
+        '<div class="spinner-v90"></div>'+
+        '<strong>Carregando processo modelo</strong>'+
+        '<span>'+esc(moduleLabels[key]||key)+' · preparando e analisando os documentos fictícios…</span>'+
+      '</div>';
+  }else if(mode==="error"){
+    empty.style.display="flex";
+    empty.innerHTML=
+      '<div class="model-loader-v90 error">'+
+        '<strong>Não foi possível carregar o processo modelo</strong>'+
+        '<span>'+esc(msg||"Tente novamente. Se o problema persistir, confira o deploy mais recente.")+'</span>'+
+      '</div>';
+  }
+}
+
+/* Reimplementação completa: não depende da versão antiga de testarDemo. */
+testarDemo=async function(){
+  if(modelLoaderV90Busy)return;
+
+  var queryModule=new URLSearchParams(window.location.search).get("module");
+  var key=(queryModule&&moduleLabels[queryModule])?queryModule:selectedModule;
+  if(!key||!moduleLabels[key]){
+    key="penalizacao";
+  }
+
+  modelLoaderV90Busy=true;
+  selectedModule=key;
+  demoMode=true;
+  modelLoaderV90State("loading",key);
+
+  try{
+    var r=await fetch("/api/demo-pdf?module="+encodeURIComponent(key),{
+      method:"GET",
+      cache:"no-store"
+    });
+    if(!r.ok){
+      var detail="";
+      try{detail=await r.text()}catch(_e){}
+      throw new Error("PDF modelo indisponível ("+r.status+")"+(detail?": "+detail.slice(0,140):""));
+    }
+
+    var blob=await r.blob();
+    if(!blob||blob.size<100){
+      throw new Error("O arquivo do processo modelo veio vazio.");
+    }
+
+    var input=document.getElementById("files");
+    if(!input){
+      throw new Error("Campo de documentos não encontrado na área de trabalho.");
+    }
+
+    var file=new File(
+      [blob],
+      "Processo-Modelo-"+key+"-FiscalizaAI.pdf",
+      {type:"application/pdf"}
+    );
+
+    var dt=new DataTransfer();
+    dt.items.add(file);
+    input.files=dt.files;
+
+    /* Mantém o módulo escolhido mesmo que versões antigas tenham defaults internos. */
+    selectedModule=key;
+
+    await analisar();
+
+    /* Confere se a análise realmente foi ativada. */
+    if(!lastAnalysisData){
+      await new Promise(function(resolve){setTimeout(resolve,120)});
+    }
+    if(!lastAnalysisData){
+      throw new Error("O PDF foi carregado, mas a análise não foi concluída.");
+    }
+
+  }catch(e){
+    console.error("Fiscaliza.AI · erro no processo modelo:",e);
+    modelLoaderV90State(
+      "error",
+      key,
+      e&&e.message?e.message:"Falha inesperada ao preparar o processo modelo."
+    );
+  }finally{
+    demoMode=false;
+    modelLoaderV90Busy=false;
+  }
+};
+
+/* Home: abre a área, deixa o reset interno terminar e só então carrega o modelo. */
+abrirModeloModuloV85=async function(key){
+  if(modelLoaderV90Busy)return;
+  if(!moduleLabels[key])return;
+
+  selectedModule=key;
+  abrirTelaModulo(key,null,true);
+
+  /* A versão de interface agenda prepararInicioModulo em setTimeout(0).
+     Esperamos esse ciclo terminar para não apagar a análise recém-carregada. */
+  await new Promise(function(resolve){setTimeout(resolve,90)});
+
+  selectedModule=key;
+  await testarDemo();
+};
+
+/* Botão dentro do módulo usa o mesmo carregador central. */
+usarProcessoModeloV89=async function(){
+  await testarDemo();
+};
+
+function corrigirBotoesModeloV90(){
+  document.querySelectorAll("#screenWorkspace button").forEach(function(btn){
+    var txt=(btn.textContent||"").toLowerCase();
+    if(txt.indexOf("usar processo modelo")>=0){
+      btn.setAttribute("onclick","testarDemo()");
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+  setTimeout(corrigirBotoesModeloV90,760);
+});
+
+var _abrirTelaModuloV90=abrirTelaModulo;
+abrirTelaModulo=function(key,el,push){
+  _abrirTelaModuloV90(key,el,push);
+  selectedModule=key;
+  setTimeout(corrigirBotoesModeloV90,20);
+};
+window.abrirModulo=abrirTelaModulo;
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _model_loader_v90_js + "</body>", 1)
