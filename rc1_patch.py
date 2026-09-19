@@ -5286,3 +5286,200 @@ window.abrirModulo=abrirTelaModulo;
 </script>
 """
 core.HTML = core.HTML.replace("</body>", _model_loader_v90_js + "</body>", 1)
+
+
+# --- Separação definitiva: Abrir módulo x Processo modelo v9.2 ---
+_model_flow_v92_js = r"""
+<script id="fiscaliza-model-flow-v92-js">
+/*
+  Regra definitiva:
+  - Abrir módulo = área vazia, nunca carrega demonstração.
+  - Processo modelo = abre o módulo e carrega somente o modelo daquele módulo.
+  - Uma demonstração antiga não pode terminar dentro de outro módulo.
+*/
+var modelFlowV92Token=0;
+
+function cancelarModeloPendenteV92(){
+  modelFlowV92Token++;
+  modelLoaderV90Busy=false;
+  modelLoadV89Busy=false;
+  demoMode=false;
+}
+
+function limparWorkspaceParaModuloV92(){
+  if(typeof prepararInicioModulo==="function"){
+    prepararInicioModulo();
+  }else{
+    lastAnalysisData=null;
+    var result=document.getElementById("result");
+    if(result){result.innerHTML="";result.style.display="none"}
+    var empty=document.getElementById("systemEmpty");
+    if(empty)empty.style.display="flex";
+  }
+}
+
+/* Ação exclusiva do botão "Abrir módulo". */
+function abrirModuloV92(key){
+  if(!moduleLabels[key])return;
+
+  cancelarModeloPendenteV92();
+  selectedModule=key;
+
+  /* Usa a navegação existente, mas força estado vazio depois dos wrappers legados. */
+  abrirTelaModulo(key,null,true);
+  selectedModule=key;
+  limparWorkspaceParaModuloV92();
+
+  setTimeout(function(){
+    if(selectedModule===key){
+      limparWorkspaceParaModuloV92();
+      corrigirBotoesModeloV92();
+    }
+  },30);
+}
+
+/* Carrega um modelo com chave explícita; nunca deduz pelo módulo anterior. */
+async function carregarProcessoModeloV92(key){
+  if(!moduleLabels[key])return;
+
+  var myToken=++modelFlowV92Token;
+  modelLoaderV90Busy=true;
+  modelLoadV89Busy=true;
+  demoMode=true;
+  selectedModule=key;
+
+  modelLoaderV90State("loading",key);
+
+  try{
+    var pdfResponse=await fetch("/api/demo-pdf?module="+encodeURIComponent(key),{
+      method:"GET",
+      cache:"no-store"
+    });
+    if(!pdfResponse.ok){
+      var pdfDetail="";
+      try{pdfDetail=await pdfResponse.text()}catch(_e){}
+      throw new Error("PDF modelo indisponível ("+pdfResponse.status+")"+(pdfDetail?": "+pdfDetail.slice(0,140):""));
+    }
+
+    if(myToken!==modelFlowV92Token || selectedModule!==key)return;
+
+    var blob=await pdfResponse.blob();
+    if(!blob||blob.size<100)throw new Error("O arquivo do processo modelo veio vazio.");
+
+    var input=document.getElementById("files");
+    if(!input)throw new Error("Campo de documentos não encontrado.");
+
+    var dt=new DataTransfer();
+    dt.items.add(new File(
+      [blob],
+      "Processo-Modelo-"+key+"-FiscalizaAI.pdf",
+      {type:"application/pdf"}
+    ));
+    input.files=dt.files;
+
+    if(myToken!==modelFlowV92Token || selectedModule!==key)return;
+
+    selectedModule=key;
+    await analisar();
+
+    /* Se o usuário trocou de módulo durante a análise, descarta visualmente o resultado antigo. */
+    if(myToken!==modelFlowV92Token || selectedModule!==key){
+      limparWorkspaceParaModuloV92();
+      return;
+    }
+
+    /* Defesa adicional contra resposta de módulo incorreto. */
+    var analyzedModule=(lastAnalysisData&&(
+      lastAnalysisData.module_key ||
+      (lastAnalysisData.process_profile&&lastAnalysisData.process_profile.module)
+    ))||key;
+
+    if(analyzedModule!==key){
+      limparWorkspaceParaModuloV92();
+      throw new Error("A análise retornou um módulo diferente do selecionado.");
+    }
+
+  }catch(e){
+    if(myToken===modelFlowV92Token && selectedModule===key){
+      console.error("Fiscaliza.AI · processo modelo:",e);
+      modelLoaderV90State("error",key,e&&e.message?e.message:"Falha ao carregar o processo modelo.");
+    }
+  }finally{
+    if(myToken===modelFlowV92Token){
+      demoMode=false;
+      modelLoaderV90Busy=false;
+      modelLoadV89Busy=false;
+    }
+  }
+}
+
+/* Ação exclusiva do botão "Processo modelo" da Home. */
+async function abrirModeloModuloV85(key){
+  if(!moduleLabels[key])return;
+
+  cancelarModeloPendenteV92();
+  selectedModule=key;
+  abrirTelaModulo(key,null,true);
+
+  /* Espera os resets legados do abrirTelaModulo finalizarem. */
+  await new Promise(function(resolve){setTimeout(resolve,80)});
+  if(selectedModule!==key)return;
+
+  limparWorkspaceParaModuloV92();
+  selectedModule=key;
+  await carregarProcessoModeloV92(key);
+}
+
+/* Botão interno: usa exatamente o módulo que está aberto. */
+async function usarProcessoModeloV92(){
+  var key=selectedModule;
+  var q=new URLSearchParams(window.location.search).get("module");
+  if(q&&moduleLabels[q])key=q;
+  if(!key||!moduleLabels[key])return;
+
+  cancelarModeloPendenteV92();
+  selectedModule=key;
+  limparWorkspaceParaModuloV92();
+  await carregarProcessoModeloV92(key);
+}
+
+function corrigirBotoesModeloV92(){
+  document.querySelectorAll("#screenWorkspace button").forEach(function(btn){
+    var txt=(btn.textContent||"").trim().toLowerCase();
+    if(txt.indexOf("usar processo modelo")>=0){
+      btn.setAttribute("onclick","usarProcessoModeloV92()");
+    }
+  });
+}
+
+/* Home final: ações independentes e explícitas. */
+homeV86Card=function(key,meta){
+  var icon=(typeof homeIconSvg==="function")?homeIconSvg(key):"";
+  return '<article class="home-v86-card" data-module="'+key+'">'+
+    '<div class="home-v86-icon">'+icon+'</div>'+
+    '<div>'+
+      '<span class="home-v86-category">'+ovEsc(meta.category)+'</span>'+
+      '<h3>'+ovEsc(meta.title)+'</h3>'+
+      '<p>'+ovEsc(meta.desc)+'</p>'+
+      '<div class="home-v86-actions">'+
+        '<button class="home-v86-open" onclick="abrirModuloV92(\''+key+'\')">Abrir módulo →</button>'+
+        '<button class="home-v86-model" onclick="abrirModeloModuloV85(\''+key+'\')">Processo modelo</button>'+
+      '</div>'+
+    '</div>'+
+  '</article>';
+};
+
+/* Impede wrappers antigos de converter o botão Abrir módulo em modelo. */
+ativarCardsModeloV85=function(){};
+restaurarCardsModuloV85=function(){};
+
+document.addEventListener("DOMContentLoaded",function(){
+  setTimeout(function(){
+    if(typeof construirHomeV86==="function")construirHomeV86();
+    corrigirBotoesModeloV92();
+  },900);
+});
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _model_flow_v92_js + "</body>", 1)
+core.app.version="9.2"
