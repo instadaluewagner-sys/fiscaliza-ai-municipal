@@ -18,6 +18,7 @@ def test_shell_profissional_tem_navegacao_dupla_e_viewer():
         'data-tab="drafts"',
         'data-tab="reports"',
         'id="pdfViewer"',
+        'onclick="analyzeDemoProcess()"',
     ]:
         assert expected in html
 
@@ -36,6 +37,8 @@ def test_javascript_renderiza_visao_geral_minuta_e_fontes():
         "async function loadOverviewDraftPreview(",
         "async function loadCompatibleDraft(",
         "async function openDocument(",
+        "async function analyzeDemoProcess(",
+        "async function runAnalysis(",
     ]:
         assert function_name in js
 
