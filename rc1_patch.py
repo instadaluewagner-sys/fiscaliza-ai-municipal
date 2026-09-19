@@ -1722,3 +1722,348 @@ document.addEventListener("DOMContentLoaded",function(){
 </script>
 """
 core.HTML = core.HTML.replace("</body>", _home_v80_js + "</body>", 1)
+
+
+# --- Refino de densidade e leitura: Home + módulos internos v8.1 ---
+_layout_readability_v81_css = r"""
+<style id="fiscaliza-layout-readability-v81">
+
+/* =========================================================
+   HOME: mantém o visual aprovado, mas traz os serviços para cima
+   ========================================================= */
+.home-commercial-hero.home-approved-v80{
+  min-height:245px!important;
+  padding:22px 26px!important;
+  grid-template-columns:minmax(0,1.45fr) minmax(150px,.38fr) minmax(300px,.62fr)!important;
+  gap:18px!important
+}
+.home-approved-v80 h1{
+  font-size:34px!important;
+  margin-top:10px!important
+}
+.home-approved-v80 .home-copy>p{
+  margin-top:9px!important;
+  font-size:16px!important;
+  line-height:1.5!important
+}
+.home-approved-v80 .home-benefits{
+  margin-top:13px!important;
+  gap:7px!important
+}
+.home-approved-v80 .home-benefits span{
+  padding:7px 10px!important
+}
+.home-visual{
+  min-height:170px!important
+}
+.home-visual-card{
+  width:145px!important;
+  height:145px!important;
+  border-radius:22px!important
+}
+.home-visual-card svg{
+  width:108px!important;
+  height:108px!important
+}
+.home-visual-note{
+  display:none!important
+}
+.home-approved-v80 .home-side-card{
+  min-height:205px!important;
+  padding:16px!important
+}
+.home-approved-v80 .home-side-card strong{
+  font-size:20px!important
+}
+.home-approved-v80 .home-side-card p{
+  margin-top:6px!important;
+  line-height:1.45!important
+}
+.home-approved-v80 .home-stats{
+  margin-top:10px!important
+}
+.home-approved-v80 .home-stat{
+  padding:8px!important
+}
+.home-flow-foot{
+  margin-top:9px!important;
+  padding-top:8px!important;
+  font-size:14px!important
+}
+
+.screen-home .module-panel.home-only{
+  padding:18px 20px 20px!important
+}
+.screen-home .module-toolbar{
+  margin-bottom:12px!important
+}
+.screen-home .module-toolbar-copy h2{
+  font-size:23px!important
+}
+.screen-home .module-toolbar-copy p{
+  margin-top:3px!important
+}
+.screen-home .module-card{
+  min-height:142px!important
+}
+
+/* =========================================================
+   ÁREA OPERACIONAL: mais largura útil para informação densa
+   ========================================================= */
+.system-layout{
+  grid-template-columns:250px minmax(0,1fr)!important;
+  gap:16px!important
+}
+.system-main{
+  min-width:0!important;
+  width:100%!important
+}
+#result.system-result{
+  min-width:0!important;
+  width:100%!important
+}
+
+/* Quando um container misto mostra só um bloco, não o deixa preso
+   à primeira coluna da antiga grade. */
+#result.system-result > .cols[data-group="mixed"],
+#result.system-result > .control-grid[data-group="mixed"]{
+  grid-template-columns:minmax(0,1fr)!important
+}
+#result.system-result > .cols[data-group="mixed"] > .section,
+#result.system-result > .control-grid[data-group="mixed"] > .section{
+  width:100%!important;
+  min-width:0!important
+}
+
+/* =========================================================
+   EVIDÊNCIAS: tabela com distribuição de largura previsível
+   ========================================================= */
+#result.system-result table.matrix{
+  width:100%!important;
+  table-layout:fixed!important;
+  border-collapse:collapse!important
+}
+#result.system-result table.matrix th,
+#result.system-result table.matrix td{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif!important;
+  font-size:16px!important;
+  line-height:1.5!important;
+  padding:14px 14px!important;
+  vertical-align:top!important;
+  overflow-wrap:anywhere!important
+}
+#result.system-result table.matrix th:nth-child(1),
+#result.system-result table.matrix td:nth-child(1){
+  width:24%!important
+}
+#result.system-result table.matrix th:nth-child(2),
+#result.system-result table.matrix td:nth-child(2){
+  width:12%!important
+}
+#result.system-result table.matrix th:nth-child(3),
+#result.system-result table.matrix td:nth-child(3){
+  width:49%!important
+}
+#result.system-result table.matrix th:nth-child(4),
+#result.system-result table.matrix td:nth-child(4){
+  width:15%!important;
+  white-space:nowrap!important;
+  text-align:right!important
+}
+#result.system-result .matrix-ok,
+#result.system-result .matrix-limit{
+  white-space:nowrap!important;
+  word-break:normal!important;
+  overflow-wrap:normal!important;
+  font-weight:700!important
+}
+#result.system-result .ref-stack{
+  gap:7px!important;
+  align-items:center!important
+}
+#result.system-result .doc-id-chip,
+#result.system-result .doc-origin,
+#result.system-result .page-chip{
+  font-size:16px!important;
+  line-height:1.35!important
+}
+
+/* =========================================================
+   PONTOS A CONFRONTAR / ACHADOS: uma coluna larga
+   ========================================================= */
+#result.system-result [data-group="evidencias"] .finding,
+#result.system-result .finding{
+  display:grid!important;
+  grid-template-columns:42px minmax(0,1fr)!important;
+  gap:13px!important;
+  width:100%!important;
+  padding:15px!important;
+  margin:0 0 12px!important;
+  border:1px solid #dce5eb!important;
+  border-radius:13px!important;
+  background:#fbfdfe!important
+}
+#result.system-result .finding-num{
+  width:32px!important;
+  height:32px!important;
+  border-radius:9px!important;
+  display:grid!important;
+  place-items:center!important;
+  font-size:16px!important;
+  line-height:1!important
+}
+#result.system-result .finding-text{
+  font-size:16px!important;
+  line-height:1.55!important
+}
+#result.system-result .finding-foot{
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:wrap!important;
+  gap:7px!important;
+  margin-top:9px!important;
+  font-size:16px!important;
+  line-height:1.45!important
+}
+
+/* Força containers de confrontação/evidência a ocupar a largura disponível. */
+#result.system-result .cols{
+  gap:14px!important
+}
+#result.system-result .cols > .section[data-group="evidencias"]{
+  width:100%!important;
+  min-width:0!important
+}
+
+/* =========================================================
+   CRONOLOGIA: cards largos em trilho horizontal legível
+   ========================================================= */
+#result.system-result .timeline{
+  display:flex!important;
+  gap:12px!important;
+  width:100%!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:8px 2px 14px!important;
+  scroll-snap-type:x proximity!important
+}
+#result.system-result .timeline-step{
+  flex:0 0 250px!important;
+  min-width:250px!important;
+  max-width:250px!important;
+  min-height:155px!important;
+  padding:14px!important;
+  border:1px solid #dce5eb!important;
+  border-top:4px solid #0b8f82!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  scroll-snap-align:start!important;
+  overflow:hidden!important
+}
+#result.system-result .timeline-step .tp{
+  font-size:16px!important;
+  line-height:1.45!important;
+  margin-bottom:9px!important
+}
+#result.system-result .timeline-step b{
+  display:block!important;
+  font-size:16px!important;
+  line-height:1.45!important;
+  overflow-wrap:anywhere!important
+}
+#result.system-result .timeline::-webkit-scrollbar{
+  height:10px
+}
+#result.system-result .timeline::-webkit-scrollbar-thumb{
+  background:#a8b8c5;
+  border-radius:999px
+}
+#result.system-result .timeline::-webkit-scrollbar-track{
+  background:#edf2f5;
+  border-radius:999px
+}
+
+/* =========================================================
+   PENDÊNCIAS: sem cartão estreito e sem status quebrado
+   ========================================================= */
+#result.system-result .control-grid{
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:14px!important
+}
+#result.system-result .control-card{
+  width:100%!important;
+  max-width:none!important;
+  padding:16px 18px!important
+}
+#result.system-result .check-row{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 165px!important;
+  align-items:center!important;
+  gap:18px!important;
+  padding:13px 0!important;
+  font-size:16px!important;
+  line-height:1.5!important
+}
+#result.system-result .check-row > :last-child,
+#result.system-result .check-ok,
+#result.system-result .check-miss{
+  justify-self:end!important;
+  text-align:right!important;
+  white-space:nowrap!important;
+  word-break:normal!important;
+  overflow-wrap:normal!important;
+  font-size:16px!important;
+  line-height:1.35!important
+}
+#result.system-result [data-group="pendencias"]{
+  width:100%!important;
+  max-width:none!important
+}
+
+/* KPI de topo também sem microtexto */
+.dashboard-metrics .dash-metric small,
+.dashboard-metrics .dash-metric .mini{
+  font-size:16px!important;
+  line-height:1.35!important
+}
+.dashboard-metrics .dash-metric strong.text{
+  font-size:17px!important;
+  line-height:1.4!important
+}
+
+/* Responsividade sem voltar a comprimir */
+@media(max-width:1100px){
+  .home-commercial-hero.home-approved-v80{
+    grid-template-columns:minmax(0,1fr) minmax(285px,.48fr)!important
+  }
+  .home-visual{display:none!important}
+  .system-layout{
+    grid-template-columns:235px minmax(0,1fr)!important
+  }
+}
+@media(max-width:900px){
+  .system-layout{
+    grid-template-columns:1fr!important
+  }
+  #result.system-result table.matrix{
+    min-width:820px!important
+  }
+  #result.system-result [data-group="evidencias"]{
+    overflow-x:auto!important
+  }
+}
+@media(max-width:700px){
+  #result.system-result .check-row{
+    grid-template-columns:1fr!important
+  }
+  #result.system-result .check-row > :last-child,
+  #result.system-result .check-ok,
+  #result.system-result .check-miss{
+    justify-self:start!important;
+    text-align:left!important
+  }
+}
+</style>
+"""
+
+core.HTML = core.HTML.replace("</head>", _layout_readability_v81_css + "</head>", 1)
