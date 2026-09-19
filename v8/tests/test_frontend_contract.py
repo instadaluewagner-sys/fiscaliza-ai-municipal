@@ -39,7 +39,6 @@ def test_javascript_renderiza_visao_geral_minuta_e_fontes():
     ]:
         assert function_name in js
 
-    assert "DOC-ID" not in js or "DOC-ID" in js  # arquivo pode usar a expressão apenas em textos de interface
     assert "/api/v8/draft/" in js
     assert "/api/v8/document/" in js
     assert "/api/v8/report/" in js
