@@ -6194,11 +6194,15 @@ abrirModeloModuloV85=async function(key){
   if(!moduleLabels[key])return;
 
   cancelarModeloV98();
+  var launchSeq=modelRequestSeqV98;
   selectedModule=key;
   abrirTelaModulo(key,null,true);
 
   await new Promise(function(resolve){setTimeout(resolve,90)});
-  if(selectedModule!==key)return;
+
+  /* Se o usuário escolheu "Abrir módulo" durante esta espera, mesmo no
+     MESMO módulo, a intenção de demonstração foi cancelada. */
+  if(selectedModule!==key || launchSeq!==modelRequestSeqV98)return;
 
   if(typeof prepararInicioModulo==="function")prepararInicioModulo();
   selectedModule=key;
@@ -6267,4 +6271,4 @@ document.addEventListener("DOMContentLoaded",function(){
 </script>
 """
 core.HTML = core.HTML.replace("</body>", _model_intent_v98_js + "</body>", 1)
-core.app.version="9.8"
+core.app.version="9.9"
