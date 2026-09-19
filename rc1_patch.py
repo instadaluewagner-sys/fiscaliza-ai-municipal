@@ -2687,3 +2687,390 @@ _timeline_grid_v83_css = r"""
 """
 
 core.HTML = core.HTML.replace("</head>", _timeline_grid_v83_css + "</head>", 1)
+
+
+# --- Refino de clareza: Evidências v2 v8.4 ---
+_evidence_clarity_v84_css = r"""
+<style id="fiscaliza-evidence-clarity-v84">
+
+/* Cabeçalhos de seção: menos técnicos, mais claros */
+#result.system-result [data-group="evidencias"] > .kicker,
+#result.system-result [data-group="evidencias"] .kicker{
+  font-size:16px!important;
+  line-height:1.4!important;
+  letter-spacing:.055em!important
+}
+#result.system-result [data-group="evidencias"] h2{
+  margin-top:5px!important;
+  margin-bottom:16px!important
+}
+
+/* =========================================================
+   CONFRONTO DOCUMENTAL — estrutura fixa de leitura
+   ========================================================= */
+.confront-v84-list{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:12px
+}
+.confront-v84-card{
+  display:grid;
+  grid-template-columns:44px minmax(0,1fr);
+  gap:14px;
+  width:100%;
+  padding:16px 18px;
+  border:1px solid #dce6ed;
+  border-left:5px solid #5f9cbd;
+  border-radius:13px;
+  background:#fbfdfe
+}
+.confront-v84-card:nth-child(3n+2){border-left-color:#c48a43;background:#fffdf9}
+.confront-v84-card:nth-child(3n+3){border-left-color:#4e9a7e;background:#f9fdfb}
+.confront-v84-num{
+  width:34px;height:34px;border-radius:9px;
+  display:grid;place-items:center;
+  background:#103a59;color:#fff;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:16px;font-weight:800
+}
+.confront-v84-label{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:15px!important;
+  line-height:1.3!important;
+  font-weight:700!important;
+  color:#71879a!important;
+  margin-bottom:5px!important
+}
+.confront-v84-text{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:17px!important;
+  line-height:1.55!important;
+  color:#203d54!important;
+  margin:0!important
+}
+.confront-v84-source{
+  margin-top:12px;
+  padding-top:11px;
+  border-top:1px solid #e2e9ee
+}
+.confront-v84-source-title{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:15px!important;
+  line-height:1.3!important;
+  font-weight:700!important;
+  color:#71879a!important
+}
+.confront-v84-doc{
+  margin-top:4px;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:16px!important;
+  line-height:1.45!important;
+  font-weight:700!important;
+  color:#304f66!important;
+  text-transform:none!important
+}
+.confront-v84-meta{
+  display:flex;flex-wrap:wrap;gap:7px;
+  margin-top:8px
+}
+.confront-v84-chip{
+  display:inline-flex;align-items:center;
+  padding:5px 8px;border-radius:999px;
+  border:1px solid #dce5eb;background:#fff;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:15px!important;line-height:1.25!important;
+  color:#6b8295!important
+}
+.confront-v84-origin{
+  margin-top:8px;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:15px!important;
+  line-height:1.4!important;
+  color:#8293a1!important
+}
+
+/* =========================================================
+   CONTRADIÇÕES E DIVERGÊNCIAS — mensagem compreensível
+   ========================================================= */
+.contradictions-v84-empty{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:15px 16px;border:1px solid #d6e7e2;
+  border-radius:12px;background:#f4fbf8
+}
+.contradictions-v84-icon{
+  width:30px;height:30px;border-radius:9px;
+  display:grid;place-items:center;flex:0 0 auto;
+  background:#e2f4ee;color:#08786e;
+  font-size:16px;font-weight:800
+}
+.contradictions-v84-empty b,
+.contradiction-v84-card b{
+  display:block;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:17px!important;
+  line-height:1.4!important;
+  color:#18374f!important
+}
+.contradictions-v84-empty p,
+.contradiction-v84-card p{
+  margin:4px 0 0!important;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:16px!important;
+  line-height:1.55!important;
+  color:#60778a!important
+}
+.contradiction-v84-card{
+  padding:15px 16px;
+  margin-top:10px;
+  border:1px solid #eadbbc;
+  border-left:5px solid #c48a43;
+  border-radius:12px;background:#fffaf1
+}
+.contradiction-v84-card.high{
+  border-color:#e9c9c5;
+  border-left-color:#ba4c40;
+  background:#fff7f6
+}
+
+/* =========================================================
+   RASTREABILIDADE — grade de quatro campos legíveis
+   ========================================================= */
+.trace-v84{
+  border:1px solid #dce5eb;
+  border-radius:13px;
+  overflow:hidden;
+  background:#fff
+}
+.trace-v84-head,
+.trace-v84-row{
+  display:grid;
+  grid-template-columns:minmax(150px,.8fr) minmax(155px,.7fr) minmax(260px,1.35fr) minmax(190px,.8fr);
+  gap:14px;
+  align-items:start
+}
+.trace-v84-head{
+  padding:11px 14px;
+  background:#f3f6f8;
+  border-bottom:1px solid #dce5eb
+}
+.trace-v84-head span{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:15px!important;
+  line-height:1.3!important;
+  font-weight:700!important;
+  color:#667d90!important;
+  text-transform:none!important;
+  letter-spacing:0!important
+}
+.trace-v84-row{
+  padding:14px;
+  border-top:1px solid #e6ecf0
+}
+.trace-v84-row:first-of-type{border-top:0}
+.trace-v84-row:nth-child(even){background:#fbfdfe}
+.trace-v84-topic{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:16px!important;
+  line-height:1.45!important;
+  font-weight:700!important;
+  color:#17354d!important
+}
+.trace-v84-status{
+  display:inline-flex;align-items:center;
+  width:max-content;max-width:100%;
+  padding:5px 9px;border-radius:999px;
+  background:#eaf7f3;border:1px solid #c8e5dd;
+  color:#08786e;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:15px!important;line-height:1.25!important;
+  font-weight:700!important;
+  white-space:normal!important
+}
+.trace-v84-doc{
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:16px!important;
+  line-height:1.5!important;
+  color:#405d72!important;
+  font-weight:600!important;
+  text-transform:none!important
+}
+.trace-v84-meta{
+  display:flex;flex-wrap:wrap;gap:6px
+}
+.trace-v84-chip{
+  display:inline-flex;
+  padding:5px 8px;border-radius:999px;
+  border:1px solid #dce5eb;background:#f8fafb;
+  color:#6a8296;
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  font-size:15px!important;line-height:1.25!important
+}
+
+/* =========================================================
+   MATRIZ DE EVIDÊNCIAS — hierarquia editorial
+   ========================================================= */
+#result.system-result table.matrix thead th{
+  background:#f3f6f8!important;
+  color:#62798c!important;
+  text-transform:none!important;
+  letter-spacing:0!important;
+  font-size:16px!important;
+  font-weight:700!important
+}
+#result.system-result table.matrix td:first-child{
+  font-weight:600!important;
+  color:#203d54!important
+}
+#result.system-result table.matrix td:nth-child(2){
+  color:#50697c!important
+}
+#result.system-result table.matrix td:nth-child(3) .doc-origin{
+  color:#304f66!important;
+  font-weight:700!important;
+  text-transform:none!important
+}
+#result.system-result table.matrix tbody tr:nth-child(even){
+  background:#fbfdfe!important
+}
+#result.system-result table.matrix tbody tr:hover{
+  background:#f5fafc!important
+}
+
+/* Responsividade */
+@media(max-width:980px){
+  .trace-v84-head{display:none!important}
+  .trace-v84-row{
+    grid-template-columns:1fr!important;
+    gap:8px!important
+  }
+}
+@media(max-width:620px){
+  .confront-v84-card{
+    grid-template-columns:1fr!important
+  }
+}
+</style>
+"""
+core.HTML = core.HTML.replace("</head>", _evidence_clarity_v84_css + "</head>", 1)
+
+_evidence_clarity_v84_js = r"""
+<script id="fiscaliza-evidence-clarity-v84-js">
+function sourceNameV84(x){
+  var s=(x&&x.source_document_id)||"";
+  if(s)return readableDocumentTitleV82(s);
+  return "Documento do processo";
+}
+function originNameV84(x){
+  return (x&&x.file)?String(x.file):"";
+}
+function renderConfrontoV84(a){
+  if(!a||a.module_key!=="penalizacao")return;
+  var sec=acharSectionPorTitulo("Pontos a confrontar");
+  if(!sec)return;
+  var items=a.contra||[];
+  var html='<div class="kicker">Confronto documental</div><h2>Pontos a confrontar</h2>';
+  if(!items.length){
+    html+='<div class="empty">Nenhum ponto de confronto foi localizado automaticamente.</div>';
+    sec.innerHTML=html;return;
+  }
+  html+='<div class="confront-v84-list">';
+  items.forEach(function(x,i){
+    var doc=sourceNameV84(x);
+    var origin=originNameV84(x);
+    html+='<article class="confront-v84-card">'+
+      '<div class="confront-v84-num">'+(i+1)+'</div>'+
+      '<div>'+
+        '<div class="confront-v84-label">Fato ou questão a verificar</div>'+
+        '<p class="confront-v84-text">'+ovEsc(x.text||"Ponto identificado para conferência.")+'</p>'+
+        '<div class="confront-v84-source">'+
+          '<div class="confront-v84-source-title">Fonte principal</div>'+
+          '<div class="confront-v84-doc">'+ovEsc(doc)+'</div>'+
+          '<div class="confront-v84-meta">'+
+            (x.page?'<span class="confront-v84-chip">Página '+ovEsc(x.page)+'</span>':'')+
+            (x.document_id?'<span class="confront-v84-chip">ID '+ovEsc(x.document_id)+'</span>':'')+
+          '</div>'+
+          (origin?'<div class="confront-v84-origin">Arquivo de origem: '+ovEsc(origin)+'</div>':'')+
+        '</div>'+
+      '</div>'+
+    '</article>';
+  });
+  html+='</div>';
+  sec.innerHTML=html;
+}
+function renderContradictionsV84(a){
+  var sec=acharSectionPorTitulo("Contradições e divergências");
+  if(!sec||!a)return;
+  var items=a.contradictions||[];
+  var html='<div class="kicker">Confronto inteligente</div><h2>Contradições e divergências</h2>';
+  if(!items.length){
+    html+='<div class="contradictions-v84-empty">'+
+      '<span class="contradictions-v84-icon">✓</span>'+
+      '<div><b>Nenhuma divergência objetiva detectada automaticamente</b>'+
+      '<p>Os documentos analisados não apresentaram, nesta leitura, conflito objetivo que exigisse alerta automático. A conferência humana dos autos continua necessária.</p></div>'+
+    '</div>';
+  }else{
+    items.forEach(function(x){
+      html+='<article class="contradiction-v84-card '+(x.severity==="alta"?"high":"")+'">'+
+        '<b>'+ovEsc(x.title||"Divergência localizada")+'</b>'+
+        '<p>'+ovEsc(x.detail||"Conferir os documentos relacionados antes da conclusão.")+'</p>'+
+      '</article>';
+    });
+  }
+  sec.innerHTML=html;
+}
+function renderTraceV84(a){
+  var sec=acharSectionPorTitulo("Rastreabilidade da conclusão");
+  if(!sec||!a)return;
+  var rows=a.traceability||[];
+  var html='<div class="kicker">Como chegou aqui</div><h2>Rastreabilidade da conclusão</h2>';
+  if(!rows.length){
+    html+='<div class="empty">Nenhuma referência de rastreabilidade foi consolidada.</div>';
+    sec.innerHTML=html;return;
+  }
+  html+='<div class="trace-v84">'+
+    '<div class="trace-v84-head"><span>Tema</span><span>Situação</span><span>Documento</span><span>Página / ID</span></div>';
+  rows.forEach(function(r){
+    var docs=r.documents||[];
+    var d=docs.length?docs[0]:null;
+    var docName=d&&d.source_document_id?readableDocumentTitleV82(d.source_document_id):(r.source||"Documento do processo");
+    var pages=r.pages||[];
+    var ids=[];
+    docs.forEach(function(x){if(x.document_id&&ids.indexOf(x.document_id)<0)ids.push(x.document_id)});
+    var meta='';
+    pages.slice(0,4).forEach(function(p){if(p)meta+='<span class="trace-v84-chip">p. '+ovEsc(p)+'</span>'});
+    ids.slice(0,3).forEach(function(id){meta+='<span class="trace-v84-chip">ID '+ovEsc(id)+'</span>'});
+    html+='<div class="trace-v84-row">'+
+      '<div class="trace-v84-topic">'+ovEsc(r.claim||"Evidência")+'</div>'+
+      '<div><span class="trace-v84-status">'+ovEsc(r.status||"Localizado")+'</span></div>'+
+      '<div class="trace-v84-doc">'+ovEsc(readableDocumentTitleV82(docName))+'</div>'+
+      '<div class="trace-v84-meta">'+meta+'</div>'+
+    '</div>';
+  });
+  html+='</div>';
+  sec.innerHTML=html;
+}
+function refineMatrixHeadersV84(){
+  var matrix=document.querySelector("#result.system-result table.matrix");
+  if(!matrix)return;
+  var th=matrix.querySelectorAll("thead th");
+  if(th[0])th[0].textContent="Questão analisada";
+  if(th[1])th[1].textContent="Resultado";
+  if(th[2])th[2].textContent="Documento / página";
+  if(th[3])th[3].textContent="Situação";
+}
+function aplicarEvidenciasV84(a){
+  renderConfrontoV84(a);
+  renderContradictionsV84(a);
+  renderTraceV84(a);
+  refineMatrixHeadersV84();
+  statusChipsV82();
+}
+
+var _ajustarResultadoModuloV84=ajustarResultadoModulo;
+ajustarResultadoModulo=function(a){
+  _ajustarResultadoModuloV84(a);
+  setTimeout(function(){aplicarEvidenciasV84(a)},0);
+};
+</script>
+"""
+core.HTML = core.HTML.replace("</body>", _evidence_clarity_v84_js + "</body>", 1)
