@@ -550,3 +550,110 @@ mostrarAbaProcesso=function(tab,btn){
 """
 
 core.HTML=core.HTML.replace("</body>",_fiscal_ui_js+"</body>",1)
+
+
+# --- Legibilidade global do sistema v7.6 ---
+_readability_css = r"""
+<style id="fiscaliza-readability-v76">
+/* Base de leitura */
+body{font-size:14px!important}
+button,input,textarea,select{font-size:13px!important}
+
+/* Cabeçalho e contexto do processo */
+.brandtext strong{font-size:18px!important}
+.brandtext span{font-size:11px!important}
+.workspace-title small{font-size:10px!important}
+.workspace-title strong{font-size:20px!important}
+.workspace-title span{font-size:12px!important;line-height:1.45!important}
+.process-context span{font-size:10px!important}
+.process-status{font-size:11px!important}
+
+/* Menu lateral */
+.side-brand small{font-size:9.5px!important}
+.side-brand strong{font-size:15px!important}
+.side-item{font-size:12px!important;padding:11px 10px!important}
+.side-ico{font-size:10px!important}
+.side-footer{font-size:9.5px!important;line-height:1.6!important}
+
+/* KPIs e cartões */
+.dash-metric small{font-size:9.5px!important}
+.dash-metric strong{font-size:20px!important}
+.dash-metric strong.text{font-size:12px!important;line-height:1.35!important}
+.dash-metric .mini{font-size:9.5px!important}
+
+/* Títulos, rótulos e descrições */
+.kicker,.panel-kicker,.ov-eyebrow{font-size:10px!important}
+.title,.panel-title{font-size:20px!important}
+.desc,.panel-desc{font-size:12.5px!important;line-height:1.55!important}
+#result.system-result .title,#result.system-result h2{font-size:17px!important}
+.section h2,.ov-panel-head h3{font-size:16px!important}
+
+/* Visão geral */
+.ov-title{font-size:21px!important}
+.ov-sub{font-size:12.5px!important;line-height:1.6!important}
+.ov-chip{font-size:10px!important}
+.ov-next small{font-size:9.5px!important}
+.ov-next strong{font-size:14px!important}
+.ov-next p{font-size:11.5px!important;line-height:1.55!important}
+.ov-progress-head b{font-size:13px!important}
+.ov-progress-head span{font-size:10px!important}
+.ov-stage{font-size:10.5px!important}
+.ov-summary{font-size:12.5px!important;line-height:1.65!important}
+.ov-evidence-item p{font-size:11.5px!important;line-height:1.55!important}
+.ov-evidence-item span{font-size:9.5px!important}
+.ov-time b{font-size:10.5px!important}
+.ov-time small{font-size:9px!important}
+
+/* Documentos e evidências */
+.piece-name{font-size:13px!important}
+.source,.file-name{font-size:10.5px!important}
+.page-chip{font-size:9.5px!important}
+.matrix th{font-size:10.5px!important}
+.matrix td{font-size:11.5px!important;line-height:1.5!important}
+.finding-text{font-size:12px!important;line-height:1.55!important}
+.source-card{font-size:9.5px!important}
+.dossier-label{font-size:11.5px!important}
+.dossier-source{font-size:10px!important}
+.dossier-status{font-size:9.5px!important}
+.dossier-group-title{font-size:9.5px!important}
+.process-fact small{font-size:9px!important}
+.process-fact strong{font-size:12px!important}
+
+/* Cronologia */
+.timeline-step b{font-size:11.5px!important;line-height:1.4!important}
+.timeline-step .tp{font-size:9.5px!important}
+.ov-time{font-size:10.5px!important}
+
+/* Pendências e alertas */
+.check-row{font-size:11.5px!important;line-height:1.5!important}
+.review-flag{font-size:11.5px!important;line-height:1.5!important}
+.warning,.warn{font-size:11.5px!important;line-height:1.55!important}
+.empty,.result-empty{font-size:11.5px!important}
+
+/* Perguntas */
+.qa input,.qa-input{font-size:13px!important}
+.answer-text,#answer{font-size:12.5px!important;line-height:1.6!important}
+
+/* Minutas */
+.draft-text,.ov-draft-paper{font-size:12.5px!important;line-height:1.7!important}
+.draft-toolbar strong{font-size:12px!important}
+.draft-toolbar span,.draft-sources{font-size:10px!important}
+.doc-chain .btn{font-size:11px!important}
+
+/* Relatório e privacidade */
+.privacy-box p,.footnote,.footer-note{font-size:11.5px!important;line-height:1.55!important}
+
+/* Botões */
+.btn{font-size:12px!important}
+.workspace-back,.recent-open,.config-btn{font-size:10.5px!important}
+
+/* Mantém densidade sem voltar a ficar minúsculo em notebooks */
+@media(max-width:1100px){
+  body{font-size:13.5px!important}
+  .side-item{font-size:11.5px!important}
+  .matrix td{font-size:11px!important}
+}
+</style>
+"""
+
+core.HTML = core.HTML.replace("</head>", _readability_css + "</head>", 1)
