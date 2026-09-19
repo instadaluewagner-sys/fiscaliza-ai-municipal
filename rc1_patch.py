@@ -724,3 +724,212 @@ h3{font-size:14pt!important}
 </style>
 """
 core.HTML = core.HTML.replace("</head>", _calibri12_css + "</head>", 1)
+
+
+# --- Legibilidade forte: Calibri 12 real em toda a interface v7.7 ---
+_calibri12_strict_css = r"""
+<style id="fiscaliza-calibri12-strict">
+:root{--font-ui:Calibri,"Segoe UI",Arial,sans-serif}
+
+/* 12pt no navegador equivale aproximadamente a 16px. */
+body{font-family:var(--font-ui)!important;font-size:16px!important}
+
+/* HOME / seleção de módulos */
+.module-panel.home-only .kicker,
+.module-toolbar-copy .kicker{font-size:16px!important}
+.module-toolbar-copy h2{font-size:24px!important;line-height:1.25!important}
+.module-toolbar-copy p{font-size:16px!important;line-height:1.55!important}
+
+.screen-home .module-card{
+  min-height:150px!important;
+  padding:18px!important;
+}
+.screen-home .module-card.active{padding:18px!important}
+.screen-home .module-icon{
+  width:42px!important;height:42px!important;
+  font-size:16px!important;
+  margin-bottom:12px!important
+}
+.screen-home .module-name{
+  font-size:18px!important;
+  line-height:1.35!important
+}
+.screen-home .module-desc{
+  font-size:16px!important;
+  line-height:1.5!important;
+  margin-top:7px!important;
+  padding-right:8px!important
+}
+.module-category{
+  font-size:14px!important;
+  padding:5px 8px!important;
+  top:14px!important;right:14px!important
+}
+.screen-home .module-card:after{
+  font-size:14px!important;
+  bottom:13px!important;
+  right:14px!important
+}
+
+/* Processos recentes */
+.recent-head .kicker{font-size:16px!important}
+.recent-head h3{font-size:22px!important}
+.recent-head p{font-size:16px!important;line-height:1.5!important}
+.recent-row{
+  min-height:78px!important;
+  grid-template-columns:minmax(220px,1.2fr) minmax(180px,1fr) minmax(170px,.8fr) minmax(150px,.7fr) auto!important;
+  gap:16px!important;
+  padding:14px 16px!important
+}
+.recent-main b{font-size:17px!important}
+.recent-main span,
+.recent-cell,
+.recent-status{font-size:16px!important;line-height:1.45!important}
+.recent-open{
+  font-size:16px!important;
+  padding:10px 14px!important
+}
+.recent-empty{font-size:16px!important}
+
+/* Topo */
+.brandtext strong{font-size:20px!important}
+.brandtext span{font-size:16px!important}
+.config-btn{font-size:16px!important}
+.live,.topmeta{font-size:16px!important}
+
+/* Workspace */
+.workspace-back{font-size:16px!important}
+.workspace-title small{font-size:16px!important}
+.workspace-title strong{font-size:22px!important}
+.workspace-title span{font-size:16px!important;line-height:1.5!important}
+.process-context span{font-size:16px!important;padding:5px 9px!important}
+.process-status{font-size:16px!important}
+
+/* Menu lateral */
+.side-brand small{font-size:16px!important}
+.side-brand strong{font-size:19px!important}
+.side-item{
+  font-size:17px!important;
+  line-height:1.35!important;
+  padding:13px 12px!important
+}
+.side-ico{
+  width:28px!important;height:28px!important;
+  font-size:14px!important
+}
+.side-footer{font-size:15px!important;line-height:1.55!important}
+
+/* Estado vazio */
+.system-empty{min-height:230px!important;padding:34px!important}
+.empty-launch h3{font-size:22px!important}
+.empty-launch p{font-size:16px!important;line-height:1.55!important;max-width:760px!important}
+.empty-launch .btn{font-size:16px!important;padding:12px 18px!important}
+
+/* KPIs */
+.dash-metric{min-height:88px!important;padding:12px 14px!important}
+.dash-metric small{font-size:15px!important}
+.dash-metric strong{font-size:24px!important}
+.dash-metric strong.text{font-size:16px!important;line-height:1.4!important}
+.dash-metric .mini{font-size:15px!important}
+
+/* Conteúdo interno */
+.kicker,.panel-kicker,.ov-eyebrow{font-size:16px!important}
+.title,.panel-title,
+#result.system-result .title,
+#result.system-result h2,
+.section h2,
+.ov-panel-head h3{font-size:21px!important;line-height:1.3!important}
+
+.desc,.panel-desc,
+.ov-sub,.ov-summary,
+.ov-next p,
+.ov-evidence-item p,
+.finding-text,
+.warning,.warn,
+.empty,.result-empty,
+.check-row,.review-flag,
+.privacy-box p,.footnote,.footer-note{
+  font-size:16px!important;
+  line-height:1.6!important
+}
+
+.ov-title{font-size:24px!important}
+.ov-chip,.ov-stage,.ov-progress-head span,
+.ov-next small,.ov-evidence-item span,
+.ov-time,.ov-time b,.ov-time small{
+  font-size:15px!important;
+  line-height:1.45!important
+}
+.ov-next strong{font-size:18px!important}
+
+/* Documentos / evidências / cronologia */
+.piece-name,
+.dossier-label,
+.process-fact strong,
+.timeline-step b{
+  font-size:16px!important;
+  line-height:1.5!important
+}
+.source,.file-name,.page-chip,
+.dossier-source,.dossier-status,.dossier-group-title,
+.process-fact small,.timeline-step .tp,
+.source-card{
+  font-size:15px!important;
+  line-height:1.5!important
+}
+.matrix th{font-size:15px!important}
+.matrix td{font-size:16px!important;line-height:1.55!important}
+.matrix th,.matrix td{padding:12px 13px!important}
+
+/* Perguntar / minutas / botões */
+.qa input,.qa-input,
+.answer-text,#answer,
+.draft-text,.ov-draft-paper{
+  font-family:var(--font-ui)!important;
+  font-size:16px!important;
+  line-height:1.65!important
+}
+.draft-toolbar strong,
+.draft-toolbar span,
+.draft-sources{font-size:16px!important}
+.btn,.doc-chain .btn{
+  font-family:var(--font-ui)!important;
+  font-size:16px!important;
+  padding:11px 16px!important
+}
+
+/* Garante que elementos auxiliares específicos não voltem abaixo do piso */
+.module-selected,
+.home-badge,
+.home-benefits span,
+.home-side-card p,
+.home-stat span,
+.settings-head p,
+.settings-note,
+.np-field label,
+.np-field input,
+.demo-note,
+.bank-step b,
+.bank-step span{
+  font-size:16px!important;
+  line-height:1.5!important
+}
+
+/* Mais espaço horizontal para textos maiores */
+.system-layout{grid-template-columns:270px minmax(0,1fr)!important}
+.system-sidebar{padding:14px!important}
+.piece-grid{gap:14px!important}
+.summary-grid{gap:12px!important}
+
+@media(max-width:1150px){
+  .recent-row{grid-template-columns:1fr auto!important}
+  .recent-cell.hide-mobile{display:none!important}
+}
+@media(max-width:980px){
+  .system-layout{grid-template-columns:1fr!important}
+  .side-nav{grid-template-columns:repeat(2,1fr)!important}
+}
+</style>
+"""
+
+core.HTML = core.HTML.replace("</head>", _calibri12_strict_css + "</head>", 1)
