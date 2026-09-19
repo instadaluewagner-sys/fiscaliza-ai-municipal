@@ -366,14 +366,12 @@ function renderAnalysis(a,meta){
   showTab("overview");
 }
 
-form.addEventListener("submit",async function(e){
-  e.preventDefault();
-  const input=document.getElementById("files");
-  if(!input.files.length)return;
+async function runAnalysis(files){
+  if(!files||!files.length)return;
   if(currentAnalysisId)await deleteCurrentAnalysis(false);
 
   const fd=new FormData();
-  Array.from(input.files).forEach(function(file){fd.append("files",file)});
+  Array.from(files).forEach(function(file){fd.append("files",file)});
   startState.classList.add("hidden");
   processWorkspace.classList.remove("hidden");
   document.getElementById("overviewContent").innerHTML='<div class="loading">Analisando os autos, segmentando documentos e consolidando a fase processual…</div>';
@@ -392,4 +390,28 @@ form.addEventListener("submit",async function(e){
     startState.classList.remove("hidden");processWorkspace.classList.add("hidden");
     alert("Não foi possível analisar o processo: "+err.message);
   }
+}
+
+async function analyzeDemoProcess(){
+  const button=document.querySelector(".demo-btn");
+  const previous=button?button.textContent:"";
+  if(button){button.disabled=true;button.textContent="Preparando processo modelo…";}
+  try{
+    const r=await fetch("/api/v8/demo.pdf");
+    if(!r.ok)throw new Error("Não foi possível carregar o processo modelo.");
+    const blob=await r.blob();
+    const file=new File([blob],"fiscaliza-v8-processo-modelo.pdf",{type:"application/pdf"});
+    await runAnalysis([file]);
+  }catch(err){
+    alert(err.message);
+  }finally{
+    if(button){button.disabled=false;button.textContent=previous||"Usar processo modelo";}
+  }
+}
+
+form.addEventListener("submit",async function(e){
+  e.preventDefault();
+  const input=document.getElementById("files");
+  if(!input.files.length)return;
+  await runAnalysis(input.files);
 });
