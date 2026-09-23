@@ -1,0 +1,31 @@
+name: V8 tests
+
+on:
+  push:
+    branches: [v8-rebuild]
+    paths:
+      - "v8/**"
+      - "render-v8-preview.yaml"
+      - ".github/workflows/v8-tests.yml"
+  pull_request:
+    paths:
+      - "v8/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r v8/requirements.txt
+      - name: Check Python syntax
+        run: python -m compileall -q v8
+      - name: Check frontend JavaScript syntax
+        run: node --check v8/static/app.js
+      - name: Run V8 tests
+        run: PYTHONPATH=. pytest -q v8/tests
+      - name: Build V8 Docker image
+        run: docker build -f v8/Dockerfile -t fiscaliza-ai-v8:ci .

@@ -1,0 +1,48 @@
+{
+  "case_id": "felicio-dos-santos-pas-07-2025",
+  "source": {
+    "type": "public_decision",
+    "url": "https://feliciodossantos.mg.gov.br/arquivo/69610df0940e0.pdf",
+    "pdf_pages": 2
+  },
+  "process_number": "07/2025",
+  "company": "CLEVER FERREIRA COSTA",
+  "object_description": "fornecimento de materiais elétricos",
+  "expected_stage": "julgamento",
+  "expected_suggested_draft": "notificacao_decisao",
+  "expected_stage_source_page": 1,
+  "expected_ocr_min": 1,
+  "documents": [
+    {
+      "type": "decisao",
+      "title": "DECISÃO ADMINISTRATIVA",
+      "page_start": 1,
+      "page_end": 2,
+      "content_pages": [
+        1,
+        2
+      ],
+      "notes": "Decisão final do PAS; a segunda página contém continuação das penalidades, determinação de publicação/comunicação e assinatura."
+    }
+  ],
+  "critical_facts": [
+    {
+      "key": "final_decision",
+      "fact": "decisão final aplica penalidades à empresa",
+      "support_page": 1
+    }
+  ],
+  "profile_expectations": {
+    "process_number": "07/2025",
+    "company": "CLEVER FERREIRA COSTA",
+    "cnpj": "28.259.514/0001-85",
+    "ata": "103/2025",
+    "quantity": null
+  },
+  "profile_conflicts": {},
+  "notes": [
+    "PDF público de duas páginas, útil para validar OCR e decisão final sancionadora.",
+    "A decisão registra que a interessada foi regularmente notificada e não apresentou defesa.",
+    "As penalidades incluem impedimento de licitar e contratar por 3 anos, multa moratória e rescisão unilateral da Ata de Registro de Preços nº 103/2025."
+  ]
+}

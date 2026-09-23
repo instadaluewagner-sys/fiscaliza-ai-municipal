@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pymupdf
+python-multipart
+pytesseract
+pillow
+pytest
+
+reportlab
