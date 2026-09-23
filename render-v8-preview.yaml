@@ -16,5 +16,13 @@ services:
         value: "62914560"
       - key: V8_MAX_FILES
         value: "5"
+      - key: V8_MAX_PAGES_PER_FILE
+        value: "500"
+      - key: V8_MAX_TOTAL_PAGES
+        value: "600"
+      - key: V8_MAX_OCR_PAGES_PER_FILE
+        value: "150"
+      - key: V8_MAX_TOTAL_OCR_PAGES
+        value: "200"
       - key: OCR_LANG
         value: por+eng
