@@ -35,6 +35,7 @@ def test_payload_auditavel_preserva_hash_e_analise():
         analysis_id="abc123",
         analysis=analysis,
         source_files=[{
+            "file_id":"ARQ-01",
             "filename":"processo.pdf",
             "sha256":"a"*64,
             "size_bytes":1234,
@@ -44,6 +45,7 @@ def test_payload_auditavel_preserva_hash_e_analise():
     )
     assert payload["schema"]=="fiscaliza-ai-v8-audit-report/1"
     assert payload["analysis_id"]=="abc123"
+    assert payload["source_files"][0]["file_id"]=="ARQ-01"
     assert payload["source_files"][0]["sha256"]=="a"*64
     assert payload["analysis"]["stage"]["key"]=="instaurado"
     assert payload["analysis"]["profile"]["contrato"]=="140/2026"
@@ -55,6 +57,7 @@ def test_relatorio_pdf_e_legivel_e_traz_fontes():
         analysis_id="abc123",
         analysis=analysis,
         source_files=[{
+            "file_id":"ARQ-01",
             "filename":"processo.pdf",
             "sha256":"b"*64,
             "size_bytes":5678,
@@ -71,6 +74,7 @@ def test_relatorio_pdf_e_legivel_e_traz_fontes():
 
     assert "Fiscaliza.AI Municipal" in text
     assert "140/2026" in text
+    assert "ARQ-01" in text
     assert "DOC-003" in text
     assert "bbbbbbbbbbbb" in text
     assert "revisao humana" in text.lower()
