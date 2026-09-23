@@ -11,6 +11,8 @@ class PageRef(BaseModel):
 class Document(BaseModel):
     id: str
     file: str
+    file_index: Optional[int] = None
+    file_id: Optional[str] = None
     type: str
     title: str
     page_start: int
