@@ -40,7 +40,7 @@ Concluído nesta etapa:
 
 - segmentação multi-página com separação de envelopes/protocolos e peças anexas;
 - gabarito automatizado do processo público ASSESTE, com gate de qualidade no GitHub Actions;
-- visualizador do PDF ligado ao DOC-ID + página;
+- visualizador do PDF ligado ao DOC-ID + página, preservando corretamente o arquivo de origem mesmo quando PDFs diferentes têm o mesmo nome;
 - perfil da contratação com processo, pregão, ata, contrato, empenhos, empresa, CNPJ, objeto e quantidade quando identificáveis com segurança;
 - detecção explícita de divergências cadastrais, preservando as fontes conflitantes;
 - central de evidências categorizadas e priorização da fonte técnica primária;
@@ -48,7 +48,7 @@ Concluído nesta etapa:
 - checklist com quatro estados: localizado, não localizado, não aplicável e inconclusivo;
 - minutas compatíveis com a fase, com fontes por DOC-ID + página;
 - notificação de instauração detalhada, sem inventar prazo, competência ou dado ausente;
-- sessão temporária com expiração, encerramento explícito, cabeçalhos no-store e limites por arquivo/lote;
+- sessão temporária com expiração, encerramento explícito, cabeçalhos no-store e limites por arquivo/lote, páginas e OCR;
 - processo modelo fictício analisado pelo mesmo pipeline dos uploads reais;
 - interface comercial com menu lateral + abas horizontais, Visão Geral executiva e prévia da minuta;
 - Blueprint isolado de preview no Render em `render-v8-preview.yaml`.
