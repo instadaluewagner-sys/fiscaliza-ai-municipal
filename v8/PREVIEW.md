@@ -12,7 +12,7 @@ Arquivo do Blueprint: `render-v8-preview.yaml`
 - usa `/api/v8/health` como health check;
 - só faz novo deploy depois que os checks do GitHub passam;
 - mantém análises temporárias em memória por 30 minutos;
-- limita cada PDF a 30 MB, o lote a 60 MB e até 5 PDFs por análise.
+- limita cada PDF a 30 MB, o lote a 60 MB e até 5 PDFs por análise; cada PDF pode ter até 500 páginas, o lote até 600 páginas, com limites próprios de OCR para evitar travamento da instância.
 
 ## Como criar quando chegar a hora
 
