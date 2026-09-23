@@ -96,10 +96,18 @@ async def analyze(module: str = "penalizacao", files: List[UploadFile] = File(..
     if module != "penalizacao":
         raise HTTPException(400, "Na V8 RC, apenas Penalização contratual está habilitada.")
 
-    pdf_uploads = [
-        upload for upload in files
-        if (upload.filename or "").lower().endswith(".pdf")
+    invalid_files = [
+        Path(upload.filename or "arquivo").name
+        for upload in files
+        if not (upload.filename or "").lower().endswith(".pdf")
     ]
+    if invalid_files:
+        raise HTTPException(
+            400,
+            "A V8 aceita somente arquivos PDF. Remova: " + ", ".join(invalid_files[:5]),
+        )
+
+    pdf_uploads = list(files)
     if len(pdf_uploads) > MAX_FILES:
         raise HTTPException(
             413,
