@@ -10,6 +10,7 @@ from typing import List
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, StreamingResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 
 from v8.modules.penalizacao import analyze_penalizacao
 from v8.services.document_segmenter import segment_documents
@@ -138,7 +139,7 @@ async def analyze(module: str = "penalizacao", files: List[UploadFile] = File(..
                 f"O arquivo '{filename}' excede o limite de {MAX_PDF_BYTES // (1024 * 1024)} MB por PDF.",
             )
         try:
-            extracted, ocr_count = extract_pages(data, filename)
+            extracted, ocr_count = await run_in_threadpool(extract_pages, data, filename)
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
         if len(pages) + len(extracted) > MAX_TOTAL_PAGES:
