@@ -162,6 +162,8 @@ def _new_document(counter: int, page: dict, detected) -> dict:
     return {
         "id": f"DOC-{counter:03d}",
         "file": page["file"],
+        "file_index": page.get("file_index"),
+        "file_id": page.get("file_id"),
         "type": dtype,
         "title": title,
         "page_start": page["page"],
@@ -179,7 +181,12 @@ def segment_documents(pages: list[dict]) -> list[Document]:
 
     for page in pages:
         detected = detect_header(page["text"])
-        file_changed = current is not None and page["file"] != current["file"]
+        if current is None:
+            file_changed = False
+        elif page.get("file_index") is not None or current.get("file_index") is not None:
+            file_changed = page.get("file_index") != current.get("file_index")
+        else:
+            file_changed = page["file"] != current["file"]
 
         starts_new = current is None or file_changed
         if current is not None and detected and not file_changed:
