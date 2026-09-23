@@ -23,6 +23,8 @@ SESSION_TTL_SECONDS = int(os.getenv("V8_SESSION_TTL_SECONDS", "1800"))
 MAX_PDF_BYTES = int(os.getenv("V8_MAX_PDF_BYTES", str(30 * 1024 * 1024)))
 MAX_TOTAL_UPLOAD_BYTES = int(os.getenv("V8_MAX_TOTAL_UPLOAD_BYTES", str(60 * 1024 * 1024)))
 MAX_FILES = int(os.getenv("V8_MAX_FILES", "5"))
+MAX_TOTAL_PAGES = int(os.getenv("V8_MAX_TOTAL_PAGES", "600"))
+MAX_TOTAL_OCR_PAGES = int(os.getenv("V8_MAX_TOTAL_OCR_PAGES", "200"))
 V8_ANALYSES: dict[str, dict] = {}
 
 app = FastAPI(title="Fiscaliza.AI V8", version="8.0.0-rc.1")
@@ -83,6 +85,8 @@ def health():
         "max_pdf_bytes": MAX_PDF_BYTES,
         "max_total_upload_bytes": MAX_TOTAL_UPLOAD_BYTES,
         "max_files": MAX_FILES,
+        "max_total_pages": MAX_TOTAL_PAGES,
+        "max_total_ocr_pages": MAX_TOTAL_OCR_PAGES,
     }
 
 
@@ -113,7 +117,7 @@ async def analyze(module: str = "penalizacao", files: List[UploadFile] = File(..
         filename = "".join(ch for ch in filename if ch >= " " and ch not in {'"', "\r", "\n"}) or "processo.pdf"
         if not filename.lower().endswith(".pdf"):
             continue
-        data = await upload.read()
+        data = await upload.read(MAX_PDF_BYTES + 1)
         total_upload_bytes += len(data)
         if total_upload_bytes > MAX_TOTAL_UPLOAD_BYTES:
             raise HTTPException(
@@ -129,6 +133,18 @@ async def analyze(module: str = "penalizacao", files: List[UploadFile] = File(..
             extracted, ocr_count = extract_pages(data, filename)
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
+        if len(pages) + len(extracted) > MAX_TOTAL_PAGES:
+            raise HTTPException(
+                413,
+                f"O conjunto de arquivos excede o limite de {MAX_TOTAL_PAGES} páginas por análise.",
+            )
+        if ocr_pages + ocr_count > MAX_TOTAL_OCR_PAGES:
+            raise HTTPException(
+                413,
+                f"O conjunto de arquivos exige OCR em mais de {MAX_TOTAL_OCR_PAGES} páginas. "
+                "Divida o processo em lotes menores ou envie PDFs com camada de texto.",
+            )
+
         pages.extend(extracted)
         ocr_pages += ocr_count
         names.append(filename)
