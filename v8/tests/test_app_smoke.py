@@ -34,7 +34,7 @@ def test_lote_com_mais_pdfs_que_o_limite_e_bloqueado():
 
 
 def test_lote_com_paginas_acima_do_limite_total_e_bloqueado(monkeypatch):
-    async def fake_extract(data, filename):
+    def fake_extract(data, filename):
         pages=[
             {"file":filename,"page":i,"text":"conteúdo suficiente para dispensar OCR","ocr":False}
             for i in range(1,MAX_TOTAL_PAGES+2)
