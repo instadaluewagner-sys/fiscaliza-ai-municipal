@@ -112,7 +112,7 @@ async def analyze(module: str = "penalizacao", files: List[UploadFile] = File(..
     stored_files = []
     total_upload_bytes = 0
 
-    for upload in pdf_uploads:
+    for file_index, upload in enumerate(pdf_uploads):
         filename = Path(upload.filename or "processo.pdf").name
         filename = "".join(ch for ch in filename if ch >= " " and ch not in {'"', "\r", "\n"}) or "processo.pdf"
         if not filename.lower().endswith(".pdf"):
@@ -145,10 +145,16 @@ async def analyze(module: str = "penalizacao", files: List[UploadFile] = File(..
                 "Divida o processo em lotes menores ou envie PDFs com camada de texto.",
             )
 
+        file_id = f"ARQ-{file_index+1:02d}"
+        for page in extracted:
+            page["file_index"] = file_index
+            page["file_id"] = file_id
+
         pages.extend(extracted)
         ocr_pages += ocr_count
         names.append(filename)
         stored_files.append({
+            "file_id": file_id,
             "filename": filename,
             "bytes": data,
             "sha256": hashlib.sha256(data).hexdigest(),
@@ -177,6 +183,7 @@ async def analyze(module: str = "penalizacao", files: List[UploadFile] = File(..
         "version": app.version,
         "files": [
             {
+                "file_id": item["file_id"],
                 "filename": item["filename"],
                 "sha256": item["sha256"],
                 "size_bytes": item["size_bytes"],
@@ -222,10 +229,12 @@ def read_document(analysis_id: str, document_id: str):
     if not doc:
         raise HTTPException(404, "Documento não encontrado nesta análise.")
 
-    file_index = next(
-        (i for i, source in enumerate(item["files"]) if source["filename"] == doc.file),
-        None,
-    )
+    file_index = doc.file_index
+    if file_index is None:
+        file_index = next(
+            (i for i, source in enumerate(item["files"]) if source["filename"] == doc.file),
+            None,
+        )
     return {
         "analysis_id": analysis_id,
         "document": doc.model_dump(exclude={"text", "page_texts"}),
