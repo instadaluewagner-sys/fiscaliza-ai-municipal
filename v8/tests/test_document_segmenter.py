@@ -340,3 +340,17 @@ DECIDO: Aplicar à empresa as penalidades cabíveis.
     assert p.company=="CLEVER FERREIRA COSTA"
     assert p.cnpj=="28.259.514/0001-85"
     assert p.sources["process_number"].page==1
+
+
+def test_pdfs_com_mesmo_nome_nao_sao_mesclados_quando_origem_e_diferente():
+    pages=[
+        {"file":"processo.pdf","file_index":0,"file_id":"ARQ-01","page":1,"text":"CONTRATO ADMINISTRATIVO Nº 100/2026","ocr":False},
+        {"file":"processo.pdf","file_index":1,"file_id":"ARQ-02","page":1,"text":"NOTIFICAÇÃO EXTRAJUDICIAL\nNOTIFICADO: EMPRESA MODELO LTDA\nAssunto: ciência do procedimento.","ocr":False},
+    ]
+    docs=segment_documents(pages)
+    assert len(docs)==2
+    assert docs[0].file_index==0
+    assert docs[0].file_id=="ARQ-01"
+    assert docs[1].file_index==1
+    assert docs[1].file_id=="ARQ-02"
+    assert docs[0].id!=docs[1].id
