@@ -47,3 +47,12 @@ def test_lote_com_paginas_acima_do_limite_total_e_bloqueado(monkeypatch):
         asyncio.run(analyze(files=uploads,module="penalizacao"))
     assert exc.value.status_code==413
     assert "páginas por análise" in str(exc.value.detail)
+
+
+def test_arquivo_nao_pdf_e_rejeitado_com_mensagem_clara():
+    uploads=[UploadFile(file=io.BytesIO(b"conteudo"),filename="anexo.docx")]
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(analyze(files=uploads,module="penalizacao"))
+    assert exc.value.status_code==400
+    assert "somente arquivos PDF" in str(exc.value.detail)
+    assert "anexo.docx" in str(exc.value.detail)
