@@ -64,6 +64,7 @@ def build_audit_payload(
         "module": analysis.module,
         "source_files": [
             {
+                "file_id": item.get("file_id"),
                 "filename": item.get("filename"),
                 "sha256": item.get("sha256"),
                 "size_bytes": item.get("size_bytes"),
@@ -172,14 +173,15 @@ def build_pdf_report(
 
     story.append(Paragraph("Fontes digitais analisadas", styles["Section"]))
     if source_files:
-        source_rows = [["Arquivo", "SHA-256", "Tamanho"]]
+        source_rows = [["ID", "Arquivo", "SHA-256", "Tamanho"]]
         for item in source_files:
             source_rows.append([
+                item.get("file_id") or "-",
                 Paragraph(escape(_ascii_dash(item.get("filename") or "")), styles["BodySmall"]),
                 Paragraph(escape(item.get("sha256") or "nao calculado"), styles["Small"]),
                 f"{item.get('size_bytes') or 0} bytes",
             ])
-        tbl = Table(source_rows, colWidths=[58*mm, 83*mm, 31*mm], repeatRows=1)
+        tbl = Table(source_rows, colWidths=[15*mm, 49*mm, 78*mm, 30*mm], repeatRows=1)
         tbl.setStyle(TableStyle([
             ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#0F2F49")),
             ("TEXTCOLOR", (0,0), (-1,0), colors.white),
